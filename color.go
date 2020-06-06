@@ -2,6 +2,7 @@ package colorpicker
 
 import (
 	"encoding/hex"
+	"image"
 	"image/color"
 	"strconv"
 	"strings"
@@ -14,6 +15,94 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
+
+type MuxState struct {
+	widget.Enum
+	Options        map[string]*color.RGBA
+	OrderedOptions []string
+}
+
+func NewMuxState(options ...MuxOption) MuxState {
+	keys := make([]string, 0, len(options))
+	mapped := make(map[string]*color.RGBA)
+	for _, opt := range options {
+		keys = append(keys, opt.Label)
+		mapped[opt.Label] = opt.Value
+	}
+	state := MuxState{
+		Options:        mapped,
+		OrderedOptions: keys,
+	}
+	if len(keys) > 0 {
+		state.Enum.Value = keys[0]
+	}
+	return state
+}
+
+type MuxOption struct {
+	Label string
+	Value *color.RGBA
+}
+
+func (m MuxState) Color() *color.RGBA {
+	return m.Options[m.Enum.Value]
+}
+
+type MuxStyle struct {
+	*MuxState
+	Theme *material.Theme
+	Label string
+}
+
+func Mux(theme *material.Theme, state *MuxState, label string) MuxStyle {
+	return MuxStyle{
+		Theme:    theme,
+		MuxState: state,
+		Label:    label,
+	}
+}
+
+func (m MuxStyle) Layout(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Min.Y = 0
+	var children []layout.FlexChild
+	inset := layout.UniformInset(unit.Dp(8))
+	children = append(children, layout.Rigid(func(gtx C) D {
+		return inset.Layout(gtx, func(gtx C) D {
+			return material.Body1(m.Theme, m.Label).Layout(gtx)
+		})
+	}))
+	for i := range m.OrderedOptions {
+		opt := m.OrderedOptions[i]
+		children = append(children, layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, func(gtx C) D {
+				return m.layoutOption(gtx, opt)
+			})
+		}))
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+
+func (m MuxStyle) layoutOption(gtx C, option string) D {
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			return material.RadioButton(m.Theme, &m.Enum, option, option).Layout(gtx)
+		}),
+		layout.Rigid(func(gtx C) D {
+			return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+				color := m.Options[option]
+				if color == nil {
+					return D{}
+				}
+				defer op.Push(gtx.Ops).Pop()
+				paint.ColorOp{Color: *color}.Add(gtx.Ops)
+				size := gtx.Px(unit.Dp(20))
+				sizef := float32(size)
+				paint.PaintOp{Rect: f32.Rect(0, 0, sizef, sizef)}.Add(gtx.Ops)
+				return D{Size: image.Pt(size, size)}
+			})
+		}),
+	)
+}
 
 type State struct {
 	R, G, B, A widget.Float
