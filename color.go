@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"image"
 	"image/color"
-	"log"
 	"strconv"
 	"strings"
 
@@ -109,7 +108,6 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(width, gtx.Constraints.Max.Y))
 	sliderMacro := op.Record(gtx.Ops)
 	sliderDims := p.layoutSliders(gtx)
-	log.Printf("dims: %v", sliderDims)
 	slider := sliderMacro.Stop()
 	stack.Pop()
 
