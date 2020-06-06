@@ -2,7 +2,6 @@ package colorpicker
 
 import (
 	"encoding/hex"
-	"image"
 	"image/color"
 	"strconv"
 	"strings"
@@ -104,8 +103,9 @@ func Picker(th *material.Theme, state *State, label string) PickerStyle {
 func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	p.State.Layout(gtx)
 	stack := op.Push(gtx.Ops)
-	width := gtx.Constraints.Max.X / 2
-	gtx.Constraints = layout.Exact(image.Pt(width, gtx.Constraints.Max.Y))
+	gtx.Constraints.Max.X /= 2
+	gtx.Constraints.Min.X = gtx.Constraints.Max.X
+	gtx.Constraints.Min.Y = 0
 	sliderMacro := op.Record(gtx.Ops)
 	sliderDims := p.layoutSliders(gtx)
 	slider := sliderMacro.Stop()
