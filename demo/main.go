@@ -34,8 +34,7 @@ type (
 var white = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 
 func loop(w *app.Window) error {
-	gofont.Register()
-	th := material.NewTheme()
+	th := material.NewTheme(gofont.Collection())
 	background := white
 	picker := colorpicker.State{}
 	picker.SetColor(color.RGBA{R: 255, G: 128, B: 75, A: 255})
@@ -65,12 +64,14 @@ func loop(w *app.Window) error {
 		case system.DestroyEvent:
 			return e.Err
 		case system.FrameEvent:
-			gtx := layout.NewContext(&ops, e.Queue, e.Config, e.Size)
+			gtx := layout.NewContext(&ops, e)
 			if muxState.Changed() {
 				background = *muxState.Color()
+				log.Printf("mux changed")
 			}
 			if picker.Changed() {
 				th.Color.Primary = picker.Color()
+				log.Printf("picker changed")
 			}
 			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
