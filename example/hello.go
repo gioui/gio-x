@@ -31,7 +31,7 @@ func main() {
 		}
 	}()
 	go func() {
-		channel, err := android.NewChannel("hello", "description")
+		channel, err := android.NewChannel("CHANNEL", "hello", "description")
 		if err != nil {
 			log.Printf("channel creation failed: %v", err)
 		}
