@@ -21,7 +21,6 @@ import (
 
 //go:generate javac -target 1.8 -source 1.8 -bootclasspath $ANDROID_HOME/platforms/android-29/android.jar ../android/NotificationHelper.java
 //go:generate jar cf NotificationHelper.jar ../android/NotificationHelper.class
-//go:generate rm ../android/NotificationHelper.class
 
 func main() {
 	go func() {
@@ -30,19 +29,13 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	go func() {
-		channel, err := android.NewChannel("CHANNEL", "hello", "description")
-		if err != nil {
-			log.Printf("channel creation failed: %v", err)
-		}
-		log.Println(channel)
-	}()
 	app.Main()
 }
 
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
+	first := true
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -56,6 +49,21 @@ func loop(w *app.Window) error {
 			l.Alignment = text.Middle
 			l.Layout(gtx)
 			e.Frame(gtx.Ops)
+			if first {
+				first = false
+				go func() {
+					channel, err := android.NewChannel("CHANNEL", "hello", "description")
+					if err != nil {
+						log.Printf("channel creation failed: %v", err)
+					}
+					log.Println(channel)
+					notif, err := channel.Send("hello!", "IS GIO OUT THERE?")
+					if err != nil {
+						log.Printf("notification send failed: %v", err)
+					}
+					log.Println(notif)
+				}()
+			}
 		}
 	}
 }

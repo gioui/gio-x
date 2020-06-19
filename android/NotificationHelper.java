@@ -21,4 +21,14 @@ public class NotificationHelper {
     	Log.e(tag,String.format("manager: %s",notificationManager));
         notificationManager.createNotificationChannel(channel);
     }
+    public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text) {
+        Notification.Builder builder = new Notification.Builder(ctx, channelID)
+                .setContentTitle(title)
+                .setSmallIcon(Icon.createWithBitmap(Bitmap.createBitmap(1,1,Bitmap.Config.ALPHA_8)))
+                .setContentText(text)
+                .setPriority(Notification.PRIORITY_DEFAULT);
+
+        NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
+        notificationManager.notify(notificationID, builder.build());
+    }
 }
