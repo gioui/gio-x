@@ -7,6 +7,7 @@ package main
 import (
 	"image/color"
 	"log"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/io/system"
@@ -62,6 +63,10 @@ func loop(w *app.Window) error {
 						log.Printf("notification send failed: %v", err)
 					}
 					log.Println(notif)
+					time.Sleep(time.Second * 10)
+					if err := notif.Cancel(); err != nil {
+						log.Printf("failed cancelling: %v", err)
+					}
 				}()
 			}
 		}

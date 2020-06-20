@@ -31,4 +31,8 @@ public class NotificationHelper {
         NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
         notificationManager.notify(notificationID, builder.build());
     }
+    public static void cancelNotification(Context ctx, int notificationID) {
+        NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
+        notificationManager.cancel(notificationID);
+    }
 }
