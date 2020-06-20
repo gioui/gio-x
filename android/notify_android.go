@@ -9,6 +9,9 @@ import (
 	"git.wow.st/gmp/jni"
 )
 
+// Importance represents the priority of notifications sent over a particular NotificationChannel.
+// You MUST use one of the constants defined here when specifying an importance for a channel.
+// These constants map to different values within the JVM.
 type Importance int
 
 const (
@@ -45,7 +48,9 @@ var (
 	// idlock protects the nextNotificationID to ensure that no notification is ever
 	// sent with a duplicate id.
 	//
-	// BUG(whereswaldon): does not handle integer overflow
+	// BUG(whereswaldon): Notification ID generation does not handle 32 bit integer
+	// overflow. Sending more than 2 billion notifications results in undefined
+	// behavior.
 	idlock             sync.Mutex
 	nextNotificationID int32
 
@@ -85,7 +90,11 @@ type NotificationChannel struct {
 }
 
 // NewChannel creates a new notification channel identified by the provided id
-// and with the given user-visible name and description.
+// and with the given user-visible name and description. The importance field
+// specifies how the android system should prioritize notifications sent over this
+// channel, and the value provided MUST be one of the constants declared by this
+// package. The actual value of the importance constant is translated into the
+// java value at runtime.
 func NewChannel(importance Importance, id, name, description string) (*NotificationChannel, error) {
 	if err := jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
 		appCtx := jni.Object(app.AppContext())
