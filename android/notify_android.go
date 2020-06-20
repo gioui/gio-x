@@ -2,7 +2,6 @@ package android
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"gioui.org/app"
@@ -113,7 +112,6 @@ func NewChannel(importance Importance, id, name, description string) (*Notificat
 				fieldID := jni.GetStaticFieldID(env, managerClass, name, "I")
 				importances[index] = jni.GetStaticIntField(env, managerClass, fieldID)
 			}
-			log.Printf("importances: %v", importances)
 
 		})
 		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "newChannel", "(Landroid/content/Context;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
