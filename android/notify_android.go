@@ -2,21 +2,73 @@ package android
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"gioui.org/app"
-	"github.com/tailscale/tailscale-android/jni"
+	"git.wow.st/gmp/jni"
 )
 
+type Importance int
+
 const (
-	helperClass = "ht/sr/git/whereswaldon/niotify/NotificationHelper"
+	ImportanceDefault Importance = iota
+	ImportanceHigh
+	ImportanceLow
+	ImportanceMax
+	ImportanceMin
+	ImportanceNone
+	ImportanceUnspecified
+	importanceEnd // compile-time hack to track the number of importance constants and size the
+	// array holding their values correctly. If new constants need to be added, add them above
+	// this.
+)
+
+// value returns the JVM value for this importance constant. It must not be invoked before the
+// importances have been resolved.
+func (i Importance) value() int32 {
+	return importances[i]
+}
+
+const (
+	helperClass               = "ht/sr/git/whereswaldon/niotify/NotificationHelper"
+	importanceDefaultName     = "IMPORTANCE_DEFAULT"
+	importanceHighName        = "IMPORTANCE_HIGH"
+	importanceLowName         = "IMPORTANCE_LOW"
+	importanceMaxName         = "IMPORTANCE_MAX"
+	importanceMinName         = "IMPORTANCE_MIN"
+	importanceNoneName        = "IMPORTANCE_NONE"
+	importanceUnspecifiedName = "IMPORTANCE_UNSPECIFIED"
 )
 
 var (
+	// idlock protects the nextNotificationID to ensure that no notification is ever
+	// sent with a duplicate id.
+	//
+	// BUG(whereswaldon): does not handle integer overflow
 	idlock             sync.Mutex
 	nextNotificationID int32
+
+	// jvmConstLock protects the mapping of JVM constants that must be resolved at runtime
+	jvmConstLock sync.Once
+	// importances tracks the IMPORTANCE_* constants from the JVM's values. Since they must
+	// be resolved at runtime, this array tracks their actual runtime values and the exported
+	// constants are simply indicies into this array.
+	importances [importanceEnd]int32
+	// map the JVM constant name to the index in the array
+	importancesMap = map[string]Importance{
+		importanceDefaultName:     ImportanceDefault,
+		importanceHighName:        ImportanceHigh,
+		importanceLowName:         ImportanceLow,
+		importanceMaxName:         ImportanceMax,
+		importanceMinName:         ImportanceMin,
+		importanceNoneName:        ImportanceNone,
+		importanceUnspecifiedName: ImportanceUnspecified,
+	}
 )
 
+// nextID safely returns the next unused notification id number. This function should
+// always be used to get a notificationID.
 func nextID() int32 {
 	idlock.Lock()
 	defer idlock.Unlock()
@@ -34,7 +86,7 @@ type NotificationChannel struct {
 
 // NewChannel creates a new notification channel identified by the provided id
 // and with the given user-visible name and description.
-func NewChannel(id, name, description string) (*NotificationChannel, error) {
+func NewChannel(importance Importance, id, name, description string) (*NotificationChannel, error) {
 	if err := jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
 		appCtx := jni.Object(app.AppContext())
 		classLoader := jni.ClassLoaderFor(env, appCtx)
@@ -42,11 +94,25 @@ func NewChannel(id, name, description string) (*NotificationChannel, error) {
 		if err != nil {
 			return err
 		}
-		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "newChannel", "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
+		jvmConstLock.Do(func() {
+			var managerClass jni.Class
+			managerClass, err = jni.LoadClass(env, classLoader, "android/app/NotificationManager")
+			if err != nil {
+				return
+			}
+			for name, index := range importancesMap {
+				fieldID := jni.GetStaticFieldID(env, managerClass, name, "I")
+				importances[index] = jni.GetStaticIntField(env, managerClass, fieldID)
+			}
+			log.Printf("importances: %v", importances)
+
+		})
+		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "newChannel", "(Landroid/content/Context;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
 		jname := jni.Value(jni.JavaString(env, name))
 		jdescription := jni.Value(jni.JavaString(env, description))
 		jID := jni.Value(jni.JavaString(env, id))
-		err = jni.CallStaticVoidMethod(env, notifyClass, newChannelMethod, jni.Value(app.AppContext()), jID, jname, jdescription)
+		jimportance := jni.Value(importance.value())
+		err = jni.CallStaticVoidMethod(env, notifyClass, newChannelMethod, jni.Value(app.AppContext()), jimportance, jID, jname, jdescription)
 		if err != nil {
 			return err
 		}

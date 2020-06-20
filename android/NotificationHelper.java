@@ -10,9 +10,8 @@ import android.graphics.drawable.Icon;
 
 public class NotificationHelper {
     private final static String tag = "NotificationHelper";
-    public static void newChannel(Context ctx, String channelID, String name, String description) {
+    public static void newChannel(Context ctx, int importance, String channelID, String name, String description) {
         Log.w(tag,String.format("newChannel invoked"));
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(channelID, name, importance);
     	Log.e(tag,String.format("channel: %s",channel));
         channel.setDescription(description);

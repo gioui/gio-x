@@ -53,7 +53,7 @@ func loop(w *app.Window) error {
 			if first {
 				first = false
 				go func() {
-					channel, err := android.NewChannel("CHANNEL", "hello", "description")
+					channel, err := android.NewChannel(android.ImportanceMax, "CHANNEL", "hello", "description")
 					if err != nil {
 						log.Printf("channel creation failed: %v", err)
 					}
