@@ -37,7 +37,10 @@ type linuxNotification struct {
 var _ notificationInterface = linuxNotification{}
 
 func (l *linuxManager) CreateNotification(title, text string) (*Notification, error) {
-	id, err := l.Notifier.SendNotification(notify.Notification{})
+	id, err := l.Notifier.SendNotification(notify.Notification{
+		Summary: title,
+		Body:    text,
+	})
 	if err != nil {
 		return nil, err
 	}
