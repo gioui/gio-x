@@ -15,9 +15,9 @@ import (
 	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/widget/material"
+	"git.sr.ht/~whereswaldon/niotify"
 
 	"gioui.org/font/gofont"
-	"git.sr.ht/~whereswaldon/niotify/android"
 )
 
 //go:generate javac -target 1.8 -source 1.8 -bootclasspath $ANDROID_HOME/platforms/android-29/android.jar ../android/NotificationHelper.java
@@ -53,16 +53,14 @@ func loop(w *app.Window) error {
 			if first {
 				first = false
 				go func() {
-					channel, err := android.NewChannel(android.ImportanceMax, "CHANNEL", "hello", "description")
+					mgr, err := niotify.NewManager()
 					if err != nil {
-						log.Printf("channel creation failed: %v", err)
+						log.Printf("manager creation failed: %v", err)
 					}
-					log.Println(channel)
-					notif, err := channel.Send("hello!", "IS GIO OUT THERE?")
+					notif, err := mgr.CreateNotification("hello!", "IS GIO OUT THERE?")
 					if err != nil {
 						log.Printf("notification send failed: %v", err)
 					}
-					log.Println(notif)
 					time.Sleep(time.Second * 10)
 					if err := notif.Cancel(); err != nil {
 						log.Printf("failed cancelling: %v", err)
