@@ -20,9 +20,6 @@ import (
 	"gioui.org/font/gofont"
 )
 
-//go:generate javac -target 1.8 -source 1.8 -bootclasspath $ANDROID_HOME/platforms/android-29/android.jar ../android/NotificationHelper.java
-//go:generate jar cf NotificationHelper.jar ../android/NotificationHelper.class
-
 func main() {
 	go func() {
 		w := app.NewWindow()
