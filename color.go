@@ -1,3 +1,15 @@
+/*
+Package colorpicker provides simple widgets for selecting an RGBA color
+and for choosing one of a set of colors.
+
+The PickerStyle type can be used to render a colorpicker (the state will be
+stored in a State). Colorpickers allow choosing specific RGBA values with
+sliders or providing an RGB hex code.
+
+The MuxStyle type can be used to render a color multiplexer (the state will
+be stored in a MuxState). Color multiplexers provide a choice from among a
+set of colors.
+*/
 package colorpicker
 
 import (
@@ -16,12 +28,16 @@ import (
 	"gioui.org/widget/material"
 )
 
+// MuxState holds the state of a color multiplexer. A color multiplexer allows
+// choosing from among a set of colors.
 type MuxState struct {
 	widget.Enum
 	Options        map[string]*color.RGBA
 	OrderedOptions []string
 }
 
+// NewMuxState creates a MuxState that will provide choices between
+// the MuxOptions given as parameters.
 func NewMuxState(options ...MuxOption) MuxState {
 	keys := make([]string, 0, len(options))
 	mapped := make(map[string]*color.RGBA)
@@ -39,21 +55,25 @@ func NewMuxState(options ...MuxOption) MuxState {
 	return state
 }
 
+// MuxOption is one choice for the value of a color multiplexer.
 type MuxOption struct {
 	Label string
 	Value *color.RGBA
 }
 
+// Color returns the currently-selected color.
 func (m MuxState) Color() *color.RGBA {
 	return m.Options[m.Enum.Value]
 }
 
+// MuxStyle renders a MuxState as a material design themed widget.
 type MuxStyle struct {
 	*MuxState
 	Theme *material.Theme
 	Label string
 }
 
+// Mux creates a MuxStyle from a theme and a state.
 func Mux(theme *material.Theme, state *MuxState, label string) MuxStyle {
 	return MuxStyle{
 		Theme:    theme,
@@ -62,6 +82,7 @@ func Mux(theme *material.Theme, state *MuxState, label string) MuxStyle {
 	}
 }
 
+// Layout renders the MuxStyle into the provided context.
 func (m MuxStyle) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = 0
 	var children []layout.FlexChild
@@ -104,6 +125,7 @@ func (m MuxStyle) layoutOption(gtx C, option string) D {
 	)
 }
 
+// State is the state of a colorpicker.
 type State struct {
 	R, G, B, A widget.Float
 	widget.Editor
@@ -111,6 +133,7 @@ type State struct {
 	changed bool
 }
 
+// SetColor changes the color represented by the colorpicker.
 func (s *State) SetColor(c color.RGBA) {
 	s.R.Value = float32(c.R) / 255.0
 	s.G.Value = float32(c.G) / 255.0
@@ -119,6 +142,7 @@ func (s *State) SetColor(c color.RGBA) {
 	s.updateEditor()
 }
 
+// Color returns the currently selected color.
 func (s State) Color() color.RGBA {
 	return color.RGBA{
 		R: s.Red(),
@@ -128,26 +152,32 @@ func (s State) Color() color.RGBA {
 	}
 }
 
+// Red returns the red value of the currently selected color.
 func (s State) Red() uint8 {
 	return uint8(s.R.Value * 255)
 }
 
+// Green returns the green value of the currently selected color.
 func (s State) Green() uint8 {
 	return uint8(s.G.Value * 255)
 }
 
+// Blue returns the blue value of the currently selected color.
 func (s State) Blue() uint8 {
 	return uint8(s.B.Value * 255)
 }
 
+// Alpha returns the alpha value of the currently selected color.
 func (s State) Alpha() uint8 {
 	return uint8(s.A.Value * 255)
 }
 
+// Changed returns whether the color has changed since last frame.
 func (s State) Changed() bool {
 	return s.changed
 }
 
+// Layout handles all state updates from the underlying widgets.
 func (s *State) Layout(gtx layout.Context) layout.Dimensions {
 	s.changed = false
 	if s.R.Changed() || s.G.Changed() || s.B.Changed() || s.A.Changed() {
@@ -170,6 +200,7 @@ func (s *State) updateEditor() {
 	s.changed = true
 }
 
+// PickerStyle renders a color picker using material widgets.
 type PickerStyle struct {
 	*State
 	*material.Theme
@@ -181,6 +212,7 @@ type (
 	D = layout.Dimensions
 )
 
+// Picker creates a pickerstyle from a theme and a state.
 func Picker(th *material.Theme, state *State, label string) PickerStyle {
 	return PickerStyle{
 		Theme: th,
@@ -189,6 +221,7 @@ func Picker(th *material.Theme, state *State, label string) PickerStyle {
 	}
 }
 
+// Layout renders the PickerStyle into the provided context.
 func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	p.State.Layout(gtx)
 	stack := op.Push(gtx.Ops)
