@@ -1,8 +1,8 @@
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20200622101735-5368743478e0 h1:9P/XQRVLD9C/BhavG9VarW0jJJF86PlOCivbLJE4cTk=
 gioui.org v0.0.0-20200622101735-5368743478e0/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-git.wow.st/whereswaldon/jni v0.0.0-20200620152723-b380472956a0 h1:+S/LqMv8h+w4LE/3XtAq1roX8OAZ/E6rqsl/EQ1eaK8=
-git.wow.st/whereswaldon/jni v0.0.0-20200620152723-b380472956a0/go.mod h1:ro8WfqxHdXc4wFC+3uP98fVT5uZqrq3yQPMV+LjP6MA=
+git.wow.st/gmp/jni v0.0.0-20200623180511-2e7d20a1b472 h1:YlBjj/ZrWg1Vs/h7ibZSXBpX9GUtvZ1ATNUVs+jhcXg=
+git.wow.st/gmp/jni v0.0.0-20200623180511-2e7d20a1b472/go.mod h1:+axXBRUTIDlCeE73IKeD/os7LoEnTKdkp8/gQOFjqyo=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/esiqveland/notify v0.9.1 h1:hX6ZD3FCQJXI46AzUM/iWekcMfnZ9TPE4uIu9Hrn1D4=
 github.com/esiqveland/notify v0.9.1/go.mod h1:63UbVSaeJwF0LVJARHFuPgUAoM7o1BEvCZyknsuonBc=
