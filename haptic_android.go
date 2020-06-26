@@ -61,6 +61,9 @@ func (b *Buzzer) Shutdown() {
 // Errors returns a channel of errors from trying to interface with the JVM. This
 // channel will close when Shutdown() is invoked.
 func (b *Buzzer) Errors() <-chan error {
+	if b == nil {
+		return nil
+	}
 	return b.errors
 }
 
