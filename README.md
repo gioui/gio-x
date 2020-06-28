@@ -1,5 +1,7 @@
 # haptic
 
+[![GoDoc](https://godoc.org/git.sr.ht/~whereswaldon/haptic?status.svg)](https://godoc.org/git.sr.ht/~whereswaldon/haptic)
+
 Haptic feedback for Gio applications on Android
 
 ## Status
@@ -14,12 +16,6 @@ On non-supported OSes, the API is the same but does nothing. This makes
 it easier to write cross-platform code that depends on haptic.
 
 ## Usage
-
-Until [this PR is merged](https://git.wow.st/gmp/jni/pulls/2), you'll need to add this to your `go.mod`:
-
-```
-replace git.wow.st/gmp/jni => git.wow.st/whereswaldon/jni v0.0.0-20200626194017-b74a17279b1f
-```
 
 Create a `Buzzer`:
 
