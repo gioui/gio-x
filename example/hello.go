@@ -57,6 +57,7 @@ func loop(w *app.Window) error {
 					notif, err := mgr.CreateNotification("hello!", "IS GIO OUT THERE?")
 					if err != nil {
 						log.Printf("notification send failed: %v", err)
+						return
 					}
 					time.Sleep(time.Second * 10)
 					if err := notif.Cancel(); err != nil {
