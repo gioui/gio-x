@@ -59,31 +59,16 @@ type NavItem struct {
 type renderNavItem struct {
 	*material.Theme
 	NavItem
-	hovering       bool
-	selected       bool
-	pressed        bool
-	animatingPress bool
-	widget.Press
-	clicked bool
-}
-
-func (n *renderNavItem) updateAnimationState(gtx layout.Context) {
-	if !n.animatingPress {
-		return
-	}
-	sinceStarted := gtx.Now.Sub(n.Press.Start)
-	if sinceStarted > navPressAnimationDuration {
-		n.animatingPress = false
-	}
+	hovering bool
+	selected bool
+	widget.Clickable
 }
 
 func (n *renderNavItem) Clicked() bool {
-	return n.clicked
+	return n.Clickable.Clicked()
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
-	n.clicked = false
-	n.updateAnimationState(gtx)
 	events := gtx.Events(n)
 	for _, event := range events {
 		switch event := event.(type) {
@@ -93,29 +78,20 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 				n.hovering = true
 			case pointer.Leave:
 				n.hovering = false
-			case pointer.Press:
-				n.pressed = true
-				n.Press.Start = gtx.Now
-				n.Press.Position = event.Position
-				n.Press.Cancelled = false
-				n.Press.End = time.Time{}
 			case pointer.Cancel:
 				n.hovering = false
-				n.Press.Cancelled = true
-			case pointer.Release:
-				n.animatingPress = true
-				n.Press.End = gtx.Now
-				n.clicked = true
 			}
 		}
 	}
+	n.Clickable.Layout(gtx)
 	defer op.Push(gtx.Ops).Pop()
+	pointer.PassOp{Pass: true}.Add(gtx.Ops)
 	pointer.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,
 	}).Add(gtx.Ops)
 	pointer.InputOp{
 		Tag:   n,
-		Types: pointer.Enter | pointer.Leave | pointer.Press | pointer.Release,
+		Types: pointer.Enter | pointer.Leave,
 	}.Add(gtx.Ops)
 	return layout.Inset{
 		Top:    unit.Dp(4),
@@ -156,11 +132,6 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-func (n *renderNavItem) pressAnimationProgress(gtx layout.Context) float32 {
-	sinceStarted := gtx.Now.Sub(n.Press.Start)
-	return float32(sinceStarted.Milliseconds()) / float32(navPressAnimationDuration.Milliseconds())
-}
-
 func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	if !n.selected && !n.hovering {
 		return layout.Dimensions{}
@@ -185,14 +156,14 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 		SW: rr,
 	}.Add(gtx.Ops)
 	paintRect(gtx, gtx.Constraints.Max, fill)
-	if n.pressed {
-		n.drawInk(gtx)
+	for _, click := range n.Clickable.History() {
+		n.drawInk(gtx, click)
 	}
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
 // adapted from https://git.sr.ht/~eliasnaur/gio/tree/773939fe1dd10b3ac5f937a7f9993045a91e23a7/widget/material/button.go#L189
-func (n *renderNavItem) drawInk(gtx layout.Context) {
+func (n *renderNavItem) drawInk(gtx layout.Context, c widget.Press) {
 	// duration is the number of seconds for the
 	// completed animation: expand while fading in, then
 	// out.
@@ -200,8 +171,6 @@ func (n *renderNavItem) drawInk(gtx layout.Context) {
 		expandDuration = float32(0.5)
 		fadeDuration   = float32(0.9)
 	)
-
-	c := n.Press
 
 	now := gtx.Now
 
