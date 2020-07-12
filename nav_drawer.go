@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -41,7 +43,43 @@ type NavItem struct {
 	Name string
 }
 
-func (n NavItem) Layout(th *material.Theme, gtx layout.Context) layout.Dimensions {
+// renderNavItem holds both basic nav item state and the interaction
+// state for that item.
+type renderNavItem struct {
+	*material.Theme
+	NavItem
+	hovering bool
+	selected bool
+	pressed  bool
+}
+
+func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
+	events := gtx.Events(n)
+	for _, event := range events {
+		switch event := event.(type) {
+		case pointer.Event:
+			switch event.Type {
+			case pointer.Enter:
+				n.hovering = true
+			case pointer.Leave:
+				n.hovering = false
+				n.pressed = false
+			case pointer.Press:
+				n.pressed = true
+			case pointer.Cancel:
+				n.hovering = false
+				n.pressed = false
+			}
+		}
+	}
+	defer op.Push(gtx.Ops).Pop()
+	pointer.Rect(image.Rectangle{
+		Max: gtx.Constraints.Max,
+	}).Add(gtx.Ops)
+	pointer.InputOp{
+		Tag:   n,
+		Types: pointer.Enter | pointer.Leave | pointer.Press | pointer.Release,
+	}.Add(gtx.Ops)
 	return layout.Inset{
 		Top:    unit.Dp(4),
 		Bottom: unit.Dp(4),
@@ -50,12 +88,63 @@ func (n NavItem) Layout(th *material.Theme, gtx layout.Context) layout.Dimension
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
-					return material.Label(th, unit.Dp(14), n.Name).Layout(gtx)
-				})
+				return layout.Stack{}.Layout(gtx,
+					layout.Expanded(n.layoutBackground),
+					layout.Stacked(n.layoutContent),
+				)
 			}),
 		)
 	})
+}
+
+func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
+	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+		defer op.Push(gtx.Ops).Pop()
+		macro := op.Record(gtx.Ops)
+		label := material.Label(n.Theme, unit.Dp(14), n.Name)
+		label.Font.Weight = text.Bold
+		if n.selected {
+			label.Color = n.Theme.Color.Primary
+		}
+		dimensions := label.Layout(gtx)
+		labelOp := macro.Stop()
+		top := (gtx.Constraints.Max.Y - dimensions.Size.Y) / 2
+		op.Offset(f32.Point{Y: float32(top)}).Add(gtx.Ops)
+		labelOp.Add(gtx.Ops)
+		return layout.Dimensions{
+			Size: gtx.Constraints.Max,
+		}
+	})
+}
+
+func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
+	if !n.selected && !n.hovering {
+		return layout.Dimensions{}
+	}
+	var fill color.RGBA
+	if n.selected {
+		fill = n.Theme.Color.Primary
+	} else if n.hovering {
+		fill = n.Theme.Color.Text
+	}
+	if n.selected && n.hovering {
+		fill.A = 150
+	} else {
+		fill.A = 100
+	}
+	defer op.Push(gtx.Ops).Pop()
+	rr := float32(gtx.Px(unit.Dp(4)))
+	clip.RRect{
+		Rect: f32.Rectangle{
+			Max: layout.FPt(gtx.Constraints.Max),
+		},
+		NE: rr,
+		SE: rr,
+		NW: rr,
+		SW: rr,
+	}.Add(gtx.Ops)
+	paintRect(gtx, gtx.Constraints.Max, fill)
+	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
 // ModalNavDrawer implements the Material Design Modal Navigation Drawer
@@ -65,7 +154,9 @@ type ModalNavDrawer struct {
 
 	Title    string
 	Subtitle string
-	Items    []NavItem
+
+	selectedItem int
+	items        []renderNavItem
 
 	scrim   widget.Clickable
 	navList layout.List
@@ -73,6 +164,16 @@ type ModalNavDrawer struct {
 	// animation state
 	drawerState
 	stateStarted time.Time
+}
+
+func (m *ModalNavDrawer) AddNavItem(item NavItem) {
+	m.items = append(m.items, renderNavItem{
+		Theme:   m.Theme,
+		NavItem: item,
+	})
+	if len(m.items) == 1 {
+		m.items[0].selected = true
+	}
 }
 
 func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
@@ -179,10 +280,10 @@ func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
 
 func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 	m.navList.Axis = layout.Vertical
-	return m.navList.Layout(gtx, len(m.Items), func(gtx C, index int) D {
+	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
-		return m.Items[index].Layout(m.Theme, gtx)
+		return m.items[index].Layout(gtx)
 	})
 }
 
