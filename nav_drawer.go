@@ -3,6 +3,7 @@ package materials
 import (
 	"image"
 	"image/color"
+	"math"
 	"time"
 
 	"gioui.org/f32"
@@ -41,7 +42,8 @@ var (
 )
 
 const (
-	drawerAnimationDuration = time.Millisecond * 250
+	drawerAnimationDuration   = time.Millisecond * 250
+	navPressAnimationDuration = time.Millisecond * 250
 )
 
 type NavItem struct {
@@ -57,15 +59,31 @@ type NavItem struct {
 type renderNavItem struct {
 	*material.Theme
 	NavItem
-	hovering              bool
-	selected              bool
-	pressed               bool
-	animatingPress        bool
-	pressOrigin           image.Point
-	pressAnimationStarted time.Time
+	hovering       bool
+	selected       bool
+	pressed        bool
+	animatingPress bool
+	widget.Press
+	clicked bool
+}
+
+func (n *renderNavItem) updateAnimationState(gtx layout.Context) {
+	if !n.animatingPress {
+		return
+	}
+	sinceStarted := gtx.Now.Sub(n.Press.Start)
+	if sinceStarted > navPressAnimationDuration {
+		n.animatingPress = false
+	}
+}
+
+func (n *renderNavItem) Clicked() bool {
+	return n.clicked
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
+	n.clicked = false
+	n.updateAnimationState(gtx)
 	events := gtx.Events(n)
 	for _, event := range events {
 		switch event := event.(type) {
@@ -75,14 +93,19 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 				n.hovering = true
 			case pointer.Leave:
 				n.hovering = false
-				n.pressed = false
 			case pointer.Press:
 				n.pressed = true
+				n.Press.Start = gtx.Now
+				n.Press.Position = event.Position
+				n.Press.Cancelled = false
+				n.Press.End = time.Time{}
 			case pointer.Cancel:
 				n.hovering = false
-				n.pressed = false
+				n.Press.Cancelled = true
 			case pointer.Release:
-
+				n.animatingPress = true
+				n.Press.End = gtx.Now
+				n.clicked = true
 			}
 		}
 	}
@@ -133,6 +156,11 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 	})
 }
 
+func (n *renderNavItem) pressAnimationProgress(gtx layout.Context) float32 {
+	sinceStarted := gtx.Now.Sub(n.Press.Start)
+	return float32(sinceStarted.Milliseconds()) / float32(navPressAnimationDuration.Milliseconds())
+}
+
 func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	if !n.selected && !n.hovering {
 		return layout.Dimensions{}
@@ -157,7 +185,119 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 		SW: rr,
 	}.Add(gtx.Ops)
 	paintRect(gtx, gtx.Constraints.Max, fill)
+	if n.pressed {
+		n.drawInk(gtx)
+	}
 	return layout.Dimensions{Size: gtx.Constraints.Max}
+}
+
+// adapted from https://git.sr.ht/~eliasnaur/gio/tree/773939fe1dd10b3ac5f937a7f9993045a91e23a7/widget/material/button.go#L189
+func (n *renderNavItem) drawInk(gtx layout.Context) {
+	// duration is the number of seconds for the
+	// completed animation: expand while fading in, then
+	// out.
+	const (
+		expandDuration = float32(0.5)
+		fadeDuration   = float32(0.9)
+	)
+
+	c := n.Press
+
+	now := gtx.Now
+
+	t := float32(now.Sub(c.Start).Seconds())
+
+	end := c.End
+	if end.IsZero() {
+		// If the press hasn't ended, don't fade-out.
+		end = now
+	}
+
+	endt := float32(end.Sub(c.Start).Seconds())
+
+	// Compute the fade-in/out position in [0;1].
+	var alphat float32
+	{
+		var haste float32
+		if c.Cancelled {
+			// If the press was cancelled before the inkwell
+			// was fully faded in, fast forward the animation
+			// to match the fade-out.
+			if h := 0.5 - endt/fadeDuration; h > 0 {
+				haste = h
+			}
+		}
+		// Fade in.
+		half1 := t/fadeDuration + haste
+		if half1 > 0.5 {
+			half1 = 0.5
+		}
+
+		// Fade out.
+		half2 := float32(now.Sub(end).Seconds())
+		half2 /= fadeDuration
+		half2 += haste
+		if half2 > 0.5 {
+			// Too old.
+			return
+		}
+
+		alphat = half1 + half2
+	}
+
+	// Compute the expand position in [0;1].
+	sizet := t
+	if c.Cancelled {
+		// Freeze expansion of cancelled presses.
+		sizet = endt
+	}
+	sizet /= expandDuration
+
+	// Animate only ended presses, and presses that are fading in.
+	if !c.End.IsZero() || sizet <= 1.0 {
+		op.InvalidateOp{}.Add(gtx.Ops)
+	}
+
+	if sizet > 1.0 {
+		sizet = 1.0
+	}
+
+	if alphat > .5 {
+		// Start fadeout after half the animation.
+		alphat = 1.0 - alphat
+	}
+	// Twice the speed to attain fully faded in at 0.5.
+	t2 := alphat * 2
+	// Beziér ease-in curve.
+	alphaBezier := t2 * t2 * (3.0 - 2.0*t2)
+	sizeBezier := sizet * sizet * (3.0 - 2.0*sizet)
+	size := float32(gtx.Constraints.Min.X)
+	if h := float32(gtx.Constraints.Min.Y); h > size {
+		size = h
+	}
+	// Cover the entire constraints min rectangle.
+	size *= 2 * float32(math.Sqrt(2))
+	// Apply curve values to size and color.
+	size *= sizeBezier
+	alpha := 0.7 * alphaBezier
+	const col = 0.8
+	ba, bc := byte(alpha*0xff), byte(alpha*col*0xff)
+	defer op.Push(gtx.Ops).Pop()
+	ink := paint.ColorOp{Color: color.RGBA{A: ba, R: bc, G: bc, B: bc}}
+	ink.Add(gtx.Ops)
+	rr := size * .5
+	op.Offset(c.Position.Add(f32.Point{
+		X: -rr,
+		Y: -rr,
+	})).Add(gtx.Ops)
+	clip.RRect{
+		Rect: f32.Rectangle{Max: f32.Point{
+			X: float32(size),
+			Y: float32(size),
+		}},
+		NE: rr, NW: rr, SE: rr, SW: rr,
+	}.Add(gtx.Ops)
+	paint.PaintOp{Rect: f32.Rectangle{Max: f32.Point{X: float32(size), Y: float32(size)}}}.Add(gtx.Ops)
 }
 
 // ModalNavDrawer implements the Material Design Modal Navigation Drawer
@@ -179,6 +319,8 @@ type ModalNavDrawer struct {
 	stateStarted time.Time
 }
 
+// AddNavItem inserts a navigation target into the drawer. This should be
+// invoked only from the layout thread to avoid nasty race conditions.
 func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 	m.items = append(m.items, renderNavItem{
 		Theme:   m.Theme,
@@ -189,6 +331,7 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 	}
 }
 
+// Layout renders the nav drawer
 func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	if m.scrim.Clicked() {
 		m.drawerState = retracting
@@ -303,10 +446,19 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
-		return m.items[index].Layout(gtx)
+		dimensions := m.items[index].Layout(gtx)
+		if m.items[index].Clicked() {
+			m.items[m.selectedItem].selected = false
+			m.selectedItem = index
+			m.items[m.selectedItem].selected = true
+			m.ToggleVisibility(gtx.Now)
+		}
+		return dimensions
 	})
 }
 
+// ToggleVisibility changes the state of the nav drawer from retracted to
+// extended or visa versa.
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 	switch m.drawerState {
 	case extending:
@@ -321,8 +473,10 @@ func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 	m.stateStarted = when
 }
 
+// CurrentNavDestiation returns the tag of the navigation destination
+// selected in the drawer.
 func (m *ModalNavDrawer) CurrentNavDestiation() interface{} {
-	return nil
+	return m.items[m.selectedItem].Tag
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {

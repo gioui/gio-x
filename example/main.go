@@ -11,9 +11,15 @@ import (
 	"gioui.org/op"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"git.sr.ht/~whereswaldon/materials"
 )
+
+var MenuIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.NavigationMenu)
+	return icon
+}()
 
 func main() {
 	go func() {
@@ -53,8 +59,44 @@ func loop(w *app.Window) error {
 	}
 	var btn widget.Clickable
 	dests := map[interface{}]func(layout.Context) layout.Dimensions{
-		nil: func(gtx layout.Context) layout.Dimensions {
-			return layout.Center.Layout(gtx, material.Button(th, &btn, "nav").Layout)
+		"home": func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			return layout.Flex{
+				Alignment: layout.Middle,
+			}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.H1(th, "Home").Layout(gtx)
+				}),
+			)
+		},
+		"settings": func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			return layout.Flex{
+				Alignment: layout.Middle,
+			}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.H1(th, "Settings").Layout(gtx)
+				}),
+			)
+		},
+		"elsewhere": func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			return layout.Flex{
+				Alignment: layout.Middle,
+			}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.H1(th, "Elsewhere").Layout(gtx)
+				}),
+			)
 		},
 	}
 	for {
