@@ -26,10 +26,10 @@ type (
 type drawerState uint8
 
 const (
-	extended drawerState = iota
-	extending
-	retracted
+	retracted drawerState = iota
 	retracting
+	extended
+	extending
 )
 
 var (
