@@ -31,6 +31,15 @@ const (
 	retracting
 )
 
+var (
+	hoverOverlayAlpha     = 0.16 * 256
+	focuseOverlayAlpha    = 0.48 * 256
+	selectedOverlayAlpha  = 0.32 * 256
+	activatedOverlayAlpha = 0.48 * 256
+	pressedOverlayAlpha   = 0.48 * 256
+	draggedOverlayAlpha   = 0.32 * 256
+)
+
 const (
 	drawerAnimationDuration = time.Millisecond * 250
 )
@@ -48,9 +57,12 @@ type NavItem struct {
 type renderNavItem struct {
 	*material.Theme
 	NavItem
-	hovering bool
-	selected bool
-	pressed  bool
+	hovering              bool
+	selected              bool
+	pressed               bool
+	animatingPress        bool
+	pressOrigin           image.Point
+	pressAnimationStarted time.Time
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
@@ -69,6 +81,8 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 			case pointer.Cancel:
 				n.hovering = false
 				n.pressed = false
+			case pointer.Release:
+
 			}
 		}
 	}
@@ -103,7 +117,9 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 		macro := op.Record(gtx.Ops)
 		label := material.Label(n.Theme, unit.Dp(14), n.Name)
 		label.Font.Weight = text.Bold
-		if n.selected {
+		if n.hovering {
+			label.Color = n.Theme.Color.Text
+		} else if n.selected {
 			label.Color = n.Theme.Color.Primary
 		}
 		dimensions := label.Layout(gtx)
@@ -122,15 +138,12 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 		return layout.Dimensions{}
 	}
 	var fill color.RGBA
-	if n.selected {
-		fill = n.Theme.Color.Primary
-	} else if n.hovering {
+	if n.hovering {
 		fill = n.Theme.Color.Text
-	}
-	if n.selected && n.hovering {
-		fill.A = 150
-	} else {
-		fill.A = 100
+		fill.A = uint8(hoverOverlayAlpha)
+	} else if n.selected {
+		fill = n.Theme.Color.Primary
+		fill.A = uint8(selectedOverlayAlpha)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))
@@ -237,7 +250,14 @@ func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
 func (m *ModalNavDrawer) layoutScrim(gtx layout.Context) layout.Dimensions {
 	defer op.Push(gtx.Ops).Pop()
 	gtx.Constraints.Min = gtx.Constraints.Max
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 82})
+	const finalAlpha = 82
+	currentAlpha := uint8(finalAlpha)
+	if m.drawerState == extending {
+		currentAlpha = uint8(finalAlpha * m.drawerAnimationProgress(gtx))
+	} else if m.drawerState == retracting {
+		currentAlpha = finalAlpha - uint8(finalAlpha*m.drawerAnimationProgress(gtx))
+	}
+	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: currentAlpha})
 	m.scrim.Layout(gtx)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }

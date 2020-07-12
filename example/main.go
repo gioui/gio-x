@@ -67,8 +67,16 @@ func loop(w *app.Window) error {
 			if btn.Clicked() {
 				nav.ToggleVisibility(gtx.Now)
 			}
-			dests[nav.CurrentNavDestiation()](gtx)
-			nav.Layout(gtx)
+			layout.Inset{
+				Top:    e.Insets.Top,
+				Bottom: e.Insets.Bottom,
+				Left:   e.Insets.Left,
+				Right:  e.Insets.Right,
+			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				dests[nav.CurrentNavDestiation()](gtx)
+				nav.Layout(gtx)
+				return layout.Dimensions{Size: gtx.Constraints.Max}
+			})
 			e.Frame(gtx.Ops)
 		}
 	}
