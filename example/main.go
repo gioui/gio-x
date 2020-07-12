@@ -33,6 +33,20 @@ func loop(w *app.Window) error {
 		Theme:    th,
 		Title:    "Navigation Drawer",
 		Subtitle: "This is an example.",
+		Items: []materials.NavItem{
+			{
+				Name: "Home",
+				Tag:  "home",
+			},
+			{
+				Name: "Settings",
+				Tag:  "settings",
+			},
+			{
+				Name: "Elsewhere",
+				Tag:  "elsewhere",
+			},
+		},
 	}
 	var btn widget.Clickable
 	dests := map[interface{}]func(layout.Context) layout.Dimensions{

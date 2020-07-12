@@ -30,8 +30,33 @@ const (
 )
 
 const (
-	drawerAnimationDuration = time.Millisecond * 500
+	drawerAnimationDuration = time.Millisecond * 250
 )
+
+type NavItem struct {
+	// Tag is an externally-provided identifier for the view
+	// that this item should navigate to. It's value is
+	// opaque to navigation elements.
+	Tag  interface{}
+	Name string
+}
+
+func (n NavItem) Layout(th *material.Theme, gtx layout.Context) layout.Dimensions {
+	return layout.Inset{
+		Top:    unit.Dp(4),
+		Bottom: unit.Dp(4),
+		Left:   unit.Dp(8),
+		Right:  unit.Dp(8),
+	}.Layout(gtx, func(gtx C) D {
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx C) D {
+				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+					return material.Label(th, unit.Dp(14), n.Name).Layout(gtx)
+				})
+			}),
+		)
+	})
+}
 
 // ModalNavDrawer implements the Material Design Modal Navigation Drawer
 // described here: https://material.io/components/navigation-drawer
@@ -40,8 +65,10 @@ type ModalNavDrawer struct {
 
 	Title    string
 	Subtitle string
+	Items    []NavItem
 
-	scrim widget.Clickable
+	scrim   widget.Clickable
+	navList layout.List
 
 	// animation state
 	drawerState
@@ -123,23 +150,40 @@ func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Max.X = m.sheetWidth(gtx)
 	paintRect(gtx, gtx.Constraints.Max, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
-	layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx C) D {
-				gtx.Constraints.Max.Y = gtx.Px(unit.Dp(36))
-				gtx.Constraints.Min = gtx.Constraints.Max
-				title := material.Label(m.Theme, unit.Dp(18), m.Title)
-				title.Font.Weight = text.Bold
-				return layout.SW.Layout(gtx, title.Layout)
-			}),
-			layout.Rigid(func(gtx C) D {
-				gtx.Constraints.Max.Y = gtx.Px(unit.Dp(20))
-				gtx.Constraints.Min = gtx.Constraints.Max
-				return layout.SW.Layout(gtx, material.Label(m.Theme, unit.Dp(12), m.Subtitle).Layout)
-			}),
-		)
-	})
+	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			return layout.Inset{
+				Left:   unit.Dp(16),
+				Bottom: unit.Dp(18),
+			}.Layout(gtx, func(gtx C) D {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(36))
+						gtx.Constraints.Min = gtx.Constraints.Max
+						title := material.Label(m.Theme, unit.Dp(18), m.Title)
+						title.Font.Weight = text.Bold
+						return layout.SW.Layout(gtx, title.Layout)
+					}),
+					layout.Rigid(func(gtx C) D {
+						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(20))
+						gtx.Constraints.Min = gtx.Constraints.Max
+						return layout.SW.Layout(gtx, material.Label(m.Theme, unit.Dp(12), m.Subtitle).Layout)
+					}),
+				)
+			})
+		}),
+		layout.Flexed(1, m.layoutNavList),
+	)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
+}
+
+func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
+	m.navList.Axis = layout.Vertical
+	return m.navList.Layout(gtx, len(m.Items), func(gtx C, index int) D {
+		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return m.Items[index].Layout(m.Theme, gtx)
+	})
 }
 
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
