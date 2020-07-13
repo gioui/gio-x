@@ -1,4 +1,4 @@
-//+build !android
+//+build !android !darwin !windows !plan9 !js !aix !illumos !solaris
 
 package niotify
 
