@@ -21,6 +21,21 @@ var MenuIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+var HomeIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionHome)
+	return icon
+}()
+
+var SettingsIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionSettings)
+	return icon
+}()
+
+var OtherIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionHelp)
+	return icon
+}()
+
 func main() {
 	go func() {
 		w := app.NewWindow()
@@ -45,14 +60,17 @@ func loop(w *app.Window) error {
 		{
 			Name: "Home",
 			Tag:  "home",
+			Icon: HomeIcon,
 		},
 		{
 			Name: "Settings",
 			Tag:  "settings",
+			Icon: SettingsIcon,
 		},
 		{
 			Name: "Elsewhere",
 			Tag:  "elsewhere",
+			Icon: OtherIcon,
 		},
 	} {
 		nav.AddNavItem(item)

@@ -24,7 +24,7 @@ The modal navigation drawer [specified here](https://material.io/components/navi
 
 Known issues:
 
-- Icon support is not yet implemented.
+- API targets a fairly static and simplistic menu. Sub-sections with dividers are not yet supported. An API-driven way to traverse the current menu options is also not yet supported. Contributions welcome!
 
 Want to see it?
 

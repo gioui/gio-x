@@ -54,6 +54,14 @@ type NavItem struct {
 	// opaque to navigation elements.
 	Tag  interface{}
 	Name string
+
+	// Icon, if set, renders the provided icon to the left of the
+	// item's name. Material specifies that either all navigation
+	// items should have an icon, or none should. As such, if this
+	// field is nil, the Name will be aligned all the way to the
+	// left. A mixture of icon and non-icon items will be misaligned.
+	// Users should either set icons for all elements or none.
+	Icon *widget.Icon
 }
 
 // renderNavItem holds both basic nav item state and the interaction
@@ -113,24 +121,39 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
+	contentColor := n.Theme.Color.Text
+	if n.selected {
+		contentColor = n.Theme.Color.Primary
+	}
 	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
-		defer op.Push(gtx.Ops).Pop()
-		macro := op.Record(gtx.Ops)
-		label := material.Label(n.Theme, unit.Dp(14), n.Name)
-		label.Font.Weight = text.Bold
-		if n.hovering {
-			label.Color = n.Theme.Color.Text
-		} else if n.selected {
-			label.Color = n.Theme.Color.Primary
-		}
-		dimensions := label.Layout(gtx)
-		labelOp := macro.Stop()
-		top := (gtx.Constraints.Max.Y - dimensions.Size.Y) / 2
-		op.Offset(f32.Point{Y: float32(top)}).Add(gtx.Ops)
-		labelOp.Add(gtx.Ops)
-		return layout.Dimensions{
-			Size: gtx.Constraints.Max,
-		}
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+
+			layout.Rigid(func(gtx C) D {
+				if n.Icon == nil {
+					return layout.Dimensions{}
+				}
+				return layout.Inset{Right: unit.Dp(40)}.Layout(gtx,
+					func(gtx C) D {
+						n.Icon.Color = contentColor
+						return n.Icon.Layout(gtx, unit.Dp(24))
+					})
+			}),
+			layout.Rigid(func(gtx C) D {
+				defer op.Push(gtx.Ops).Pop()
+				macro := op.Record(gtx.Ops)
+				label := material.Label(n.Theme, unit.Dp(14), n.Name)
+				label.Color = contentColor
+				label.Font.Weight = text.Bold
+				dimensions := label.Layout(gtx)
+				labelOp := macro.Stop()
+				top := (gtx.Constraints.Max.Y - dimensions.Size.Y) / 2
+				op.Offset(f32.Point{Y: float32(top)}).Add(gtx.Ops)
+				labelOp.Add(gtx.Ops)
+				return layout.Dimensions{
+					Size: gtx.Constraints.Max,
+				}
+			}),
+		)
 	})
 }
 
