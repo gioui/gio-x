@@ -9,6 +9,7 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
@@ -78,7 +79,7 @@ func loop(w *app.Window) error {
 	var btn widget.Clickable
 	dests := map[interface{}]func(layout.Context) layout.Dimensions{
 		"home": func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
@@ -86,12 +87,12 @@ func loop(w *app.Window) error {
 					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H1(th, "Home").Layout(gtx)
+					return material.H3(th, "Home").Layout(gtx)
 				}),
 			)
 		},
 		"settings": func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
@@ -99,12 +100,12 @@ func loop(w *app.Window) error {
 					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H1(th, "Settings").Layout(gtx)
+					return material.H3(th, "Settings").Layout(gtx)
 				}),
 			)
 		},
 		"elsewhere": func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints.Min.X, gtx.Constraints.Min.Y = 0, 0
+			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
@@ -112,7 +113,7 @@ func loop(w *app.Window) error {
 					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H1(th, "Elsewhere").Layout(gtx)
+					return material.H3(th, "Elsewhere").Layout(gtx)
 				}),
 			)
 		},
@@ -133,7 +134,9 @@ func loop(w *app.Window) error {
 				Left:   e.Insets.Left,
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				dests[nav.CurrentNavDestiation()](gtx)
+				layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return dests[nav.CurrentNavDestiation()](gtx)
+				})
 				nav.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})
