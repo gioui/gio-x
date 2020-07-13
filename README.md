@@ -24,9 +24,6 @@ The modal navigation drawer [specified here](https://material.io/components/navi
 
 Known issues:
 
-- Touching the title/subtitle space collapses the navigation bar like touching
-  the scrim.
-- Swiping towards the left edge to dismiss is not yet implemented.
 - Icon support is not yet implemented.
 
 Want to see it?

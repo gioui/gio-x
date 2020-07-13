@@ -3,10 +3,12 @@ package materials
 import (
 	"image"
 	"image/color"
+	"log"
 	"math"
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -282,10 +284,14 @@ type ModalNavDrawer struct {
 
 	scrim   widget.Clickable
 	navList layout.List
+	drag    gesture.Drag
 
 	// animation state
 	drawerState
 	stateStarted time.Time
+	dragging     bool
+	dragStarted  f32.Point
+	dragOffset   float32
 }
 
 // AddNavItem inserts a navigation target into the drawer. This should be
@@ -310,10 +316,29 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	if m.drawerState == retracted {
 		return layout.Dimensions{}
 	}
+	for _, event := range m.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
+		switch event.Type {
+		case pointer.Press:
+			m.dragStarted = event.Position
+			m.dragOffset = 0
+			m.dragging = true
+		case pointer.Drag:
+			log.Printf("start: %v, curr: %v", m.dragStarted.X, event.Position.X)
+			newOffset := m.dragStarted.X - event.Position.X
+			if newOffset > m.dragOffset {
+				m.dragOffset = newOffset
+				log.Printf("offset update: %v", m.dragOffset)
+			}
+		case pointer.Release:
+			fallthrough
+		case pointer.Cancel:
+			m.dragging = false
+		}
+	}
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(m.layoutScrim),
 		layout.Stacked(func(gtx C) D {
-			if m.drawerState == retracting || m.drawerState == extending {
+			if m.dragOffset != 0 || m.drawerState == retracting || m.drawerState == extending {
 				defer op.Push(gtx.Ops).Pop()
 				m.drawerTransform(gtx).Add(gtx.Ops)
 				op.InvalidateOp{}.Add(gtx.Ops)
@@ -326,6 +351,16 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 // updateAnimationState checks for drawer animations that have finished and
 // updates the drawerState accordingly.
 func (m *ModalNavDrawer) updateAnimationState(gtx layout.Context) {
+	if m.dragOffset != 0 && !m.dragging && m.drawerState != retracting {
+		if m.dragOffset < 2 {
+			m.dragOffset = 0
+		} else {
+			m.dragOffset /= 2
+		}
+	} else if m.dragging && int(m.dragOffset) > gtx.Constraints.Max.X/10 {
+		m.drawerState = retracting
+		m.stateStarted = gtx.Now
+	}
 	if m.drawerState == extended || m.drawerState == retracted {
 		return
 	}
@@ -353,10 +388,16 @@ func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
 	progress := m.drawerAnimationProgress(gtx)
 	if m.drawerState == retracting {
 		progress *= -1
+		log.Printf("retracting progress: %v", progress)
 	} else if m.drawerState == extending {
 		progress = -1 + progress
+	} else if m.drawerState == extended {
+		progress = 0
 	}
-	return op.Offset(f32.Point{X: progress * float32(m.sheetWidth(gtx))})
+	retract := progress * (float32(m.sheetWidth(gtx)))
+	finalOffset := progress*(float32(m.sheetWidth(gtx))) - m.dragOffset
+	log.Printf("retract: %v, final: %v", retract, finalOffset)
+	return op.Offset(f32.Point{X: finalOffset})
 }
 
 func (m *ModalNavDrawer) layoutScrim(gtx layout.Context) layout.Dimensions {
@@ -381,6 +422,8 @@ func (m ModalNavDrawer) sheetWidth(gtx layout.Context) int {
 
 func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Max.X = m.sheetWidth(gtx)
+	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
+	m.drag.Add(gtx.Ops)
 	paintRect(gtx, gtx.Constraints.Max, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
