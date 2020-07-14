@@ -3,7 +3,6 @@ package materials
 import (
 	"image"
 	"image/color"
-	"log"
 	"math"
 	"time"
 
@@ -346,11 +345,9 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 			m.dragOffset = 0
 			m.dragging = true
 		case pointer.Drag:
-			log.Printf("start: %v, curr: %v", m.dragStarted.X, event.Position.X)
 			newOffset := m.dragStarted.X - event.Position.X
 			if newOffset > m.dragOffset {
 				m.dragOffset = newOffset
-				log.Printf("offset update: %v", m.dragOffset)
 			}
 		case pointer.Release:
 			fallthrough
@@ -411,15 +408,12 @@ func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
 	progress := m.drawerAnimationProgress(gtx)
 	if m.drawerState == retracting {
 		progress *= -1
-		log.Printf("retracting progress: %v", progress)
 	} else if m.drawerState == extending {
 		progress = -1 + progress
 	} else if m.drawerState == extended {
 		progress = 0
 	}
-	retract := progress * (float32(m.sheetWidth(gtx)))
 	finalOffset := progress*(float32(m.sheetWidth(gtx))) - m.dragOffset
-	log.Printf("retract: %v, final: %v", retract, finalOffset)
 	return op.Offset(f32.Point{X: finalOffset})
 }
 
