@@ -58,6 +58,12 @@ func main() {
 	app.Main()
 }
 
+type Page struct {
+	layout func(layout.Context) layout.Dimensions
+	materials.NavItem
+	Actions []materials.AppBarAction
+}
+
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
@@ -66,79 +72,96 @@ func loop(w *app.Window) error {
 		Title:    "Navigation Drawer",
 		Subtitle: "This is an example.",
 	}
-
-	for _, item := range []materials.NavItem{
-		{
-			Name: "Home",
-			Tag:  "home",
-			Icon: HomeIcon,
-		},
-		{
-			Name: "Settings",
-			Tag:  "settings",
-			Icon: SettingsIcon,
-		},
-		{
-			Name: "Elsewhere",
-			Tag:  "elsewhere",
-			Icon: OtherIcon,
-		},
-	} {
-		nav.AddNavItem(item)
-	}
 	bar := materials.AppBar{
 		Theme:          th,
 		NavigationIcon: MenuIcon,
 		Title:          "Title",
 	}
-	dests := map[interface{}]func(layout.Context) layout.Dimensions{
-		"home": func(gtx layout.Context) layout.Dimensions {
-			bar.Title = "Home"
-			gtx.Constraints.Min.Y = 0
-			return layout.Flex{
-				Alignment: layout.Middle,
-			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H3(th, "Home").Layout(gtx)
-				}),
-			)
+	var heartBtn, plusBtn widget.Clickable
+
+	pages := []Page{
+		Page{
+			NavItem: materials.NavItem{
+				Name: "Home",
+				Icon: HomeIcon,
+			},
+			layout: func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return material.H3(th, "Home").Layout(gtx)
+					}),
+				)
+			},
+			Actions: []materials.AppBarAction{
+				materials.AppBarAction{
+					Name:  "Favorite",
+					Icon:  HeartIcon,
+					State: &heartBtn,
+				},
+				materials.AppBarAction{
+					Name:  "Create",
+					Icon:  PlusIcon,
+					State: &plusBtn,
+				},
+			},
 		},
-		"settings": func(gtx layout.Context) layout.Dimensions {
-			bar.Title = "Settings"
-			gtx.Constraints.Min.Y = 0
-			return layout.Flex{
-				Alignment: layout.Middle,
-			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H3(th, "Settings").Layout(gtx)
-				}),
-			)
+		Page{
+			NavItem: materials.NavItem{
+				Name: "Settings",
+				Icon: SettingsIcon,
+			},
+			layout: func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return material.H3(th, "Settings").Layout(gtx)
+					}),
+				)
+			},
+			Actions: []materials.AppBarAction{
+				materials.AppBarAction{
+					Name:  "Create",
+					Icon:  PlusIcon,
+					State: &plusBtn,
+				},
+			},
 		},
-		"elsewhere": func(gtx layout.Context) layout.Dimensions {
-			bar.Title = "Elsewhere"
-			gtx.Constraints.Min.Y = 0
-			return layout.Flex{
-				Alignment: layout.Middle,
-			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.H3(th, "Elsewhere").Layout(gtx)
-				}),
-			)
+		Page{
+			NavItem: materials.NavItem{
+				Name: "Elsewhere",
+				Icon: OtherIcon,
+			},
+			layout: func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return material.H3(th, "Elsewhere").Layout(gtx)
+					}),
+				)
+			},
+			Actions: []materials.AppBarAction{
+				materials.AppBarAction{
+					Name:  "Favorite",
+					Icon:  HeartIcon,
+					State: &heartBtn,
+				},
+			},
 		},
 	}
-	var heartBtn, plusBtn widget.Clickable
-	bar.SetActions([]materials.AppBarAction{
-		materials.AppBarAction{
-			Name:  "Favorite",
-			Icon:  HeartIcon,
-			State: &heartBtn,
-		},
-		materials.AppBarAction{
-			Name:  "Create",
-			Icon:  PlusIcon,
-			State: &plusBtn,
-		},
-	})
+
+	for i, page := range pages {
+		page.NavItem.Tag = i
+		nav.AddNavItem(page.NavItem)
+	}
+	{
+		page := pages[nav.CurrentNavDestiation().(int)]
+		bar.Title = page.Name
+		bar.SetActions(page.Actions)
+	}
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -148,6 +171,11 @@ func loop(w *app.Window) error {
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked() {
 				nav.ToggleVisibility(gtx.Now)
+			}
+			if nav.NavDestinationChanged() {
+				page := pages[nav.CurrentNavDestiation().(int)]
+				bar.Title = page.Name
+				bar.SetActions(page.Actions)
 			}
 			layout.Inset{
 				Top:    e.Insets.Top,
@@ -161,7 +189,7 @@ func loop(w *app.Window) error {
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return dests[nav.CurrentNavDestiation()](gtx)
+							return pages[nav.CurrentNavDestiation().(int)].layout(gtx)
 						})
 					}),
 				)
