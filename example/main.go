@@ -37,6 +37,16 @@ var OtherIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+var HeartIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionFavorite)
+	return icon
+}()
+
+var PlusIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ContentAdd)
+	return icon
+}()
+
 func main() {
 	go func() {
 		w := app.NewWindow()
@@ -76,48 +86,59 @@ func loop(w *app.Window) error {
 	} {
 		nav.AddNavItem(item)
 	}
-	var btn widget.Clickable
+	bar := materials.AppBar{
+		Theme:          th,
+		NavigationIcon: MenuIcon,
+		Title:          "Title",
+	}
 	dests := map[interface{}]func(layout.Context) layout.Dimensions{
 		"home": func(gtx layout.Context) layout.Dimensions {
+			bar.Title = "Home"
 			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
-				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return material.H3(th, "Home").Layout(gtx)
 				}),
 			)
 		},
 		"settings": func(gtx layout.Context) layout.Dimensions {
+			bar.Title = "Settings"
 			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
-				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return material.H3(th, "Settings").Layout(gtx)
 				}),
 			)
 		},
 		"elsewhere": func(gtx layout.Context) layout.Dimensions {
+			bar.Title = "Elsewhere"
 			gtx.Constraints.Min.Y = 0
 			return layout.Flex{
 				Alignment: layout.Middle,
 			}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.IconButton(th, &btn, MenuIcon).Layout(gtx)
-				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return material.H3(th, "Elsewhere").Layout(gtx)
 				}),
 			)
 		},
 	}
+	var heartBtn, plusBtn widget.Clickable
+	bar.SetActions([]materials.AppBarAction{
+		materials.AppBarAction{
+			Name:  "Favorite",
+			Icon:  HeartIcon,
+			State: &heartBtn,
+		},
+		materials.AppBarAction{
+			Name:  "Create",
+			Icon:  PlusIcon,
+			State: &plusBtn,
+		},
+	})
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -125,7 +146,7 @@ func loop(w *app.Window) error {
 			return e.Err
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
-			if btn.Clicked() {
+			if bar.NavigationClicked() {
 				nav.ToggleVisibility(gtx.Now)
 			}
 			layout.Inset{
@@ -134,9 +155,16 @@ func loop(w *app.Window) error {
 				Left:   e.Insets.Left,
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return dests[nav.CurrentNavDestiation()](gtx)
-				})
+				layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return bar.Layout(gtx)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return dests[nav.CurrentNavDestiation()](gtx)
+						})
+					}),
+				)
 				nav.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})
