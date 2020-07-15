@@ -1,6 +1,8 @@
 package materials
 
 import (
+	"image/color"
+
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -51,6 +53,14 @@ func (a AppBarAction) layout(th *material.Theme, gtx layout.Context) layout.Dime
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(60))
+	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 50})
+	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(59))
+	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 75})
+	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(58))
+	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 100})
+	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(57))
+	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 125})
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
 	layout.Flex{}.Layout(gtx,
