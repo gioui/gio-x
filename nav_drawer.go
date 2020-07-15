@@ -301,8 +301,9 @@ type ModalNavDrawer struct {
 	Title    string
 	Subtitle string
 
-	selectedItem int
-	items        []renderNavItem
+	selectedItem    int
+	selectedChanged bool // selected item changed during the last frame
+	items           []renderNavItem
 
 	scrim   widget.Clickable
 	navList layout.List
@@ -334,6 +335,7 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 		m.drawerState = retracting
 		m.stateStarted = gtx.Now
 	}
+	m.selectedChanged = false
 	m.updateAnimationState(gtx)
 	if m.drawerState == retracted {
 		return layout.Dimensions{}
@@ -481,6 +483,7 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 			m.selectedItem = index
 			m.items[m.selectedItem].selected = true
 			m.ToggleVisibility(gtx.Now)
+			m.selectedChanged = true
 		}
 		return dimensions
 	})
@@ -506,6 +509,10 @@ func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 // selected in the drawer.
 func (m *ModalNavDrawer) CurrentNavDestiation() interface{} {
 	return m.items[m.selectedItem].Tag
+}
+
+func (m *ModalNavDrawer) NavDestinationChanged() bool {
+	return m.selectedChanged
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {
