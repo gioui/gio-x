@@ -197,6 +197,8 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 125})
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
+
+	overflowedActions := len(a.actions)
 	layout.Flex{}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			if a.NavigationIcon == nil {
@@ -223,6 +225,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 					visibleActionItems = 0
 				}
 				visibleActionItems = min(visibleActionItems, len(a.actions))
+				overflowedActions -= visibleActionItems
 				var actions []layout.FlexChild
 				for i := range a.actions {
 					action := a.actions[i]
@@ -252,7 +255,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		}),
 	)
 	gtx.Constraints.Max.Y = originalMaxY
-	a.layoutOverflow(gtx, len(a.actions))
+	a.layoutOverflow(gtx, overflowedActions)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
@@ -261,15 +264,12 @@ func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layou
 		return layout.Dimensions{}
 	}
 	a.overflowScrim.Layout(gtx)
-	animating := a.overflowAnim.Animating()
 	defer op.Push(gtx.Ops).Pop()
 	width := gtx.Constraints.Max.X / 2
 	gtx.Constraints.Min.X = width
 	op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
 	var menuMacro op.MacroOp
-	if animating {
-		menuMacro = op.Record(gtx.Ops)
-	}
+	menuMacro = op.Record(gtx.Ops)
 	dims := layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
 			gtx.Constraints.Min.X = width
@@ -286,20 +286,23 @@ func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layou
 				}
 				return material.Clickable(gtx, action.State, func(gtx C) D {
 					gtx.Constraints.Min.X = width
-					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx C) D {
-						return material.Label(a.Theme, unit.Dp(20), action.Name).Layout(gtx)
+					return layout.Inset{
+						Top:    unit.Dp(4),
+						Bottom: unit.Dp(4),
+						Left:   unit.Dp(8),
+					}.Layout(gtx, func(gtx C) D {
+						label := material.Label(a.Theme, unit.Dp(18), action.Name)
+						label.MaxLines = 1
+						return label.Layout(gtx)
 					})
 				})
 			})
 		}),
 	)
-	if !animating {
-		return dims
-	}
 	menuOp := menuMacro.Stop()
 	progress := a.overflowAnim.Revealed(gtx, actionAnimationDuration)
 	maxWidth := dims.Size.X
-	clip.Rect{
+	rect := clip.Rect{
 		Max: image.Point{
 			X: maxWidth,
 			Y: int(float32(dims.Size.Y) * progress),
@@ -308,7 +311,8 @@ func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layou
 			X: maxWidth - int(float32(dims.Size.X)*progress),
 			Y: 0,
 		},
-	}.Add(gtx.Ops)
+	}
+	rect.Add(gtx.Ops)
 	menuOp.Add(gtx.Ops)
 	return dims
 }
