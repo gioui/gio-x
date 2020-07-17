@@ -76,7 +76,10 @@ func loop(w *app.Window) error {
 	bar := materials.NewAppBar(th)
 	bar.NavigationIcon = MenuIcon
 
-	var heartBtn, plusBtn, exampleOverflowState widget.Clickable
+	var (
+		heartBtn, plusBtn, exampleOverflowState widget.Clickable
+		red, green, blue                        widget.Clickable
+	)
 
 	pages := []Page{
 		Page{
@@ -115,8 +118,16 @@ func loop(w *app.Window) error {
 					State: &exampleOverflowState,
 				},
 				{
-					Name:  "Example2",
-					State: &exampleOverflowState,
+					Name:  "Red",
+					State: &red,
+				},
+				{
+					Name:  "Green",
+					State: &green,
+				},
+				{
+					Name:  "Blue",
+					State: &blue,
 				},
 			},
 		},
