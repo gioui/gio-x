@@ -1,9 +1,11 @@
 package materials
 
 import (
+	"image"
 	"image/color"
 	"time"
 
+	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -30,16 +32,32 @@ type AppBar struct {
 	Title            string
 
 	actions         []AppBarAction
-	actionAnimState []appBarAnimation
+	actionAnimState []visibilityAnimation
 	overflowBtn     widget.Clickable
+	overflowList    layout.List
+	overflowActions []OverflowAction
+	overflowAnim    visibilityAnimation
+	overflowScrim   scrim
+}
+
+// NewAppBar creates and initializes an App Bar. It should always be
+// used to create a new AppBar.
+func NewAppBar(th *material.Theme) *AppBar {
+	ab := &AppBar{
+		Theme: th,
+	}
+	ab.overflowList.Axis = layout.Vertical
+	ab.overflowAnim.state = invisible
+	ab.overflowScrim.visibilityAnimation = &ab.overflowAnim
+	ab.overflowScrim.finalAlpha = 82
+	return ab
 }
 
 // AppBarAction configures an action in the App Bar's action items.
 // The state and icon should not be nil.
 type AppBarAction struct {
-	Name  string
-	Icon  *widget.Icon
-	State *widget.Clickable
+	OverflowAction
+	Icon *widget.Icon
 }
 
 const actionAnimationDuration = time.Millisecond * 250
@@ -49,14 +67,13 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(th *material.Theme, anim *appBarAnimation, gtx layout.Context) layout.Dimensions {
-	if anim.state == invisible {
+func (a AppBarAction) layout(th *material.Theme, anim *visibilityAnimation, gtx layout.Context) layout.Dimensions {
+	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
-	animating := anim.state == appearing || anim.state == disappearing
+	animating := anim.Animating()
 	var macro op.MacroOp
 	if animating {
-		op.InvalidateOp{}.Add(gtx.Ops)
 		macro = op.Record(gtx.Ops)
 	}
 	btn := material.IconButton(th, a.State, a.Icon)
@@ -67,19 +84,8 @@ func (a AppBarAction) layout(th *material.Theme, anim *appBarAnimation, gtx layo
 	}
 	dims := actionButtonInset.Layout(gtx, btn.Layout)
 	btnOp := macro.Stop()
-	progress := float32(gtx.Now.Sub(anim.started).Milliseconds()) / float32(actionAnimationDuration.Milliseconds())
-	if anim.state == appearing {
-		dims.Size.X = int(progress * float32(dims.Size.X))
-		if progress >= 1 {
-			anim.state = visible
-		}
-	} else { //disappearing
-		dims.Size.X = int((1 - progress) * float32(dims.Size.X))
-		if progress >= 1 {
-			anim.state = invisible
-		}
-	}
-
+	progress := anim.Revealed(gtx, actionAnimationDuration)
+	dims.Size.X = int(progress * float32(dims.Size.X))
 	// ensure this clip transformation stays local to this function
 	defer op.Push(gtx.Ops).Pop()
 
@@ -90,18 +96,67 @@ func (a AppBarAction) layout(th *material.Theme, anim *appBarAnimation, gtx layo
 	return dims
 }
 
-// appBarAnimation holds the animation state for a particular app bar action.
+// visibilityAnimation holds the animation state for a particular app bar action.
 // This facilitates actions appearing and disappearing gracefully as the screen
 // resizes.
-type appBarAnimation struct {
-	state   appBarAnimationState
+type visibilityAnimation struct {
+	state   visibilityAnimationState
 	started time.Time
 }
 
-type appBarAnimationState int
+// Revealed returns the fraction of the animated entity that should be revealed at the current
+// time in the animation
+func (v *visibilityAnimation) Revealed(gtx layout.Context, animationDuration time.Duration) float32 {
+	if v.Animating() {
+		op.InvalidateOp{}.Add(gtx.Ops)
+	}
+	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(animationDuration.Milliseconds())
+	if progress >= 1 {
+		if v.state == appearing {
+			v.state = visible
+		} else if v.state == disappearing {
+			v.state = invisible
+		}
+	}
+	switch v.state {
+	case visible:
+		return 1
+	case invisible:
+		return 0
+	case appearing:
+		return progress
+	case disappearing:
+		return 1 - progress
+	}
+	return progress
+}
+
+func (v visibilityAnimation) Visible() bool {
+	return v.state != invisible
+}
+
+func (v visibilityAnimation) Animating() bool {
+	return v.state == appearing || v.state == disappearing
+}
+
+func (v *visibilityAnimation) Appear(now time.Time) {
+	if !v.Visible() {
+		v.state = appearing
+		v.started = now
+	}
+}
+
+func (v *visibilityAnimation) Disappear(now time.Time) {
+	if v.Visible() {
+		v.state = disappearing
+		v.started = now
+	}
+}
+
+type visibilityAnimationState int
 
 const (
-	visible appBarAnimationState = iota
+	visible visibilityAnimationState = iota
 	disappearing
 	appearing
 	invisible
@@ -112,9 +167,26 @@ var overflowButtonInset = layout.Inset{
 	Bottom: unit.Dp(10),
 }
 
+// OverflowAction is an action that is always in the overflow menu.
+type OverflowAction struct {
+	Name  string
+	State *widget.Clickable
+}
+
+func (a *AppBar) updateState(gtx layout.Context) {
+	if a.overflowBtn.Clicked() && !a.overflowAnim.Visible() {
+		a.overflowAnim.Appear(gtx.Now)
+	}
+	if a.overflowScrim.Clicked() {
+		a.overflowAnim.Disappear(gtx.Now)
+	}
+}
+
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
+	a.updateState(gtx)
+	originalMaxY := gtx.Constraints.Max.Y
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(60))
 	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 50})
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(59))
@@ -158,13 +230,11 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 					switch anim.state {
 					case visible:
 						if i >= visibleActionItems {
-							anim.state = disappearing
-							anim.started = gtx.Now
+							anim.Disappear(gtx.Now)
 						}
 					case invisible:
 						if i < visibleActionItems {
-							anim.state = appearing
-							anim.started = gtx.Now
+							anim.Appear(gtx.Now)
 						}
 					}
 					actions = append(actions, layout.Rigid(func(gtx C) D {
@@ -181,7 +251,66 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 	)
+	gtx.Constraints.Max.Y = originalMaxY
+	a.layoutOverflow(gtx, len(a.actions))
 	return layout.Dimensions{Size: gtx.Constraints.Max}
+}
+
+func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layout.Dimensions {
+	if !a.overflowAnim.Visible() {
+		return layout.Dimensions{}
+	}
+	a.overflowScrim.Layout(gtx)
+	animating := a.overflowAnim.Animating()
+	defer op.Push(gtx.Ops).Pop()
+	width := gtx.Constraints.Max.X / 2
+	gtx.Constraints.Min.X = width
+	op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
+	var menuMacro op.MacroOp
+	if animating {
+		menuMacro = op.Record(gtx.Ops)
+	}
+	dims := layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx C) D {
+			gtx.Constraints.Min.X = width
+			paintRect(gtx, gtx.Constraints.Min, a.Theme.Color.Hint)
+			return layout.Dimensions{Size: gtx.Constraints.Min}
+		}),
+		layout.Stacked(func(gtx C) D {
+			return a.overflowList.Layout(gtx, len(a.overflowActions)+overflowedActions, func(gtx C, index int) D {
+				var action OverflowAction
+				if index < overflowedActions {
+					action = a.actions[len(a.actions)-overflowedActions+index].OverflowAction
+				} else {
+					action = a.overflowActions[index-overflowedActions]
+				}
+				return material.Clickable(gtx, action.State, func(gtx C) D {
+					gtx.Constraints.Min.X = width
+					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx C) D {
+						return material.Label(a.Theme, unit.Dp(20), action.Name).Layout(gtx)
+					})
+				})
+			})
+		}),
+	)
+	if !animating {
+		return dims
+	}
+	menuOp := menuMacro.Stop()
+	progress := a.overflowAnim.Revealed(gtx, actionAnimationDuration)
+	maxWidth := dims.Size.X
+	clip.Rect{
+		Max: image.Point{
+			X: maxWidth,
+			Y: int(float32(dims.Size.Y) * progress),
+		},
+		Min: image.Point{
+			X: maxWidth - int(float32(dims.Size.X)*progress),
+			Y: 0,
+		},
+	}.Add(gtx.Ops)
+	menuOp.Add(gtx.Ops)
+	return dims
 }
 
 func min(a, b int) int {
@@ -189,6 +318,13 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
 }
 
 // NavigationClicked returns true when the navigation button has been
@@ -200,8 +336,11 @@ func (a *AppBar) NavigationClicked() bool {
 // SetActions configures the set of actions available in the
 // action item area of the app bar. They will be displayed
 // in the order provided (from left to right) and will
-// collapse into the overflow menu from right to left.
-func (a *AppBar) SetActions(actions []AppBarAction) {
+// collapse into the overflow menu from right to left. The
+// provided OverflowActions will always be in the overflow
+// menu in the order provided.
+func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
 	a.actions = actions
-	a.actionAnimState = make([]appBarAnimation, len(actions))
+	a.actionAnimState = make([]visibilityAnimation, len(actions))
+	a.overflowActions = overflows
 }

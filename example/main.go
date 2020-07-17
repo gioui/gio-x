@@ -61,7 +61,8 @@ func main() {
 type Page struct {
 	layout func(layout.Context) layout.Dimensions
 	materials.NavItem
-	Actions []materials.AppBarAction
+	Actions  []materials.AppBarAction
+	Overflow []materials.OverflowAction
 }
 
 func loop(w *app.Window) error {
@@ -72,12 +73,10 @@ func loop(w *app.Window) error {
 		Title:    "Navigation Drawer",
 		Subtitle: "This is an example.",
 	}
-	bar := materials.AppBar{
-		Theme:          th,
-		NavigationIcon: MenuIcon,
-		Title:          "Title",
-	}
-	var heartBtn, plusBtn widget.Clickable
+	bar := materials.NewAppBar(th)
+	bar.NavigationIcon = MenuIcon
+
+	var heartBtn, plusBtn, exampleOverflowState widget.Clickable
 
 	pages := []Page{
 		Page{
@@ -96,14 +95,28 @@ func loop(w *app.Window) error {
 			},
 			Actions: []materials.AppBarAction{
 				materials.AppBarAction{
-					Name:  "Favorite",
-					Icon:  HeartIcon,
-					State: &heartBtn,
+					OverflowAction: materials.OverflowAction{
+						Name:  "Favorite",
+						State: &heartBtn,
+					},
+					Icon: HeartIcon,
 				},
 				materials.AppBarAction{
-					Name:  "Create",
-					Icon:  PlusIcon,
-					State: &plusBtn,
+					OverflowAction: materials.OverflowAction{
+						Name:  "Create",
+						State: &plusBtn,
+					},
+					Icon: PlusIcon,
+				},
+			},
+			Overflow: []materials.OverflowAction{
+				{
+					Name:  "Example",
+					State: &exampleOverflowState,
+				},
+				{
+					Name:  "Example2",
+					State: &exampleOverflowState,
 				},
 			},
 		},
@@ -123,9 +136,11 @@ func loop(w *app.Window) error {
 			},
 			Actions: []materials.AppBarAction{
 				materials.AppBarAction{
-					Name:  "Create",
-					Icon:  PlusIcon,
-					State: &plusBtn,
+					OverflowAction: materials.OverflowAction{
+						Name:  "Create",
+						State: &plusBtn,
+					},
+					Icon: PlusIcon,
 				},
 			},
 		},
@@ -145,9 +160,11 @@ func loop(w *app.Window) error {
 			},
 			Actions: []materials.AppBarAction{
 				materials.AppBarAction{
-					Name:  "Favorite",
-					Icon:  HeartIcon,
-					State: &heartBtn,
+					OverflowAction: materials.OverflowAction{
+						Name:  "Favorite",
+						State: &heartBtn,
+					},
+					Icon: HeartIcon,
 				},
 			},
 		},
@@ -160,7 +177,7 @@ func loop(w *app.Window) error {
 	{
 		page := pages[nav.CurrentNavDestiation().(int)]
 		bar.Title = page.Name
-		bar.SetActions(page.Actions)
+		bar.SetActions(page.Actions, page.Overflow)
 	}
 	for {
 		e := <-w.Events()
@@ -175,7 +192,7 @@ func loop(w *app.Window) error {
 			if nav.NavDestinationChanged() {
 				page := pages[nav.CurrentNavDestiation().(int)]
 				bar.Title = page.Name
-				bar.SetActions(page.Actions)
+				bar.SetActions(page.Actions, page.Overflow)
 			}
 			layout.Inset{
 				Top:    e.Insets.Top,
