@@ -44,6 +44,11 @@ type AppBarAction struct {
 
 const actionAnimationDuration = time.Millisecond * 250
 
+var actionButtonInset = layout.Inset{
+	Top:    unit.Dp(4),
+	Bottom: unit.Dp(4),
+}
+
 func (a AppBarAction) layout(th *material.Theme, anim *appBarAnimation, gtx layout.Context) layout.Dimensions {
 	if anim.state == invisible {
 		return layout.Dimensions{}
@@ -51,20 +56,16 @@ func (a AppBarAction) layout(th *material.Theme, anim *appBarAnimation, gtx layo
 	animating := anim.state == appearing || anim.state == disappearing
 	var macro op.MacroOp
 	if animating {
+		op.InvalidateOp{}.Add(gtx.Ops)
 		macro = op.Record(gtx.Ops)
 	}
 	btn := material.IconButton(th, a.State, a.Icon)
 	btn.Size = unit.Dp(24)
-	btn.Inset = layout.Inset{
-		Left:   unit.Dp(12),
-		Right:  unit.Dp(12),
-		Top:    unit.Dp(16),
-		Bottom: unit.Dp(16),
-	}
+	btn.Inset = layout.UniformInset(unit.Dp(12))
 	if !animating {
 		return btn.Layout(gtx)
 	}
-	dims := btn.Layout(gtx)
+	dims := actionButtonInset.Layout(gtx, btn.Layout)
 	btnOp := macro.Stop()
 	progress := float32(gtx.Now.Sub(anim.started).Milliseconds()) / float32(actionAnimationDuration.Milliseconds())
 	if anim.state == appearing {
@@ -106,6 +107,11 @@ const (
 	invisible
 )
 
+var overflowButtonInset = layout.Inset{
+	Top:    unit.Dp(10),
+	Bottom: unit.Dp(10),
+}
+
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
@@ -146,18 +152,17 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 				}
 				visibleActionItems = min(visibleActionItems, len(a.actions))
 				var actions []layout.FlexChild
-				lastVisibleAction := len(a.actions) - visibleActionItems
 				for i := range a.actions {
 					action := a.actions[i]
 					anim := &a.actionAnimState[i]
 					switch anim.state {
 					case visible:
-						if i < lastVisibleAction {
+						if i >= visibleActionItems {
 							anim.state = disappearing
 							anim.started = gtx.Now
 						}
 					case invisible:
-						if i >= lastVisibleAction {
+						if i < visibleActionItems {
 							anim.state = appearing
 							anim.started = gtx.Now
 						}
@@ -169,15 +174,10 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 				actions = append(actions, layout.Rigid(func(gtx C) D {
 					btn := material.IconButton(a.Theme, &a.overflowBtn, moreIcon)
 					btn.Size = unit.Dp(24)
-					btn.Inset = layout.Inset{
-						Left:   unit.Dp(6),
-						Right:  unit.Dp(6),
-						Top:    unit.Dp(16),
-						Bottom: unit.Dp(16),
-					}
-					return btn.Layout(gtx)
+					btn.Inset = layout.UniformInset(unit.Dp(6))
+					return overflowButtonInset.Layout(gtx, btn.Layout)
 				}))
-				return layout.Flex{}.Layout(gtx, actions...)
+				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, actions...)
 			})
 		}),
 	)
@@ -191,6 +191,8 @@ func min(a, b int) int {
 	return b
 }
 
+// NavigationClicked returns true when the navigation button has been
+// clicked in the last frame.
 func (a *AppBar) NavigationClicked() bool {
 	return a.NavigationButton.Clicked()
 }
