@@ -331,7 +331,7 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 
 // Layout renders the nav drawer
 func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
-	if m.scrim.Clicked() {
+	if m.scrim.Clicked() && m.drawerState != retracting {
 		m.drawerState = retracting
 		m.stateStarted = gtx.Now
 	}
