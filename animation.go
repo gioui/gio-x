@@ -31,6 +31,9 @@ func (v *VisibilityAnimation) Revealed(gtx layout.Context) float32 {
 	if v.Animating() {
 		op.InvalidateOp{}.Add(gtx.Ops)
 	}
+	if v.Duration == time.Duration(0) {
+		v.Duration = time.Second
+	}
 	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(v.Milliseconds())
 	if progress >= 1 {
 		if v.state == Appearing {
