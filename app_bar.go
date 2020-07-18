@@ -2,7 +2,6 @@ package materials
 
 import (
 	"image"
-	"image/color"
 	"time"
 
 	"gioui.org/f32"
@@ -128,7 +127,9 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
 
 	overflowedActions := len(a.actions)
-	layout.Flex{}.Layout(gtx,
+	layout.Flex{
+		Alignment: layout.Middle,
+	}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			if a.NavigationIcon == nil {
 				return layout.Dimensions{}
@@ -139,15 +140,17 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			return button.Layout(gtx)
 		}),
 		layout.Rigid(func(gtx C) D {
-			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx C) D {
+			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
 				title := material.Body1(a.Theme, a.Title)
 				title.Color = a.Theme.Color.InvText
 				title.TextSize = unit.Dp(18)
-				return layout.S.Layout(gtx, title.Layout)
+				return title.Layout(gtx)
 			})
 		}),
 		layout.Flexed(1, func(gtx C) D {
+			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			return layout.E.Layout(gtx, func(gtx C) D {
+				gtx.Constraints.Min.Y = 0
 				widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
 				visibleActionItems := int((widthDp / 48) - 1)
 				if visibleActionItems < 0 {
@@ -173,12 +176,15 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 						return action.layout(a.Theme, anim, gtx)
 					}))
 				}
-				actions = append(actions, layout.Rigid(func(gtx C) D {
-					btn := material.IconButton(a.Theme, &a.overflowBtn, moreIcon)
-					btn.Size = unit.Dp(24)
-					btn.Inset = layout.UniformInset(unit.Dp(6))
-					return overflowButtonInset.Layout(gtx, btn.Layout)
-				}))
+				if len(a.overflowActions)+overflowedActions > 0 {
+					actions = append(actions, layout.Rigid(func(gtx C) D {
+						gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+						btn := material.IconButton(a.Theme, &a.overflowBtn, moreIcon)
+						btn.Size = unit.Dp(24)
+						btn.Inset = layout.UniformInset(unit.Dp(6))
+						return overflowButtonInset.Layout(gtx, btn.Layout)
+					}))
+				}
 				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, actions...)
 			})
 		}),
