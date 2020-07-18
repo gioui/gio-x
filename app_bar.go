@@ -46,7 +46,7 @@ func NewAppBar(th *material.Theme) *AppBar {
 		Theme: th,
 	}
 	ab.overflowList.Axis = layout.Vertical
-	ab.overflowAnim.state = Invisible
+	ab.overflowAnim.State = Invisible
 	ab.overflowAnim.Duration = overflowAnimationDuration
 	ab.overflowScrim.FinalAlpha = 82
 	return ab
@@ -162,7 +162,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 				for i := range a.actions {
 					action := a.actions[i]
 					anim := &a.actionAnimState[i]
-					switch anim.state {
+					switch anim.State {
 					case Visible:
 						if i >= visibleActionItems {
 							anim.Disappear(gtx.Now)

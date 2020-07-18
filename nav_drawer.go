@@ -208,7 +208,7 @@ func NewModalNav(th *material.Theme, title, subtitle string) *ModalNavDrawer {
 		Subtitle: subtitle,
 	}
 	m.VisibilityAnimation.Duration = drawerAnimationDuration
-	m.VisibilityAnimation.state = Invisible
+	m.VisibilityAnimation.State = Invisible
 	m.Scrim.FinalAlpha = 82
 	return m
 }

@@ -12,8 +12,8 @@ import (
 type VisibilityAnimation struct {
 	// How long does the animation last
 	time.Duration
-	state   VisibilityAnimationState
-	started time.Time
+	State   VisibilityAnimationState
+	Started time.Time
 }
 
 // Revealed returns the fraction of the animated entity that should be revealed at the current
@@ -34,15 +34,15 @@ func (v *VisibilityAnimation) Revealed(gtx layout.Context) float32 {
 	if v.Duration == time.Duration(0) {
 		v.Duration = time.Second
 	}
-	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(v.Milliseconds())
+	progress := float32(gtx.Now.Sub(v.Started).Milliseconds()) / float32(v.Milliseconds())
 	if progress >= 1 {
-		if v.state == Appearing {
-			v.state = Visible
-		} else if v.state == Disappearing {
-			v.state = Invisible
+		if v.State == Appearing {
+			v.State = Visible
+		} else if v.State == Disappearing {
+			v.State = Invisible
 		}
 	}
-	switch v.state {
+	switch v.State {
 	case Visible:
 		return 1
 	case Invisible:
@@ -58,21 +58,21 @@ func (v *VisibilityAnimation) Revealed(gtx layout.Context) float32 {
 // Visible() returns whether any part of the animated entity should be visible during the
 // current animation frame.
 func (v VisibilityAnimation) Visible() bool {
-	return v.state != Invisible
+	return v.State != Invisible
 }
 
 // Animating() returns whether the animation is either in the process of appearsing or
 // disappearing.
 func (v VisibilityAnimation) Animating() bool {
-	return v.state == Appearing || v.state == Disappearing
+	return v.State == Appearing || v.State == Disappearing
 }
 
 // Appear triggers the animation to begin becoming visible at the provided time. It is
 // a no-op if the animation is already visible.
 func (v *VisibilityAnimation) Appear(now time.Time) {
 	if !v.Visible() {
-		v.state = Appearing
-		v.started = now
+		v.State = Appearing
+		v.Started = now
 	}
 }
 
@@ -80,8 +80,8 @@ func (v *VisibilityAnimation) Appear(now time.Time) {
 // It is a no-op if the animation is already invisible.
 func (v *VisibilityAnimation) Disappear(now time.Time) {
 	if v.Visible() {
-		v.state = Disappearing
-		v.started = now
+		v.State = Disappearing
+		v.Started = now
 	}
 }
 
