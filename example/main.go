@@ -196,6 +196,9 @@ func loop(w *app.Window) error {
 			if bar.NavigationClicked() {
 				nav.ToggleVisibility(gtx.Now)
 			}
+			if green.Clicked() || red.Clicked() || blue.Clicked() || exampleOverflowState.Clicked() {
+				bar.CloseOverflowMenu(gtx.Now)
+			}
 			if nav.NavDestinationChanged() {
 				page := pages[nav.CurrentNavDestiation().(int)]
 				bar.Title = page.Name

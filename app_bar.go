@@ -280,7 +280,6 @@ func max(a, b int) int {
 // NavigationClicked returns true when the navigation button has been
 // clicked in the last frame.
 func (a *AppBar) NavigationClicked() bool {
-	a.initialize()
 	return a.NavigationButton.Clicked()
 }
 
@@ -291,11 +290,18 @@ func (a *AppBar) NavigationClicked() bool {
 // provided OverflowActions will always be in the overflow
 // menu in the order provided.
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
-	a.initialize()
 	a.actions = actions
 	a.actionAnimState = make([]VisibilityAnimation, len(actions))
 	for i := range a.actionAnimState {
 		a.actionAnimState[i].Duration = actionAnimationDuration
 	}
 	a.overflowActions = overflows
+}
+
+// CloseOverflowMenu requests that the overflow menu be closed if it is
+// open.
+func (a *AppBar) CloseOverflowMenu(when time.Time) {
+	if a.overflowAnim.Visible() {
+		a.overflowAnim.Disappear(when)
+	}
 }
