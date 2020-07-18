@@ -26,6 +26,21 @@ Known issues:
 
 - API targets a fairly static and simplistic menu. Sub-sections with dividers are not yet supported. An API-driven way to traverse the current menu options is also not yet supported. Contributions welcome!
 
+### App Bar (Top)
+
+The App Bar [specified here](https://material.io/components/app-bars-top) is mostly implemented by the type
+`AppBar`. It looks like this:
+
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top.png)
+
+Known Issues:
+ - Contextual App Bars are not yet implemented.
+ - The API requires application code to request that the overflow menu close
+   instead of closing it automatically when an overflow item is selected.
+ - Compact and prominent App Bars are not yet implemented.
+
+### Example
+
 Want to see it?
 
 ```
