@@ -37,7 +37,7 @@ type AppBar struct {
 	overflowList    layout.List
 	overflowActions []OverflowAction
 	overflowAnim    visibilityAnimation
-	overflowScrim   scrim
+	overflowScrim   Scrim
 }
 
 // NewAppBar creates and initializes an App Bar. It should always be
@@ -48,8 +48,7 @@ func NewAppBar(th *material.Theme) *AppBar {
 	}
 	ab.overflowList.Axis = layout.Vertical
 	ab.overflowAnim.state = invisible
-	ab.overflowScrim.visibilityAnimation = &ab.overflowAnim
-	ab.overflowScrim.finalAlpha = 82
+	ab.overflowScrim.FinalAlpha = 82
 	return ab
 }
 
@@ -263,7 +262,7 @@ func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layou
 	if !a.overflowAnim.Visible() {
 		return layout.Dimensions{}
 	}
-	a.overflowScrim.Layout(gtx)
+	a.overflowScrim.Layout(gtx, &a.overflowAnim)
 	defer op.Push(gtx.Ops).Pop()
 	width := gtx.Constraints.Max.X / 2
 	gtx.Constraints.Min.X = width
