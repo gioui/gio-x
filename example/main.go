@@ -68,11 +68,7 @@ type Page struct {
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
-	nav := materials.ModalNavDrawer{
-		Theme:    th,
-		Title:    "Navigation Drawer",
-		Subtitle: "This is an example.",
-	}
+	nav := materials.NewModalNav(th, "Navigation Drawer", "This is an example.")
 	bar := materials.NewAppBar(th)
 	bar.NavigationIcon = MenuIcon
 

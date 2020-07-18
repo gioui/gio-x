@@ -3,6 +3,7 @@ package materials
 import (
 	"image"
 	"image/color"
+	"log"
 	"math"
 	"time"
 
@@ -305,16 +306,27 @@ type ModalNavDrawer struct {
 	selectedChanged bool // selected item changed during the last frame
 	items           []renderNavItem
 
-	scrim   widget.Clickable
+	Scrim
 	navList layout.List
 	drag    gesture.Drag
 
 	// animation state
-	drawerState
-	stateStarted time.Time
-	dragging     bool
-	dragStarted  f32.Point
-	dragOffset   float32
+	VisibilityAnimation
+	dragging    bool
+	dragStarted f32.Point
+	dragOffset  float32
+}
+
+func NewModalNav(th *material.Theme, title, subtitle string) *ModalNavDrawer {
+	m := &ModalNavDrawer{
+		Theme:    th,
+		Title:    title,
+		Subtitle: subtitle,
+	}
+	m.VisibilityAnimation.Duration = drawerAnimationDuration
+	m.VisibilityAnimation.state = Invisible
+	m.Scrim.FinalAlpha = 82
+	return m
 }
 
 // AddNavItem inserts a navigation target into the drawer. This should be
@@ -331,13 +343,12 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 
 // Layout renders the nav drawer
 func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
-	if m.scrim.Clicked() && m.drawerState != retracting {
-		m.drawerState = retracting
-		m.stateStarted = gtx.Now
+	if m.Scrim.Clicked() {
+		m.Disappear(gtx.Now)
 	}
 	m.selectedChanged = false
-	m.updateAnimationState(gtx)
-	if m.drawerState == retracted {
+	m.updateDragState(gtx)
+	if !m.Visible() {
 		return layout.Dimensions{}
 	}
 	for _, event := range m.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
@@ -358,9 +369,9 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 		}
 	}
 	return layout.Stack{}.Layout(gtx,
-		layout.Expanded(m.layoutScrim),
+		layout.Expanded(func(gtx C) D { return m.Scrim.Layout(gtx, &m.VisibilityAnimation) }),
 		layout.Stacked(func(gtx C) D {
-			if m.dragOffset != 0 || m.drawerState == retracting || m.drawerState == extending {
+			if m.dragOffset != 0 || m.Animating() {
 				defer op.Push(gtx.Ops).Pop()
 				m.drawerTransform(gtx).Add(gtx.Ops)
 				op.InvalidateOp{}.Add(gtx.Ops)
@@ -370,68 +381,27 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	)
 }
 
-// updateAnimationState checks for drawer animations that have finished and
+// updateDragState checks for drawer animations that have finished and
 // updates the drawerState accordingly.
-func (m *ModalNavDrawer) updateAnimationState(gtx layout.Context) {
-	if m.dragOffset != 0 && !m.dragging && m.drawerState != retracting {
+func (m *ModalNavDrawer) updateDragState(gtx layout.Context) {
+	if m.dragOffset != 0 && !m.dragging && !m.VisibilityAnimation.Animating() {
 		if m.dragOffset < 2 {
 			m.dragOffset = 0
 		} else {
 			m.dragOffset /= 2
 		}
 	} else if m.dragging && int(m.dragOffset) > gtx.Constraints.Max.X/10 {
-		m.drawerState = retracting
-		m.stateStarted = gtx.Now
+		m.Disappear(gtx.Now)
 	}
-	if m.drawerState == extended || m.drawerState == retracted {
-		return
-	}
-	sinceStarted := gtx.Now.Sub(m.stateStarted)
-	if sinceStarted > drawerAnimationDuration {
-		if m.drawerState == retracting {
-			m.drawerState = retracted
-		} else if m.drawerState == extending {
-			m.drawerState = extended
-		}
-		m.stateStarted = gtx.Now
-	}
-}
-
-// drawerAnimationProgress returns the current animation progress as a value
-// in the range [0,1)
-func (m *ModalNavDrawer) drawerAnimationProgress(gtx layout.Context) float32 {
-	sinceStarted := gtx.Now.Sub(m.stateStarted)
-	return float32(sinceStarted.Milliseconds()) / float32(drawerAnimationDuration.Milliseconds())
 }
 
 // drawerTransform returns the TransformOp that should be used for the current
 // animation frame.
 func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
-	progress := m.drawerAnimationProgress(gtx)
-	if m.drawerState == retracting {
-		progress *= -1
-	} else if m.drawerState == extending {
-		progress = -1 + progress
-	} else if m.drawerState == extended {
-		progress = 0
-	}
-	finalOffset := progress*(float32(m.sheetWidth(gtx))) - m.dragOffset
+	revealed := -1 + m.Revealed(gtx)
+	finalOffset := revealed*(float32(m.sheetWidth(gtx))) - m.dragOffset
+	log.Printf("revealed: %v final: %v drag: %v", revealed, finalOffset, m.dragOffset)
 	return op.Offset(f32.Point{X: finalOffset})
-}
-
-func (m *ModalNavDrawer) layoutScrim(gtx layout.Context) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
-	gtx.Constraints.Min = gtx.Constraints.Max
-	const finalAlpha = 82
-	currentAlpha := uint8(finalAlpha)
-	if m.drawerState == extending {
-		currentAlpha = uint8(finalAlpha * m.drawerAnimationProgress(gtx))
-	} else if m.drawerState == retracting {
-		currentAlpha = finalAlpha - uint8(finalAlpha*m.drawerAnimationProgress(gtx))
-	}
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: currentAlpha})
-	m.scrim.Layout(gtx)
-	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
 func (m ModalNavDrawer) sheetWidth(gtx layout.Context) int {
@@ -492,17 +462,11 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 // ToggleVisibility changes the state of the nav drawer from retracted to
 // extended or visa versa.
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
-	switch m.drawerState {
-	case extending:
-		fallthrough
-	case extended:
-		m.drawerState = retracting
-	case retracting:
-		fallthrough
-	case retracted:
-		m.drawerState = extending
+	if !m.Visible() {
+		m.Appear(when)
+	} else {
+		m.Disappear(when)
 	}
-	m.stateStarted = when
 }
 
 // CurrentNavDestiation returns the tag of the navigation destination
