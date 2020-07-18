@@ -2,6 +2,7 @@ package materials
 
 import (
 	"image"
+	"sync"
 	"time"
 
 	"gioui.org/f32"
@@ -24,6 +25,10 @@ var moreIcon *widget.Icon = func() *widget.Icon {
 //
 // TODO(whereswaldon): implement support for RTL layouts
 type AppBar struct {
+	// init ensures that AppBars constructed using struct literal
+	// syntax still have their fields initialized before use.
+	init sync.Once
+
 	*material.Theme
 
 	NavigationButton widget.Clickable
@@ -39,17 +44,22 @@ type AppBar struct {
 	overflowScrim   Scrim
 }
 
-// NewAppBar creates and initializes an App Bar. It should always be
-// used to create a new AppBar.
+// NewAppBar creates and initializes an App Bar.
 func NewAppBar(th *material.Theme) *AppBar {
 	ab := &AppBar{
 		Theme: th,
 	}
-	ab.overflowList.Axis = layout.Vertical
-	ab.overflowAnim.State = Invisible
-	ab.overflowAnim.Duration = overflowAnimationDuration
-	ab.overflowScrim.FinalAlpha = 82
+	ab.initialize()
 	return ab
+}
+
+func (a *AppBar) initialize() {
+	a.init.Do(func() {
+		a.overflowList.Axis = layout.Vertical
+		a.overflowAnim.State = Invisible
+		a.overflowAnim.Duration = overflowAnimationDuration
+		a.overflowScrim.FinalAlpha = 82
+	})
 }
 
 // AppBarAction configures an action in the App Bar's action items.
@@ -121,6 +131,7 @@ func (a *AppBar) updateState(gtx layout.Context) {
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
+	a.initialize()
 	a.updateState(gtx)
 	originalMaxY := gtx.Constraints.Max.Y
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
@@ -269,6 +280,7 @@ func max(a, b int) int {
 // NavigationClicked returns true when the navigation button has been
 // clicked in the last frame.
 func (a *AppBar) NavigationClicked() bool {
+	a.initialize()
 	return a.NavigationButton.Clicked()
 }
 
@@ -279,6 +291,7 @@ func (a *AppBar) NavigationClicked() bool {
 // provided OverflowActions will always be in the overflow
 // menu in the order provided.
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
+	a.initialize()
 	a.actions = actions
 	a.actionAnimState = make([]VisibilityAnimation, len(actions))
 	for i := range a.actionAnimState {

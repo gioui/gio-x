@@ -69,7 +69,7 @@ func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
 	nav := materials.NewModalNav(th, "Navigation Drawer", "This is an example.")
-	bar := materials.NewAppBar(th)
+	bar := materials.AppBar{Theme: th}
 	bar.NavigationIcon = MenuIcon
 
 	var (
