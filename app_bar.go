@@ -32,11 +32,11 @@ type AppBar struct {
 	Title            string
 
 	actions         []AppBarAction
-	actionAnimState []visibilityAnimation
+	actionAnimState []VisibilityAnimation
 	overflowBtn     widget.Clickable
 	overflowList    layout.List
 	overflowActions []OverflowAction
-	overflowAnim    visibilityAnimation
+	overflowAnim    VisibilityAnimation
 	overflowScrim   Scrim
 }
 
@@ -47,7 +47,7 @@ func NewAppBar(th *material.Theme) *AppBar {
 		Theme: th,
 	}
 	ab.overflowList.Axis = layout.Vertical
-	ab.overflowAnim.state = invisible
+	ab.overflowAnim.state = Invisible
 	ab.overflowScrim.FinalAlpha = 82
 	return ab
 }
@@ -66,7 +66,7 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(th *material.Theme, anim *visibilityAnimation, gtx layout.Context) layout.Dimensions {
+func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -94,72 +94,6 @@ func (a AppBarAction) layout(th *material.Theme, anim *visibilityAnimation, gtx 
 	btnOp.Add(gtx.Ops)
 	return dims
 }
-
-// visibilityAnimation holds the animation state for a particular app bar action.
-// This facilitates actions appearing and disappearing gracefully as the screen
-// resizes.
-type visibilityAnimation struct {
-	state   visibilityAnimationState
-	started time.Time
-}
-
-// Revealed returns the fraction of the animated entity that should be revealed at the current
-// time in the animation
-func (v *visibilityAnimation) Revealed(gtx layout.Context, animationDuration time.Duration) float32 {
-	if v.Animating() {
-		op.InvalidateOp{}.Add(gtx.Ops)
-	}
-	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(animationDuration.Milliseconds())
-	if progress >= 1 {
-		if v.state == appearing {
-			v.state = visible
-		} else if v.state == disappearing {
-			v.state = invisible
-		}
-	}
-	switch v.state {
-	case visible:
-		return 1
-	case invisible:
-		return 0
-	case appearing:
-		return progress
-	case disappearing:
-		return 1 - progress
-	}
-	return progress
-}
-
-func (v visibilityAnimation) Visible() bool {
-	return v.state != invisible
-}
-
-func (v visibilityAnimation) Animating() bool {
-	return v.state == appearing || v.state == disappearing
-}
-
-func (v *visibilityAnimation) Appear(now time.Time) {
-	if !v.Visible() {
-		v.state = appearing
-		v.started = now
-	}
-}
-
-func (v *visibilityAnimation) Disappear(now time.Time) {
-	if v.Visible() {
-		v.state = disappearing
-		v.started = now
-	}
-}
-
-type visibilityAnimationState int
-
-const (
-	visible visibilityAnimationState = iota
-	disappearing
-	appearing
-	invisible
-)
 
 var overflowButtonInset = layout.Inset{
 	Top:    unit.Dp(10),
@@ -230,11 +164,11 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 					action := a.actions[i]
 					anim := &a.actionAnimState[i]
 					switch anim.state {
-					case visible:
+					case Visible:
 						if i >= visibleActionItems {
 							anim.Disappear(gtx.Now)
 						}
-					case invisible:
+					case Invisible:
 						if i < visibleActionItems {
 							anim.Appear(gtx.Now)
 						}
@@ -344,6 +278,6 @@ func (a *AppBar) NavigationClicked() bool {
 // menu in the order provided.
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
 	a.actions = actions
-	a.actionAnimState = make([]visibilityAnimation, len(actions))
+	a.actionAnimState = make([]VisibilityAnimation, len(actions))
 	a.overflowActions = overflows
 }

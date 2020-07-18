@@ -21,7 +21,7 @@ type Scrim struct {
 
 // Layout draws the scrim using the provided animation. If the animation indicates
 // that the scrim is not visible, this is a no-op.
-func (s *Scrim) Layout(gtx layout.Context, anim *visibilityAnimation) layout.Dimensions {
+func (s *Scrim) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
