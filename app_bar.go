@@ -124,14 +124,6 @@ func (a *AppBar) updateState(gtx layout.Context) {
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	a.updateState(gtx)
 	originalMaxY := gtx.Constraints.Max.Y
-	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(60))
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 50})
-	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(59))
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 75})
-	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(58))
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 100})
-	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(57))
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{A: 125})
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
 
