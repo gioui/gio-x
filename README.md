@@ -22,6 +22,13 @@ The modal navigation drawer [specified here](https://material.io/components/navi
 
 ![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/modal-nav.png)
 
+Features:
+- Animated drawer open/close.
+- Swipe or touch scrim to close the drawer.
+- Navigation items respond to hovering.
+- Navigation selection is animated.
+- Navigation item icons are optional.
+
 Known issues:
 
 - API targets a fairly static and simplistic menu. Sub-sections with dividers are not yet supported. An API-driven way to traverse the current menu options is also not yet supported. Contributions welcome!
@@ -32,6 +39,13 @@ The App Bar [specified here](https://material.io/components/app-bars-top) is mos
 `AppBar`. It looks like this:
 
 ![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top.png)
+
+Features:
+ - Action buttons and overflow menu contents can be changed easily.
+ - Overflow button disappears when no items overflow.
+ - Overflow menu can be dismissed by touching the scrim outside of it.
+ - Action items disapper into overflow when screen is too narrow to fit them. This is animated.
+ - Navigation button icon is customizable, and the button is not drawn if no icon is provided.
 
 Known Issues:
  - Contextual App Bars are not yet implemented.
