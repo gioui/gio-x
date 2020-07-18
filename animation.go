@@ -10,6 +10,8 @@ import (
 // VisibilityAnimation holds the animation state for animations that transition between a
 // "visible" and "invisible" state for a fixed duration of time.
 type VisibilityAnimation struct {
+	// How long does the animation last
+	time.Duration
 	state   VisibilityAnimationState
 	started time.Time
 }
@@ -25,11 +27,11 @@ type VisibilityAnimation struct {
 // If the animation is in the process of animating, calling Revealed will automatically add
 // an InvalidateOp to the provided layout.Context to ensure that the next frame will be generated
 // promptly.
-func (v *VisibilityAnimation) Revealed(gtx layout.Context, animationDuration time.Duration) float32 {
+func (v *VisibilityAnimation) Revealed(gtx layout.Context) float32 {
 	if v.Animating() {
 		op.InvalidateOp{}.Add(gtx.Ops)
 	}
-	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(animationDuration.Milliseconds())
+	progress := float32(gtx.Now.Sub(v.started).Milliseconds()) / float32(v.Milliseconds())
 	if progress >= 1 {
 		if v.state == Appearing {
 			v.state = Visible

@@ -29,7 +29,7 @@ func (s *Scrim) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dim
 	gtx.Constraints.Min = gtx.Constraints.Max
 	currentAlpha := s.FinalAlpha
 	if anim.Animating() {
-		revealed := anim.Revealed(gtx, actionAnimationDuration)
+		revealed := anim.Revealed(gtx)
 		currentAlpha = uint8(float32(s.FinalAlpha) * revealed)
 	}
 	fill := s.Color

@@ -48,6 +48,7 @@ func NewAppBar(th *material.Theme) *AppBar {
 	}
 	ab.overflowList.Axis = layout.Vertical
 	ab.overflowAnim.state = Invisible
+	ab.overflowAnim.Duration = overflowAnimationDuration
 	ab.overflowScrim.FinalAlpha = 82
 	return ab
 }
@@ -59,7 +60,10 @@ type AppBarAction struct {
 	Icon *widget.Icon
 }
 
-const actionAnimationDuration = time.Millisecond * 250
+const (
+	actionAnimationDuration   = time.Millisecond * 250
+	overflowAnimationDuration = time.Millisecond * 250
+)
 
 var actionButtonInset = layout.Inset{
 	Top:    unit.Dp(4),
@@ -83,7 +87,7 @@ func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx 
 	}
 	dims := actionButtonInset.Layout(gtx, btn.Layout)
 	btnOp := macro.Stop()
-	progress := anim.Revealed(gtx, actionAnimationDuration)
+	progress := anim.Revealed(gtx)
 	dims.Size.X = int(progress * float32(dims.Size.X))
 	// ensure this clip transformation stays local to this function
 	defer op.Push(gtx.Ops).Pop()
@@ -233,7 +237,7 @@ func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layou
 		}),
 	)
 	menuOp := menuMacro.Stop()
-	progress := a.overflowAnim.Revealed(gtx, actionAnimationDuration)
+	progress := a.overflowAnim.Revealed(gtx)
 	maxWidth := dims.Size.X
 	rect := clip.Rect{
 		Max: image.Point{
@@ -279,5 +283,8 @@ func (a *AppBar) NavigationClicked() bool {
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
 	a.actions = actions
 	a.actionAnimState = make([]VisibilityAnimation, len(actions))
+	for i := range a.actionAnimState {
+		a.actionAnimState[i].Duration = actionAnimationDuration
+	}
 	a.overflowActions = overflows
 }
