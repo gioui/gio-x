@@ -38,7 +38,13 @@ Known issues:
 The App Bar [specified here](https://material.io/components/app-bars-top) is mostly implemented by the type
 `AppBar`. It looks like this:
 
+Normal state:
+
 ![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top.png)
+
+Contextual state:
+
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top-contextual.png)
 
 Features:
  - Action buttons and overflow menu contents can be changed easily.
@@ -46,12 +52,14 @@ Features:
  - Overflow menu can be dismissed by touching the scrim outside of it.
  - Action items disapper into overflow when screen is too narrow to fit them. This is animated.
  - Navigation button icon is customizable, and the button is not drawn if no icon is provided.
+ - Contextual app bar can be triggered and dismissed programatically.
 
 Known Issues:
- - Contextual App Bars are not yet implemented.
  - The API requires application code to request that the overflow menu close
    instead of closing it automatically when an overflow item is selected.
  - Compact and prominent App Bars are not yet implemented.
+ - Cannot currently be used as a bottom app bar, though this would not be a terribly
+   difficult addition (patches welcome).
 
 ### Example
 
