@@ -35,13 +35,122 @@ type AppBar struct {
 	NavigationIcon   *widget.Icon
 	Title            string
 
-	actions         []AppBarAction
-	actionAnimState []VisibilityAnimation
-	overflowBtn     widget.Clickable
-	overflowList    layout.List
-	overflowActions []OverflowAction
-	overflowAnim    VisibilityAnimation
-	overflowScrim   Scrim
+	normalActions actionGroup
+	overflowMenu
+	overflowBtn    widget.Clickable
+	contextualAnim VisibilityAnimation
+}
+
+type actionGroup struct {
+	actions           []AppBarAction
+	actionAnims       []VisibilityAnimation
+	overflow          []OverflowAction
+	lastOverflowCount int
+}
+
+func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable) D {
+	overflowedActions := len(a.actions)
+	gtx.Constraints.Min.Y = 0
+	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
+	visibleActionItems := int((widthDp / 48) - 1)
+	if visibleActionItems < 0 {
+		visibleActionItems = 0
+	}
+	visibleActionItems = min(visibleActionItems, len(a.actions))
+	overflowedActions -= visibleActionItems
+	var actions []layout.FlexChild
+	for i := range a.actions {
+		action := a.actions[i]
+		anim := &a.actionAnims[i]
+		switch anim.State {
+		case Visible:
+			if i >= visibleActionItems {
+				anim.Disappear(gtx.Now)
+			}
+		case Invisible:
+			if i < visibleActionItems {
+				anim.Appear(gtx.Now)
+			}
+		}
+		actions = append(actions, layout.Rigid(func(gtx C) D {
+			return action.layout(th, anim, gtx)
+		}))
+	}
+	if len(a.overflow)+overflowedActions > 0 {
+		actions = append(actions, layout.Rigid(func(gtx C) D {
+			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+			btn := material.IconButton(th, overflowBtn, moreIcon)
+			btn.Size = unit.Dp(24)
+			btn.Inset = layout.UniformInset(unit.Dp(6))
+			return overflowButtonInset.Layout(gtx, btn.Layout)
+		}))
+	}
+	a.lastOverflowCount = overflowedActions
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx, actions...)
+}
+
+type overflowMenu struct {
+	VisibilityAnimation
+	scrim Scrim
+	list  layout.List
+}
+
+func (o *overflowMenu) layoutOverflow(gtx C, th *material.Theme, actions *actionGroup) D {
+	if !o.Visible() {
+		return layout.Dimensions{}
+	}
+	o.scrim.Layout(gtx, &o.VisibilityAnimation)
+	defer op.Push(gtx.Ops).Pop()
+	width := gtx.Constraints.Max.X / 2
+	gtx.Constraints.Min.X = width
+	op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
+	var menuMacro op.MacroOp
+	menuMacro = op.Record(gtx.Ops)
+	dims := layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx C) D {
+			gtx.Constraints.Min.X = width
+			paintRect(gtx, gtx.Constraints.Min, th.Color.Hint)
+			return layout.Dimensions{Size: gtx.Constraints.Min}
+		}),
+		layout.Stacked(func(gtx C) D {
+			return o.list.Layout(gtx, len(actions.overflow)+actions.lastOverflowCount, func(gtx C, index int) D {
+				var action OverflowAction
+				if index < actions.lastOverflowCount {
+					action = actions.actions[len(actions.actions)-actions.lastOverflowCount+index].OverflowAction
+				} else {
+					action = actions.overflow[index-actions.lastOverflowCount]
+				}
+				return material.Clickable(gtx, action.State, func(gtx C) D {
+					gtx.Constraints.Min.X = width
+					return layout.Inset{
+						Top:    unit.Dp(4),
+						Bottom: unit.Dp(4),
+						Left:   unit.Dp(8),
+					}.Layout(gtx, func(gtx C) D {
+						label := material.Label(th, unit.Dp(18), action.Name)
+						label.MaxLines = 1
+						return label.Layout(gtx)
+					})
+				})
+			})
+		}),
+	)
+	menuOp := menuMacro.Stop()
+	progress := o.Revealed(gtx)
+	maxWidth := dims.Size.X
+	rect := clip.Rect{
+		Max: image.Point{
+			X: maxWidth,
+			Y: int(float32(dims.Size.Y) * progress),
+		},
+		Min: image.Point{
+			X: maxWidth - int(float32(dims.Size.X)*progress),
+			Y: 0,
+		},
+	}
+	rect.Add(gtx.Ops)
+	menuOp.Add(gtx.Ops)
+	return dims
 }
 
 // NewAppBar creates and initializes an App Bar.
@@ -55,10 +164,12 @@ func NewAppBar(th *material.Theme) *AppBar {
 
 func (a *AppBar) initialize() {
 	a.init.Do(func() {
-		a.overflowList.Axis = layout.Vertical
-		a.overflowAnim.State = Invisible
-		a.overflowAnim.Duration = overflowAnimationDuration
-		a.overflowScrim.FinalAlpha = 82
+		a.overflowMenu.list.Axis = layout.Vertical
+		a.overflowMenu.State = Invisible
+		a.contextualAnim.State = Invisible
+		a.overflowMenu.Duration = overflowAnimationDuration
+		a.contextualAnim.Duration = contextualAnimationDuration
+		a.overflowMenu.scrim.FinalAlpha = 82
 	})
 }
 
@@ -70,8 +181,9 @@ type AppBarAction struct {
 }
 
 const (
-	actionAnimationDuration   = time.Millisecond * 250
-	overflowAnimationDuration = time.Millisecond * 250
+	actionAnimationDuration     = time.Millisecond * 250
+	contextualAnimationDuration = time.Millisecond * 250
+	overflowAnimationDuration   = time.Millisecond * 250
 )
 
 var actionButtonInset = layout.Inset{
@@ -120,11 +232,11 @@ type OverflowAction struct {
 }
 
 func (a *AppBar) updateState(gtx layout.Context) {
-	if a.overflowBtn.Clicked() && !a.overflowAnim.Visible() {
-		a.overflowAnim.Appear(gtx.Now)
+	if a.overflowBtn.Clicked() && !a.overflowMenu.Visible() {
+		a.overflowMenu.Appear(gtx.Now)
 	}
-	if a.overflowScrim.Clicked() {
-		a.overflowAnim.Disappear(gtx.Now)
+	if a.overflowMenu.scrim.Clicked() {
+		a.overflowMenu.Disappear(gtx.Now)
 	}
 }
 
@@ -137,7 +249,6 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
 
-	overflowedActions := len(a.actions)
 	layout.Flex{
 		Alignment: layout.Middle,
 	}.Layout(gtx,
@@ -161,106 +272,13 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(1, func(gtx C) D {
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			return layout.E.Layout(gtx, func(gtx C) D {
-				gtx.Constraints.Min.Y = 0
-				widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
-				visibleActionItems := int((widthDp / 48) - 1)
-				if visibleActionItems < 0 {
-					visibleActionItems = 0
-				}
-				visibleActionItems = min(visibleActionItems, len(a.actions))
-				overflowedActions -= visibleActionItems
-				var actions []layout.FlexChild
-				for i := range a.actions {
-					action := a.actions[i]
-					anim := &a.actionAnimState[i]
-					switch anim.State {
-					case Visible:
-						if i >= visibleActionItems {
-							anim.Disappear(gtx.Now)
-						}
-					case Invisible:
-						if i < visibleActionItems {
-							anim.Appear(gtx.Now)
-						}
-					}
-					actions = append(actions, layout.Rigid(func(gtx C) D {
-						return action.layout(a.Theme, anim, gtx)
-					}))
-				}
-				if len(a.overflowActions)+overflowedActions > 0 {
-					actions = append(actions, layout.Rigid(func(gtx C) D {
-						gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
-						btn := material.IconButton(a.Theme, &a.overflowBtn, moreIcon)
-						btn.Size = unit.Dp(24)
-						btn.Inset = layout.UniformInset(unit.Dp(6))
-						return overflowButtonInset.Layout(gtx, btn.Layout)
-					}))
-				}
-				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, actions...)
+				return a.normalActions.layout(gtx, a.Theme, &a.overflowBtn)
 			})
 		}),
 	)
 	gtx.Constraints.Max.Y = originalMaxY
-	a.layoutOverflow(gtx, overflowedActions)
+	a.overflowMenu.layoutOverflow(gtx, a.Theme, &a.normalActions)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
-}
-
-func (a *AppBar) layoutOverflow(gtx layout.Context, overflowedActions int) layout.Dimensions {
-	if !a.overflowAnim.Visible() {
-		return layout.Dimensions{}
-	}
-	a.overflowScrim.Layout(gtx, &a.overflowAnim)
-	defer op.Push(gtx.Ops).Pop()
-	width := gtx.Constraints.Max.X / 2
-	gtx.Constraints.Min.X = width
-	op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
-	var menuMacro op.MacroOp
-	menuMacro = op.Record(gtx.Ops)
-	dims := layout.Stack{}.Layout(gtx,
-		layout.Expanded(func(gtx C) D {
-			gtx.Constraints.Min.X = width
-			paintRect(gtx, gtx.Constraints.Min, a.Theme.Color.Hint)
-			return layout.Dimensions{Size: gtx.Constraints.Min}
-		}),
-		layout.Stacked(func(gtx C) D {
-			return a.overflowList.Layout(gtx, len(a.overflowActions)+overflowedActions, func(gtx C, index int) D {
-				var action OverflowAction
-				if index < overflowedActions {
-					action = a.actions[len(a.actions)-overflowedActions+index].OverflowAction
-				} else {
-					action = a.overflowActions[index-overflowedActions]
-				}
-				return material.Clickable(gtx, action.State, func(gtx C) D {
-					gtx.Constraints.Min.X = width
-					return layout.Inset{
-						Top:    unit.Dp(4),
-						Bottom: unit.Dp(4),
-						Left:   unit.Dp(8),
-					}.Layout(gtx, func(gtx C) D {
-						label := material.Label(a.Theme, unit.Dp(18), action.Name)
-						label.MaxLines = 1
-						return label.Layout(gtx)
-					})
-				})
-			})
-		}),
-	)
-	menuOp := menuMacro.Stop()
-	progress := a.overflowAnim.Revealed(gtx)
-	maxWidth := dims.Size.X
-	rect := clip.Rect{
-		Max: image.Point{
-			X: maxWidth,
-			Y: int(float32(dims.Size.Y) * progress),
-		},
-		Min: image.Point{
-			X: maxWidth - int(float32(dims.Size.X)*progress),
-			Y: 0,
-		},
-	}
-	rect.Add(gtx.Ops)
-	menuOp.Add(gtx.Ops)
-	return dims
 }
 
 func min(a, b int) int {
@@ -290,18 +308,30 @@ func (a *AppBar) NavigationClicked() bool {
 // provided OverflowActions will always be in the overflow
 // menu in the order provided.
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
-	a.actions = actions
-	a.actionAnimState = make([]VisibilityAnimation, len(actions))
-	for i := range a.actionAnimState {
-		a.actionAnimState[i].Duration = actionAnimationDuration
+	a.normalActions.actions = actions
+	a.normalActions.actionAnims = make([]VisibilityAnimation, len(actions))
+	for i := range a.normalActions.actionAnims {
+		a.normalActions.actionAnims[i].Duration = actionAnimationDuration
 	}
-	a.overflowActions = overflows
+	a.normalActions.overflow = overflows
+}
+
+// TriggerContextual causes the AppBar to transform into a contextual
+// App Bar with a different set of actions than normal. If the App Bar
+// is already in contextual mode, this will update the state of the
+// actions. Otherwise, this has no effect.
+func (a *AppBar) TriggerContextual(actions []AppBarAction, overflows []OverflowAction) {
+}
+
+// StopContextual causes the AppBar to stop showing a contextual menu
+// if one is currently being displayed.
+func (a *AppBar) StopContextual() {
 }
 
 // CloseOverflowMenu requests that the overflow menu be closed if it is
 // open.
 func (a *AppBar) CloseOverflowMenu(when time.Time) {
-	if a.overflowAnim.Visible() {
-		a.overflowAnim.Disappear(when)
+	if a.overflowMenu.Visible() {
+		a.overflowMenu.Disappear(when)
 	}
 }
