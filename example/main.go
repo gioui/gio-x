@@ -75,6 +75,7 @@ func loop(w *app.Window) error {
 	var (
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
 		red, green, blue                        widget.Clickable
+		contextBtn                              widget.Clickable
 	)
 
 	pages := []Page{
@@ -86,9 +87,13 @@ func loop(w *app.Window) error {
 			layout: func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{
 					Alignment: layout.Middle,
+					Axis:      layout.Vertical,
 				}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return material.H3(th, "Home").Layout(gtx)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return material.Button(th, &contextBtn, "Context").Layout(gtx)
 					}),
 				)
 			},
@@ -193,11 +198,35 @@ func loop(w *app.Window) error {
 			return e.Err
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
-			if bar.NavigationClicked() {
+			if bar.NavigationClicked(gtx) {
 				nav.ToggleVisibility(gtx.Now)
 			}
 			if green.Clicked() || red.Clicked() || blue.Clicked() || exampleOverflowState.Clicked() {
 				bar.CloseOverflowMenu(gtx.Now)
+			}
+			if contextBtn.Clicked() {
+				bar.SetContextualActions(
+					[]materials.AppBarAction{
+						{
+							Icon: HomeIcon,
+							OverflowAction: materials.OverflowAction{
+								Name:  "House",
+								State: &red,
+							},
+						},
+					},
+					[]materials.OverflowAction{
+						{
+							Name:  "foo",
+							State: &blue,
+						},
+						{
+							Name:  "bar",
+							State: &green,
+						},
+					},
+				)
+				bar.ToggleContextual(gtx.Now, "Contextual Title")
 			}
 			if nav.NavDestinationChanged() {
 				page := pages[nav.CurrentNavDestiation().(int)]

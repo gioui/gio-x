@@ -2,6 +2,7 @@ package materials
 
 import (
 	"image"
+	"image/color"
 	"sync"
 	"time"
 
@@ -20,6 +21,11 @@ var moreIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+var cancelIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ContentClear)
+	return icon
+}()
+
 // AppBar implements the material design App Bar documented here:
 // https://material.io/components/app-bars-top
 //
@@ -31,16 +37,17 @@ type AppBar struct {
 
 	*material.Theme
 
-	NavigationButton widget.Clickable
-	NavigationIcon   *widget.Icon
-	Title            string
+	NavigationButton       widget.Clickable
+	NavigationIcon         *widget.Icon
+	Title, ContextualTitle string
 
-	normalActions actionGroup
+	normalActions, contextualActions actionGroup
 	overflowMenu
-	overflowBtn    widget.Clickable
 	contextualAnim VisibilityAnimation
 }
 
+// actionGroup is a logical set of actions that might be displayed
+// by an App Bar.
 type actionGroup struct {
 	actions           []AppBarAction
 	actionAnims       []VisibilityAnimation
@@ -48,7 +55,16 @@ type actionGroup struct {
 	lastOverflowCount int
 }
 
-func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable) D {
+func (a *actionGroup) setActions(actions []AppBarAction, overflows []OverflowAction) {
+	a.actions = actions
+	a.actionAnims = make([]VisibilityAnimation, len(actions))
+	for i := range a.actionAnims {
+		a.actionAnims[i].Duration = actionAnimationDuration
+	}
+	a.overflow = overflows
+}
+
+func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, background color.RGBA) D {
 	overflowedActions := len(a.actions)
 	gtx.Constraints.Min.Y = 0
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
@@ -73,7 +89,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			}
 		}
 		actions = append(actions, layout.Rigid(func(gtx C) D {
-			return action.layout(th, anim, gtx)
+			return action.layout(th, anim, gtx, background)
 		}))
 	}
 	if len(a.overflow)+overflowedActions > 0 {
@@ -81,6 +97,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			btn := material.IconButton(th, overflowBtn, moreIcon)
 			btn.Size = unit.Dp(24)
+			btn.Background = background
 			btn.Inset = layout.UniformInset(unit.Dp(6))
 			return overflowButtonInset.Layout(gtx, btn.Layout)
 		}))
@@ -89,13 +106,26 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx, actions...)
 }
 
+// overflowMenu holds the state for an overflow menu in an app bar.
 type overflowMenu struct {
 	VisibilityAnimation
 	scrim Scrim
 	list  layout.List
+	// the button that triggers the overflow menu
+	widget.Clickable
+}
+
+func (o *overflowMenu) updateState(gtx layout.Context) {
+	if o.Clicked() && !o.Visible() {
+		o.Appear(gtx.Now)
+	}
+	if o.scrim.Clicked() {
+		o.Disappear(gtx.Now)
+	}
 }
 
 func (o *overflowMenu) layoutOverflow(gtx C, th *material.Theme, actions *actionGroup) D {
+	o.updateState(gtx)
 	if !o.Visible() {
 		return layout.Dimensions{}
 	}
@@ -191,7 +221,7 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
+func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context, background color.RGBA) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -202,6 +232,7 @@ func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx 
 	}
 	btn := material.IconButton(th, a.State, a.Icon)
 	btn.Size = unit.Dp(24)
+	btn.Background = background
 	btn.Inset = layout.UniformInset(unit.Dp(12))
 	if !animating {
 		return btn.Layout(gtx)
@@ -231,23 +262,33 @@ type OverflowAction struct {
 	State *widget.Clickable
 }
 
-func (a *AppBar) updateState(gtx layout.Context) {
-	if a.overflowBtn.Clicked() && !a.overflowMenu.Visible() {
-		a.overflowMenu.Appear(gtx.Now)
-	}
-	if a.overflowMenu.scrim.Clicked() {
-		a.overflowMenu.Disappear(gtx.Now)
-	}
+func interpolate(a, b color.RGBA, progress float32) color.RGBA {
+	var out color.RGBA
+	out.R = a.R - uint8(float32(a.R-b.R)*progress)
+	out.G = a.G - uint8(float32(a.G-b.G)*progress)
+	out.B = a.B - uint8(float32(a.B-b.B)*progress)
+	out.A = a.A - uint8(float32(a.A-b.A)*progress)
+	return out
 }
 
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	a.initialize()
-	a.updateState(gtx)
 	originalMaxY := gtx.Constraints.Max.Y
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
-	paintRect(gtx, gtx.Constraints.Max, a.Theme.Color.Primary)
+	fill := a.Theme.Color.Primary
+	actionSet := &a.normalActions
+	if a.contextualAnim.Visible() {
+		if !a.contextualAnim.Animating() {
+			fill = a.Theme.Color.Text
+			fill.A = 255
+		} else {
+			fill = interpolate(fill, a.Theme.Color.Text, a.contextualAnim.Revealed(gtx))
+		}
+		actionSet = &a.contextualActions
+	}
+	paintRect(gtx, gtx.Constraints.Max, fill)
 
 	layout.Flex{
 		Alignment: layout.Middle,
@@ -256,14 +297,23 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			if a.NavigationIcon == nil {
 				return layout.Dimensions{}
 			}
-			button := material.IconButton(a.Theme, &a.NavigationButton, a.NavigationIcon)
+			icon := a.NavigationIcon
+			if a.contextualAnim.Visible() {
+				icon = cancelIcon
+			}
+			button := material.IconButton(a.Theme, &a.NavigationButton, icon)
 			button.Size = unit.Dp(24)
+			button.Background = fill
 			button.Inset = layout.UniformInset(unit.Dp(16))
 			return button.Layout(gtx)
 		}),
 		layout.Rigid(func(gtx C) D {
 			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx C) D {
-				title := material.Body1(a.Theme, a.Title)
+				titleText := a.Title
+				if a.contextualAnim.Visible() {
+					titleText = a.ContextualTitle
+				}
+				title := material.Body1(a.Theme, titleText)
 				title.Color = a.Theme.Color.InvText
 				title.TextSize = unit.Dp(18)
 				return title.Layout(gtx)
@@ -272,12 +322,15 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(1, func(gtx C) D {
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			return layout.E.Layout(gtx, func(gtx C) D {
-				return a.normalActions.layout(gtx, a.Theme, &a.overflowBtn)
+				return actionSet.layout(gtx, a.Theme, &a.overflowMenu.Clickable, fill)
 			})
 		}),
 	)
-	gtx.Constraints.Max.Y = originalMaxY
-	a.overflowMenu.layoutOverflow(gtx, a.Theme, &a.normalActions)
+	{
+		gtx := gtx
+		gtx.Constraints.Max.Y = originalMaxY
+		a.overflowMenu.layoutOverflow(gtx, a.Theme, actionSet)
+	}
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
@@ -288,17 +341,15 @@ func min(a, b int) int {
 	return b
 }
 
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 // NavigationClicked returns true when the navigation button has been
 // clicked in the last frame.
-func (a *AppBar) NavigationClicked() bool {
-	return a.NavigationButton.Clicked()
+func (a *AppBar) NavigationClicked(gtx layout.Context) bool {
+	clicked := a.NavigationButton.Clicked()
+	if clicked && a.contextualAnim.Visible() {
+		a.contextualAnim.Disappear(gtx.Now)
+		return false
+	}
+	return clicked
 }
 
 // SetActions configures the set of actions available in the
@@ -308,24 +359,42 @@ func (a *AppBar) NavigationClicked() bool {
 // provided OverflowActions will always be in the overflow
 // menu in the order provided.
 func (a *AppBar) SetActions(actions []AppBarAction, overflows []OverflowAction) {
-	a.normalActions.actions = actions
-	a.normalActions.actionAnims = make([]VisibilityAnimation, len(actions))
-	for i := range a.normalActions.actionAnims {
-		a.normalActions.actionAnims[i].Duration = actionAnimationDuration
-	}
-	a.normalActions.overflow = overflows
+	a.normalActions.setActions(actions, overflows)
 }
 
-// TriggerContextual causes the AppBar to transform into a contextual
+// SetContextualActions configures the actions that should be available in
+// the next Contextual mode that this action bar enters.
+func (a *AppBar) SetContextualActions(actions []AppBarAction, overflows []OverflowAction) {
+	a.contextualActions.setActions(actions, overflows)
+}
+
+// StartContextual causes the AppBar to transform into a contextual
 // App Bar with a different set of actions than normal. If the App Bar
-// is already in contextual mode, this will update the state of the
-// actions. Otherwise, this has no effect.
-func (a *AppBar) TriggerContextual(actions []AppBarAction, overflows []OverflowAction) {
+// is already in contextual mode, this has no effect. The title will
+// be used as the contextual app bar title.
+func (a *AppBar) StartContextual(when time.Time, title string) {
+	if !a.contextualAnim.Visible() {
+		a.contextualAnim.Appear(when)
+		a.ContextualTitle = title
+	}
 }
 
 // StopContextual causes the AppBar to stop showing a contextual menu
 // if one is currently being displayed.
-func (a *AppBar) StopContextual() {
+func (a *AppBar) StopContextual(when time.Time) {
+	if a.contextualAnim.Visible() {
+		a.contextualAnim.Disappear(when)
+	}
+}
+
+// ToggleContextual switches between contextual an noncontextual mode.
+// If it transitions to contextual mode, the provided title is used.
+func (a *AppBar) ToggleContextual(when time.Time, title string) {
+	if !a.contextualAnim.Visible() {
+		a.StartContextual(when, title)
+	} else {
+		a.StopContextual(when)
+	}
 }
 
 // CloseOverflowMenu requests that the overflow menu be closed if it is
