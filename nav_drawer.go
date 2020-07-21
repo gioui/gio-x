@@ -332,9 +332,7 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		dimensions := m.items[index].Layout(gtx)
 		if m.items[index].Clicked() {
-			m.items[m.selectedItem].selected = false
-			m.selectedItem = index
-			m.items[m.selectedItem].selected = true
+			m.changeSelected(index)
 			m.ToggleVisibility(gtx.Now)
 			m.selectedChanged = true
 		}
@@ -352,12 +350,18 @@ func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 	}
 }
 
+func (m *ModalNavDrawer) changeSelected(newIndex int) {
+	m.items[m.selectedItem].selected = false
+	m.selectedItem = newIndex
+	m.items[m.selectedItem].selected = true
+}
+
 // SetNavDestination changes the selected navigation item to the item with
 // the provided tag. If the provided tag does not exist, it has no effect.
 func (m *ModalNavDrawer) SetNavDestination(tag interface{}) {
 	for i, item := range m.items {
 		if item.Tag == tag {
-			m.selectedItem = i
+			m.changeSelected(i)
 			break
 		}
 	}
