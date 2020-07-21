@@ -352,6 +352,17 @@ func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 	}
 }
 
+// SetNavDestination changes the selected navigation item to the item with
+// the provided tag. If the provided tag does not exist, it has no effect.
+func (m *ModalNavDrawer) SetNavDestination(tag interface{}) {
+	for i, item := range m.items {
+		if item.Tag == tag {
+			m.selectedItem = i
+			break
+		}
+	}
+}
+
 // CurrentNavDestination returns the tag of the navigation destination
 // selected in the drawer.
 func (m *ModalNavDrawer) CurrentNavDestination() interface{} {
