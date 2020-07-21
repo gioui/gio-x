@@ -187,7 +187,7 @@ func loop(w *app.Window) error {
 		nav.AddNavItem(page.NavItem)
 	}
 	{
-		page := pages[nav.CurrentNavDestiation().(int)]
+		page := pages[nav.CurrentNavDestination().(int)]
 		bar.Title = page.Name
 		bar.SetActions(page.Actions, page.Overflow)
 	}
@@ -229,7 +229,7 @@ func loop(w *app.Window) error {
 				bar.ToggleContextual(gtx.Now, "Contextual Title")
 			}
 			if nav.NavDestinationChanged() {
-				page := pages[nav.CurrentNavDestiation().(int)]
+				page := pages[nav.CurrentNavDestination().(int)]
 				bar.Title = page.Name
 				bar.SetActions(page.Actions, page.Overflow)
 			}
@@ -245,7 +245,7 @@ func loop(w *app.Window) error {
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return pages[nav.CurrentNavDestiation().(int)].layout(gtx)
+							return pages[nav.CurrentNavDestination().(int)].layout(gtx)
 						})
 					}),
 				)

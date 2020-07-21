@@ -352,9 +352,9 @@ func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
 	}
 }
 
-// CurrentNavDestiation returns the tag of the navigation destination
+// CurrentNavDestination returns the tag of the navigation destination
 // selected in the drawer.
-func (m *ModalNavDrawer) CurrentNavDestiation() interface{} {
+func (m *ModalNavDrawer) CurrentNavDestination() interface{} {
 	return m.items[m.selectedItem].Tag
 }
 
