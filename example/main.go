@@ -239,9 +239,13 @@ func loop(w *app.Window) error {
 				Left:   e.Insets.Left,
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				var barOp op.CallOp
 				layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return bar.Layout(gtx)
+						macro := op.Record(gtx.Ops)
+						dims := bar.Layout(gtx)
+						barOp = macro.Stop()
+						return dims
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -249,6 +253,7 @@ func loop(w *app.Window) error {
 						})
 					}),
 				)
+				barOp.Add(gtx.Ops)
 				nav.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})
