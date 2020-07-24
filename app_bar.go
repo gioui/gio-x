@@ -262,12 +262,12 @@ type OverflowAction struct {
 	State *widget.Clickable
 }
 
-func interpolate(a, b color.RGBA, progress float32) color.RGBA {
+func Interpolate(a, b color.RGBA, progress float32) color.RGBA {
 	var out color.RGBA
-	out.R = a.R - uint8(float32(a.R-b.R)*progress)
-	out.G = a.G - uint8(float32(a.G-b.G)*progress)
-	out.B = a.B - uint8(float32(a.B-b.B)*progress)
-	out.A = a.A - uint8(float32(a.A-b.A)*progress)
+	out.R = uint8(int16(a.R) - int16(float32(int16(a.R)-int16(b.R))*progress))
+	out.G = uint8(int16(a.G) - int16(float32(int16(a.G)-int16(b.G))*progress))
+	out.B = uint8(int16(a.B) - int16(float32(int16(a.B)-int16(b.B))*progress))
+	out.A = uint8(int16(a.A) - int16(float32(int16(a.A)-int16(b.A))*progress))
 	return out
 }
 
@@ -284,7 +284,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			fill = a.Theme.Color.Text
 			fill.A = 255
 		} else {
-			fill = interpolate(fill, a.Theme.Color.Text, a.contextualAnim.Revealed(gtx))
+			fill = Interpolate(fill, a.Theme.Color.Text, a.contextualAnim.Revealed(gtx))
 		}
 		actionSet = &a.contextualActions
 	}
