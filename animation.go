@@ -70,7 +70,7 @@ func (v VisibilityAnimation) Animating() bool {
 // Appear triggers the animation to begin becoming visible at the provided time. It is
 // a no-op if the animation is already visible.
 func (v *VisibilityAnimation) Appear(now time.Time) {
-	if !v.Visible() {
+	if !v.Visible() && !v.Animating() {
 		v.State = Appearing
 		v.Started = now
 	}
@@ -79,7 +79,7 @@ func (v *VisibilityAnimation) Appear(now time.Time) {
 // Disappear triggers the animation to begin becoming invisible at the provided time.
 // It is a no-op if the animation is already invisible.
 func (v *VisibilityAnimation) Disappear(now time.Time) {
-	if v.Visible() {
+	if v.Visible() && !v.Animating() {
 		v.State = Disappearing
 		v.Started = now
 	}
