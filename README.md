@@ -55,8 +55,6 @@ Features:
  - Contextual app bar can be triggered and dismissed programatically.
 
 Known Issues:
- - The API requires application code to request that the overflow menu close
-   instead of closing it automatically when an overflow item is selected.
  - Compact and prominent App Bars are not yet implemented.
  - Cannot currently be used as a bottom app bar, though this would not be a terribly
    difficult addition (patches welcome).
