@@ -116,11 +116,15 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 	contentColor := n.Theme.Color.Text
 	if n.selected {
 		contentColor = n.Theme.Color.Primary
 	}
-	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
+	return layout.Inset{
+		Left:  unit.Dp(8),
+		Right: unit.Dp(8),
+	}.Layout(gtx, func(gtx C) D {
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
 				if n.Icon == nil {
@@ -133,19 +137,10 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 					})
 			}),
 			layout.Rigid(func(gtx C) D {
-				defer op.Push(gtx.Ops).Pop()
-				macro := op.Record(gtx.Ops)
 				label := material.Label(n.Theme, unit.Dp(14), n.Name)
 				label.Color = contentColor
 				label.Font.Weight = text.Bold
-				dimensions := label.Layout(gtx)
-				labelOp := macro.Stop()
-				top := (gtx.Constraints.Max.Y - dimensions.Size.Y) / 2
-				op.Offset(f32.Point{Y: float32(top)}).Add(gtx.Ops)
-				labelOp.Add(gtx.Ops)
-				return layout.Dimensions{
-					Size: gtx.Constraints.Max,
-				}
+				return layout.Center.Layout(gtx, TruncatingLabelStyle(label).Layout)
 			}),
 		)
 	})
