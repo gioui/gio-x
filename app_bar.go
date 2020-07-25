@@ -52,6 +52,7 @@ type actionGroup struct {
 	actions           []AppBarAction
 	actionAnims       []VisibilityAnimation
 	overflow          []OverflowAction
+	overflowState     []widget.Clickable
 	lastOverflowCount int
 }
 
@@ -62,6 +63,7 @@ func (a *actionGroup) setActions(actions []AppBarAction, overflows []OverflowAct
 		a.actionAnims[i].Duration = actionAnimationDuration
 	}
 	a.overflow = overflows
+	a.overflowState = make([]widget.Clickable, len(a.actions)+len(a.overflow))
 }
 
 func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, background color.RGBA) D {
@@ -89,7 +91,8 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			}
 		}
 		actions = append(actions, layout.Rigid(func(gtx C) D {
-			return action.layout(th, anim, gtx, background)
+			action.Background = background
+			return action.layout(th, anim, gtx)
 		}))
 	}
 	if len(a.overflow)+overflowedActions > 0 {
@@ -113,19 +116,38 @@ type overflowMenu struct {
 	list  layout.List
 	// the button that triggers the overflow menu
 	widget.Clickable
+	selectedTag interface{}
 }
 
-func (o *overflowMenu) updateState(gtx layout.Context) {
+func (o *overflowMenu) updateState(gtx layout.Context, actions *actionGroup) {
 	if o.Clicked() && !o.Visible() {
 		o.Appear(gtx.Now)
 	}
 	if o.scrim.Clicked() {
 		o.Disappear(gtx.Now)
 	}
+	for i := range actions.overflowState {
+		if actions.overflowState[i].Clicked() {
+			o.Disappear(gtx.Now)
+			o.selectedTag = o.actionForIndex(i, actions).Tag
+		}
+	}
+}
+
+func (o overflowMenu) overflowLen(actions *actionGroup) int {
+	return len(actions.overflow) + actions.lastOverflowCount
+}
+
+func (o overflowMenu) actionForIndex(index int, actions *actionGroup) OverflowAction {
+	if index < actions.lastOverflowCount {
+		return actions.actions[len(actions.actions)-actions.lastOverflowCount+index].OverflowAction
+	}
+	return actions.overflow[index-actions.lastOverflowCount]
 }
 
 func (o *overflowMenu) layoutOverflow(gtx C, th *material.Theme, actions *actionGroup) D {
-	o.updateState(gtx)
+	o.selectedTag = nil
+	o.updateState(gtx, actions)
 	if !o.Visible() {
 		return layout.Dimensions{}
 	}
@@ -143,14 +165,10 @@ func (o *overflowMenu) layoutOverflow(gtx C, th *material.Theme, actions *action
 			return layout.Dimensions{Size: gtx.Constraints.Min}
 		}),
 		layout.Stacked(func(gtx C) D {
-			return o.list.Layout(gtx, len(actions.overflow)+actions.lastOverflowCount, func(gtx C, index int) D {
-				var action OverflowAction
-				if index < actions.lastOverflowCount {
-					action = actions.actions[len(actions.actions)-actions.lastOverflowCount+index].OverflowAction
-				} else {
-					action = actions.overflow[index-actions.lastOverflowCount]
-				}
-				return material.Clickable(gtx, action.State, func(gtx C) D {
+			return o.list.Layout(gtx, o.overflowLen(actions), func(gtx C, index int) D {
+				action := o.actionForIndex(index, actions)
+				state := &actions.overflowState[index]
+				return material.Clickable(gtx, state, func(gtx C) D {
 					gtx.Constraints.Min.X = width
 					return layout.Inset{
 						Top:    unit.Dp(4),
@@ -207,7 +225,28 @@ func (a *AppBar) initialize() {
 // The state and icon should not be nil.
 type AppBarAction struct {
 	OverflowAction
-	Icon *widget.Icon
+	Background, Foreground color.RGBA
+	Layout                 func(gtx layout.Context, a AppBarAction) layout.Dimensions
+}
+
+// SimpleIconAction configures an AppBarAction that functions as a simple
+// IconButton. To receive events from the button, use the standard methods
+// on the provided state parameter.
+func SimpleIconAction(th *material.Theme, state *widget.Clickable, icon *widget.Icon, overflow OverflowAction) AppBarAction {
+	a := AppBarAction{
+		OverflowAction: overflow,
+		Background:     th.Color.Primary,
+		Foreground:     th.Color.InvText,
+		Layout: func(gtx C, a AppBarAction) D {
+			btn := material.IconButton(th, state, icon)
+			btn.Size = unit.Dp(24)
+			btn.Background = a.Background
+			btn.Color = a.Foreground
+			btn.Inset = layout.UniformInset(unit.Dp(12))
+			return btn.Layout(gtx)
+		},
+	}
+	return a
 }
 
 const (
@@ -221,7 +260,7 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context, background color.RGBA) layout.Dimensions {
+func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -230,14 +269,12 @@ func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx 
 	if animating {
 		macro = op.Record(gtx.Ops)
 	}
-	btn := material.IconButton(th, a.State, a.Icon)
-	btn.Size = unit.Dp(24)
-	btn.Background = background
-	btn.Inset = layout.UniformInset(unit.Dp(12))
 	if !animating {
-		return btn.Layout(gtx)
+		return a.Layout(gtx, a)
 	}
-	dims := actionButtonInset.Layout(gtx, btn.Layout)
+	dims := actionButtonInset.Layout(gtx, func(gtx C) D {
+		return a.Layout(gtx, a)
+	})
 	btnOp := macro.Stop()
 	progress := anim.Revealed(gtx)
 	dims.Size.X = int(progress * float32(dims.Size.X))
@@ -258,8 +295,8 @@ var overflowButtonInset = layout.Inset{
 
 // OverflowAction is an action that is always in the overflow menu.
 type OverflowAction struct {
-	Name  string
-	State *widget.Clickable
+	Name string
+	Tag  interface{}
 }
 
 func Interpolate(a, b color.RGBA, progress float32) color.RGBA {
@@ -350,6 +387,18 @@ func (a *AppBar) NavigationClicked(gtx layout.Context) bool {
 		return false
 	}
 	return clicked
+}
+
+// OverflowActionClicked returns whether an overflow item was selected
+// during the last frame
+func (a *AppBar) OverflowActionClicked() bool {
+	return a.overflowMenu.selectedTag != nil
+}
+
+// SelectedOverflowAction returns the Tag of the overflow action selected
+// during the last frame (if any).
+func (a *AppBar) SelectedOverflowAction() interface{} {
+	return a.overflowMenu.selectedTag
 }
 
 // SetActions configures the set of actions available in the

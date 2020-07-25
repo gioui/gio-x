@@ -98,37 +98,35 @@ func loop(w *app.Window) error {
 				)
 			},
 			Actions: []materials.AppBarAction{
-				materials.AppBarAction{
-					OverflowAction: materials.OverflowAction{
-						Name:  "Favorite",
-						State: &heartBtn,
+				materials.SimpleIconAction(th, &heartBtn, HeartIcon,
+					materials.OverflowAction{
+						Name: "Favorite",
+						Tag:  &heartBtn,
 					},
-					Icon: HeartIcon,
-				},
-				materials.AppBarAction{
-					OverflowAction: materials.OverflowAction{
-						Name:  "Create",
-						State: &plusBtn,
+				),
+				materials.SimpleIconAction(th, &plusBtn, PlusIcon,
+					materials.OverflowAction{
+						Name: "Create",
+						Tag:  &plusBtn,
 					},
-					Icon: PlusIcon,
-				},
+				),
 			},
 			Overflow: []materials.OverflowAction{
 				{
-					Name:  "Example",
-					State: &exampleOverflowState,
+					Name: "Example",
+					Tag:  &exampleOverflowState,
 				},
 				{
-					Name:  "Red",
-					State: &red,
+					Name: "Red",
+					Tag:  &red,
 				},
 				{
-					Name:  "Green",
-					State: &green,
+					Name: "Green",
+					Tag:  &green,
 				},
 				{
-					Name:  "Blue",
-					State: &blue,
+					Name: "Blue",
+					Tag:  &blue,
 				},
 			},
 		},
@@ -147,13 +145,12 @@ func loop(w *app.Window) error {
 				)
 			},
 			Actions: []materials.AppBarAction{
-				materials.AppBarAction{
-					OverflowAction: materials.OverflowAction{
-						Name:  "Create",
-						State: &plusBtn,
+				materials.SimpleIconAction(th, &plusBtn, HeartIcon,
+					materials.OverflowAction{
+						Name: "Create",
+						Tag:  &plusBtn,
 					},
-					Icon: PlusIcon,
-				},
+				),
 			},
 		},
 		Page{
@@ -171,13 +168,12 @@ func loop(w *app.Window) error {
 				)
 			},
 			Actions: []materials.AppBarAction{
-				materials.AppBarAction{
-					OverflowAction: materials.OverflowAction{
-						Name:  "Favorite",
-						State: &heartBtn,
+				materials.SimpleIconAction(th, &heartBtn, HeartIcon,
+					materials.OverflowAction{
+						Name: "Favorite",
+						Tag:  &heartBtn,
 					},
-					Icon: HeartIcon,
-				},
+				),
 			},
 		},
 	}
@@ -201,28 +197,27 @@ func loop(w *app.Window) error {
 			if bar.NavigationClicked(gtx) {
 				nav.ToggleVisibility(gtx.Now)
 			}
-			if green.Clicked() || red.Clicked() || blue.Clicked() || exampleOverflowState.Clicked() {
-				bar.CloseOverflowMenu(gtx.Now)
+			if bar.OverflowActionClicked() {
+				log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
 			}
 			if contextBtn.Clicked() {
 				bar.SetContextualActions(
 					[]materials.AppBarAction{
-						{
-							Icon: HomeIcon,
-							OverflowAction: materials.OverflowAction{
-								Name:  "House",
-								State: &red,
+						materials.SimpleIconAction(th, &red, HeartIcon,
+							materials.OverflowAction{
+								Name: "House",
+								Tag:  &red,
 							},
-						},
+						),
 					},
 					[]materials.OverflowAction{
 						{
-							Name:  "foo",
-							State: &blue,
+							Name: "foo",
+							Tag:  &blue,
 						},
 						{
-							Name:  "bar",
-							State: &green,
+							Name: "bar",
+							Tag:  &green,
 						},
 					},
 				)
