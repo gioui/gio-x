@@ -180,6 +180,13 @@ type ModalNavDrawer struct {
 
 	Title    string
 	Subtitle string
+	// MaxWidth constrains the maximum amount of horizontal screen real-estate
+	// covered by the drawer. If the screen is narrower than this value, the
+	// width will be inferred by reserving space for the scrim and using the
+	// leftover area for the drawer. Values between 200 and 400 Dp are recommended.
+	//
+	// The default value used by NewModalNav is 400 Dp.
+	MaxWidth unit.Value
 
 	selectedItem    int
 	selectedChanged bool // selected item changed during the last frame
@@ -201,6 +208,7 @@ func NewModalNav(th *material.Theme, title, subtitle string) *ModalNavDrawer {
 		Theme:    th,
 		Title:    title,
 		Subtitle: subtitle,
+		MaxWidth: unit.Dp(400),
 	}
 	m.VisibilityAnimation.Duration = drawerAnimationDuration
 	m.VisibilityAnimation.State = Invisible
@@ -284,7 +292,9 @@ func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
 
 func (m ModalNavDrawer) sheetWidth(gtx layout.Context) int {
 	scrimWidth := gtx.Px(unit.Dp(56))
-	return gtx.Constraints.Max.X - scrimWidth
+	withScrim := gtx.Constraints.Max.X - scrimWidth
+	max := gtx.Px(m.MaxWidth)
+	return min(withScrim, max)
 }
 
 func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
