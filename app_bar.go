@@ -91,8 +91,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			}
 		}
 		actions = append(actions, layout.Rigid(func(gtx C) D {
-			action.Background = background
-			return action.layout(th, anim, gtx)
+			return action.layout(background, th.Color.InvText, anim, gtx)
 		}))
 	}
 	if len(a.overflow)+overflowedActions > 0 {
@@ -225,8 +224,7 @@ func (a *AppBar) initialize() {
 // The state and icon should not be nil.
 type AppBarAction struct {
 	OverflowAction
-	Background, Foreground color.RGBA
-	Layout                 func(gtx layout.Context, a AppBarAction) layout.Dimensions
+	Layout func(gtx layout.Context, bg, fg color.RGBA) layout.Dimensions
 }
 
 // SimpleIconAction configures an AppBarAction that functions as a simple
@@ -235,18 +233,23 @@ type AppBarAction struct {
 func SimpleIconAction(th *material.Theme, state *widget.Clickable, icon *widget.Icon, overflow OverflowAction) AppBarAction {
 	a := AppBarAction{
 		OverflowAction: overflow,
-		Background:     th.Color.Primary,
-		Foreground:     th.Color.InvText,
-		Layout: func(gtx C, a AppBarAction) D {
-			btn := material.IconButton(th, state, icon)
-			btn.Size = unit.Dp(24)
-			btn.Background = a.Background
-			btn.Color = a.Foreground
-			btn.Inset = layout.UniformInset(unit.Dp(12))
+		Layout: func(gtx C, bg, fg color.RGBA) D {
+			btn := SimpleIconButton(th, state, icon)
+			btn.Background = bg
+			btn.Color = fg
 			return btn.Layout(gtx)
 		},
 	}
 	return a
+}
+
+// SimpleIconButton creates an IconButtonStyle that is pre-configured to
+// be the right size for use as an AppBarAction
+func SimpleIconButton(th *material.Theme, state *widget.Clickable, icon *widget.Icon) material.IconButtonStyle {
+	btn := material.IconButton(th, state, icon)
+	btn.Size = unit.Dp(24)
+	btn.Inset = layout.UniformInset(unit.Dp(12))
+	return btn
 }
 
 const (
@@ -260,7 +263,7 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
+func (a AppBarAction) layout(bg, fg color.RGBA, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -270,10 +273,10 @@ func (a AppBarAction) layout(th *material.Theme, anim *VisibilityAnimation, gtx 
 		macro = op.Record(gtx.Ops)
 	}
 	if !animating {
-		return a.Layout(gtx, a)
+		return a.Layout(gtx, bg, fg)
 	}
 	dims := actionButtonInset.Layout(gtx, func(gtx C) D {
-		return a.Layout(gtx, a)
+		return a.Layout(gtx, bg, fg)
 	})
 	btnOp := macro.Stop()
 	progress := anim.Revealed(gtx)

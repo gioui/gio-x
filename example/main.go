@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"log"
 	"os"
 
@@ -76,6 +77,7 @@ func loop(w *app.Window) error {
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
 		red, green, blue                        widget.Clickable
 		contextBtn                              widget.Clickable
+		favorited                               bool
 	)
 
 	pages := []Page{
@@ -98,12 +100,22 @@ func loop(w *app.Window) error {
 				)
 			},
 			Actions: []materials.AppBarAction{
-				materials.SimpleIconAction(th, &heartBtn, HeartIcon,
-					materials.OverflowAction{
+				materials.AppBarAction{
+					OverflowAction: materials.OverflowAction{
 						Name: "Favorite",
 						Tag:  &heartBtn,
 					},
-				),
+					Layout: func(gtx layout.Context, bg, fg color.RGBA) layout.Dimensions {
+						btn := materials.SimpleIconButton(th, &heartBtn, HeartIcon)
+						btn.Background = bg
+						if favorited {
+							btn.Color = color.RGBA{R: 200, A: 255}
+						} else {
+							btn.Color = fg
+						}
+						return btn.Layout(gtx)
+					},
+				},
 				materials.SimpleIconAction(th, &plusBtn, PlusIcon,
 					materials.OverflowAction{
 						Name: "Create",
@@ -199,6 +211,9 @@ func loop(w *app.Window) error {
 			}
 			if bar.OverflowActionClicked() {
 				log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
+			}
+			if heartBtn.Clicked() {
+				favorited = !favorited
 			}
 			if contextBtn.Clicked() {
 				bar.SetContextualActions(
