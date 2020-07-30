@@ -70,7 +70,7 @@ func loop(w *app.Window) error {
 	modal := materials.NewModal()
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
-	nav := materials.NewModalNav(th, "Navigation Drawer", "This is an example.")
+	nav := materials.NewModalNav(th, modal, "Navigation Drawer", "This is an example.")
 	bar := materials.NewAppBar(th, modal)
 	bar.NavigationIcon = MenuIcon
 
@@ -208,6 +208,7 @@ func loop(w *app.Window) error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked(gtx) {
+				nav.Layout(gtx)
 				nav.ToggleVisibility(gtx.Now)
 			}
 			if bar.OverflowActionClicked() {
@@ -260,7 +261,6 @@ func loop(w *app.Window) error {
 						})
 					}),
 				)
-				nav.Layout(gtx)
 				modal.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})

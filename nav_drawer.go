@@ -188,31 +188,29 @@ type ModalNavDrawer struct {
 	// The default value used by NewModalNav is 400 Dp.
 	MaxWidth unit.Value
 
+	Modal *ModalLayer
+
 	selectedItem    int
 	selectedChanged bool // selected item changed during the last frame
 	items           []renderNavItem
 
-	Scrim
 	navList layout.List
 	drag    gesture.Drag
 
 	// animation state
-	VisibilityAnimation
 	dragging    bool
 	dragStarted f32.Point
 	dragOffset  float32
 }
 
-func NewModalNav(th *material.Theme, title, subtitle string) *ModalNavDrawer {
+func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
 	m := &ModalNavDrawer{
 		Theme:    th,
 		Title:    title,
 		Subtitle: subtitle,
 		MaxWidth: unit.Dp(400),
+		Modal:    modal,
 	}
-	m.VisibilityAnimation.Duration = drawerAnimationDuration
-	m.VisibilityAnimation.State = Invisible
-	m.Scrim.FinalAlpha = 82
 	return m
 }
 
@@ -229,63 +227,57 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 }
 
 // Layout renders the nav drawer
-func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
-	if m.Scrim.Clicked() {
-		m.Disappear(gtx.Now)
-	}
-	m.selectedChanged = false
-	m.updateDragState(gtx)
-	if !m.Visible() {
-		return layout.Dimensions{}
-	}
-	for _, event := range m.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
-		switch event.Type {
-		case pointer.Press:
-			m.dragStarted = event.Position
-			m.dragOffset = 0
-			m.dragging = true
-		case pointer.Drag:
-			newOffset := m.dragStarted.X - event.Position.X
-			if newOffset > m.dragOffset {
-				m.dragOffset = newOffset
-			}
-		case pointer.Release:
-			fallthrough
-		case pointer.Cancel:
-			m.dragging = false
+func (m *ModalNavDrawer) Layout(gtx layout.Context) {
+	m.Modal.Widget = func(gtx C, anim *VisibilityAnimation) D {
+		m.selectedChanged = false
+		m.updateDragState(gtx, anim)
+		if !anim.Visible() {
+			return layout.Dimensions{}
 		}
-	}
-	return layout.Stack{}.Layout(gtx,
-		layout.Expanded(func(gtx C) D { return m.Scrim.Layout(gtx, &m.VisibilityAnimation) }),
-		layout.Stacked(func(gtx C) D {
-			if m.dragOffset != 0 || m.Animating() {
-				defer op.Push(gtx.Ops).Pop()
-				m.drawerTransform(gtx).Add(gtx.Ops)
-				op.InvalidateOp{}.Add(gtx.Ops)
+		for _, event := range m.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
+			switch event.Type {
+			case pointer.Press:
+				m.dragStarted = event.Position
+				m.dragOffset = 0
+				m.dragging = true
+			case pointer.Drag:
+				newOffset := m.dragStarted.X - event.Position.X
+				if newOffset > m.dragOffset {
+					m.dragOffset = newOffset
+				}
+			case pointer.Release:
+				fallthrough
+			case pointer.Cancel:
+				m.dragging = false
 			}
-			return m.layoutSheet(gtx)
-		}),
-	)
+		}
+		if m.dragOffset != 0 || anim.Animating() {
+			defer op.Push(gtx.Ops).Pop()
+			m.drawerTransform(gtx, anim).Add(gtx.Ops)
+			op.InvalidateOp{}.Add(gtx.Ops)
+		}
+		return m.layoutSheet(gtx)
+	}
 }
 
 // updateDragState checks for drawer animations that have finished and
 // updates the drawerState accordingly.
-func (m *ModalNavDrawer) updateDragState(gtx layout.Context) {
-	if m.dragOffset != 0 && !m.dragging && !m.VisibilityAnimation.Animating() {
+func (m *ModalNavDrawer) updateDragState(gtx layout.Context, anim *VisibilityAnimation) {
+	if m.dragOffset != 0 && !m.dragging && !anim.Animating() {
 		if m.dragOffset < 2 {
 			m.dragOffset = 0
 		} else {
 			m.dragOffset /= 2
 		}
 	} else if m.dragging && int(m.dragOffset) > gtx.Constraints.Max.X/10 {
-		m.Disappear(gtx.Now)
+		anim.Disappear(gtx.Now)
 	}
 }
 
 // drawerTransform returns the TransformOp that should be used for the current
 // animation frame.
-func (m *ModalNavDrawer) drawerTransform(gtx layout.Context) op.TransformOp {
-	revealed := -1 + m.Revealed(gtx)
+func (m *ModalNavDrawer) drawerTransform(gtx layout.Context, anim *VisibilityAnimation) op.TransformOp {
+	revealed := -1 + anim.Revealed(gtx)
 	finalOffset := revealed*(float32(m.sheetWidth(gtx))) - m.dragOffset
 	return op.Offset(f32.Point{X: finalOffset})
 }
@@ -348,10 +340,10 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 // ToggleVisibility changes the state of the nav drawer from retracted to
 // extended or visa versa.
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
-	if !m.Visible() {
-		m.Appear(when)
+	if !m.Modal.Visible() {
+		m.Modal.Appear(when)
 	} else {
-		m.Disappear(when)
+		m.Modal.Disappear(when)
 	}
 }
 
