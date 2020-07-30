@@ -40,6 +40,7 @@ type AppBar struct {
 	NavigationButton       widget.Clickable
 	NavigationIcon         *widget.Icon
 	Title, ContextualTitle string
+	*ModalLayer
 
 	normalActions, contextualActions actionGroup
 	overflowMenu
@@ -110,20 +111,18 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 
 // overflowMenu holds the state for an overflow menu in an app bar.
 type overflowMenu struct {
-	VisibilityAnimation
-	scrim Scrim
-	list  layout.List
+	*ModalLayer
+	list layout.List
 	// the button that triggers the overflow menu
 	widget.Clickable
 	selectedTag interface{}
 }
 
-func (o *overflowMenu) updateState(gtx layout.Context, actions *actionGroup) {
+func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, actions *actionGroup) {
+	o.selectedTag = nil
 	if o.Clicked() && !o.Visible() {
 		o.Appear(gtx.Now)
-	}
-	if o.scrim.Clicked() {
-		o.Disappear(gtx.Now)
+		o.configureOverflow(gtx, th, actions)
 	}
 	for i := range actions.overflowState {
 		if actions.overflowState[i].Clicked() {
@@ -144,66 +143,66 @@ func (o overflowMenu) actionForIndex(index int, actions *actionGroup) OverflowAc
 	return actions.overflow[index-actions.lastOverflowCount]
 }
 
-func (o *overflowMenu) layoutOverflow(gtx C, th *material.Theme, actions *actionGroup) D {
-	o.selectedTag = nil
-	o.updateState(gtx, actions)
-	if !o.Visible() {
-		return layout.Dimensions{}
-	}
-	o.scrim.Layout(gtx, &o.VisibilityAnimation)
-	defer op.Push(gtx.Ops).Pop()
-	width := gtx.Constraints.Max.X / 2
-	gtx.Constraints.Min.X = width
-	op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
-	var menuMacro op.MacroOp
-	menuMacro = op.Record(gtx.Ops)
-	dims := layout.Stack{}.Layout(gtx,
-		layout.Expanded(func(gtx C) D {
-			gtx.Constraints.Min.X = width
-			paintRect(gtx, gtx.Constraints.Min, th.Color.Hint)
-			return layout.Dimensions{Size: gtx.Constraints.Min}
-		}),
-		layout.Stacked(func(gtx C) D {
-			return o.list.Layout(gtx, o.overflowLen(actions), func(gtx C, index int) D {
-				action := o.actionForIndex(index, actions)
-				state := &actions.overflowState[index]
-				return material.Clickable(gtx, state, func(gtx C) D {
-					gtx.Constraints.Min.X = width
-					return layout.Inset{
-						Top:    unit.Dp(4),
-						Bottom: unit.Dp(4),
-						Left:   unit.Dp(8),
-					}.Layout(gtx, func(gtx C) D {
-						label := material.Label(th, unit.Dp(18), action.Name)
-						label.MaxLines = 1
-						return label.Layout(gtx)
+// configureOverflow sets the overflowMenu's ModalLayer to display a overflow menu.
+func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, actions *actionGroup) {
+	o.ModalLayer.Widget = func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+		defer op.Push(gtx.Ops).Pop()
+		width := gtx.Constraints.Max.X / 2
+		gtx.Constraints.Min.X = width
+		op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
+		var menuMacro op.MacroOp
+		menuMacro = op.Record(gtx.Ops)
+		dims := layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx C) D {
+				gtx.Constraints.Min.X = width
+				paintRect(gtx, gtx.Constraints.Min, th.Color.Hint)
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			}),
+			layout.Stacked(func(gtx C) D {
+				return o.list.Layout(gtx, o.overflowLen(actions), func(gtx C, index int) D {
+					action := o.actionForIndex(index, actions)
+					state := &actions.overflowState[index]
+					return material.Clickable(gtx, state, func(gtx C) D {
+						gtx.Constraints.Min.X = width
+						return layout.Inset{
+							Top:    unit.Dp(4),
+							Bottom: unit.Dp(4),
+							Left:   unit.Dp(8),
+						}.Layout(gtx, func(gtx C) D {
+							label := material.Label(th, unit.Dp(18), action.Name)
+							label.MaxLines = 1
+							return label.Layout(gtx)
+						})
 					})
 				})
-			})
-		}),
-	)
-	menuOp := menuMacro.Stop()
-	progress := o.Revealed(gtx)
-	maxWidth := dims.Size.X
-	rect := clip.Rect{
-		Max: image.Point{
-			X: maxWidth,
-			Y: int(float32(dims.Size.Y) * progress),
-		},
-		Min: image.Point{
-			X: maxWidth - int(float32(dims.Size.X)*progress),
-			Y: 0,
-		},
+			}),
+		)
+		menuOp := menuMacro.Stop()
+		progress := anim.Revealed(gtx)
+		maxWidth := dims.Size.X
+		rect := clip.Rect{
+			Max: image.Point{
+				X: maxWidth,
+				Y: int(float32(dims.Size.Y) * progress),
+			},
+			Min: image.Point{
+				X: maxWidth - int(float32(dims.Size.X)*progress),
+				Y: 0,
+			},
+		}
+		rect.Add(gtx.Ops)
+		menuOp.Add(gtx.Ops)
+		return dims
 	}
-	rect.Add(gtx.Ops)
-	menuOp.Add(gtx.Ops)
-	return dims
 }
 
 // NewAppBar creates and initializes an App Bar.
-func NewAppBar(th *material.Theme) *AppBar {
+func NewAppBar(th *material.Theme, modal *ModalLayer) *AppBar {
 	ab := &AppBar{
 		Theme: th,
+		overflowMenu: overflowMenu{
+			ModalLayer: modal,
+		},
 	}
 	ab.initialize()
 	return ab
@@ -212,11 +211,8 @@ func NewAppBar(th *material.Theme) *AppBar {
 func (a *AppBar) initialize() {
 	a.init.Do(func() {
 		a.overflowMenu.list.Axis = layout.Vertical
-		a.overflowMenu.State = Invisible
 		a.contextualAnim.State = Invisible
-		a.overflowMenu.Duration = overflowAnimationDuration
 		a.contextualAnim.Duration = contextualAnimationDuration
-		a.overflowMenu.scrim.FinalAlpha = 82
 	})
 }
 
@@ -315,7 +311,6 @@ func Interpolate(a, b color.RGBA, progress float32) color.RGBA {
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	a.initialize()
-	originalMaxY := gtx.Constraints.Max.Y
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	fill := a.Theme.Color.Primary
 	actionSet := &a.normalActions
@@ -329,6 +324,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		actionSet = &a.contextualActions
 	}
 	paintRect(gtx, gtx.Constraints.Max, fill)
+	a.overflowMenu.updateState(gtx, a.Theme, actionSet)
 
 	layout.Flex{
 		Alignment: layout.Middle,
@@ -366,11 +362,6 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 	)
-	{
-		gtx := gtx
-		gtx.Constraints.Max.Y = originalMaxY
-		a.overflowMenu.layoutOverflow(gtx, a.Theme, actionSet)
-	}
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 

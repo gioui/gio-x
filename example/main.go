@@ -67,10 +67,11 @@ type Page struct {
 }
 
 func loop(w *app.Window) error {
+	modal := materials.NewModal()
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
 	nav := materials.NewModalNav(th, "Navigation Drawer", "This is an example.")
-	bar := materials.AppBar{Theme: th}
+	bar := materials.NewAppBar(th, modal)
 	bar.NavigationIcon = MenuIcon
 
 	var (
@@ -249,13 +250,9 @@ func loop(w *app.Window) error {
 				Left:   e.Insets.Left,
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				var barOp op.CallOp
 				layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						macro := op.Record(gtx.Ops)
-						dims := bar.Layout(gtx)
-						barOp = macro.Stop()
-						return dims
+						return bar.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -263,8 +260,8 @@ func loop(w *app.Window) error {
 						})
 					}),
 				)
-				barOp.Add(gtx.Ops)
 				nav.Layout(gtx)
+				modal.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})
 			e.Frame(gtx.Ops)
