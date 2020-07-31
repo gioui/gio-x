@@ -33,7 +33,7 @@ Known issues:
 
 - API targets a fairly static and simplistic menu. Sub-sections with dividers are not yet supported. An API-driven way to traverse the current menu options is also not yet supported. Contributions welcome!
 
-### App Bar (Top)
+### App Bar (Top and Bottom)
 
 The App Bar [specified here](https://material.io/components/app-bars-top) is mostly implemented by the type
 `AppBar`. It looks like this:
@@ -53,11 +53,10 @@ Features:
  - Action items disapper into overflow when screen is too narrow to fit them. This is animated.
  - Navigation button icon is customizable, and the button is not drawn if no icon is provided.
  - Contextual app bar can be triggered and dismissed programatically.
+ - Bar supports use as a top and bottom app bar (animates the overflow menu in the proper direction).
 
 Known Issues:
  - Compact and prominent App Bars are not yet implemented.
- - Cannot currently be used as a bottom app bar, though this would not be a terribly
-   difficult addition (patches welcome).
 
 ### Example
 
@@ -67,6 +66,11 @@ Want to see it?
 git clone https://git.sr.ht/~whereswaldon/materials
 cd materials
 go run ./example
+```
+
+You can also see the demo using a bottom bar with:
+```
+go run ./example/ -bottom-bar
 ```
 
 ## Contributing
