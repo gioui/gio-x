@@ -26,6 +26,14 @@ var cancelIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+// BarPosition indicates the anchor position for an app bar.
+type BarPosition uint
+
+const (
+	Top BarPosition = iota
+	Bottom
+)
+
 // AppBar implements the material design App Bar documented here:
 // https://material.io/components/app-bars-top
 //
@@ -40,7 +48,13 @@ type AppBar struct {
 	NavigationButton       widget.Clickable
 	NavigationIcon         *widget.Icon
 	Title, ContextualTitle string
+	// The modal layer is used to lay out the overflow menu. The nav
+	// bar is not functional if this field is not supplied.
 	*ModalLayer
+	// BarPosition indicates whether the app bar is anchored at the
+	// top or bottom edge of the interface. It defaults to Top, and
+	// is used to orient the layout of menus relative to the bar.
+	BarPosition
 
 	normalActions, contextualActions actionGroup
 	overflowMenu
@@ -118,11 +132,11 @@ type overflowMenu struct {
 	selectedTag interface{}
 }
 
-func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, actions *actionGroup) {
+func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, barPos BarPosition, actions *actionGroup) {
 	o.selectedTag = nil
 	if o.Clicked() && !o.Visible() {
 		o.Appear(gtx.Now)
-		o.configureOverflow(gtx, th, actions)
+		o.configureOverflow(gtx, th, barPos, actions)
 	}
 	for i := range actions.overflowState {
 		if actions.overflowState[i].Clicked() {
@@ -144,22 +158,22 @@ func (o overflowMenu) actionForIndex(index int, actions *actionGroup) OverflowAc
 }
 
 // configureOverflow sets the overflowMenu's ModalLayer to display a overflow menu.
-func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, actions *actionGroup) {
+func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos BarPosition, actions *actionGroup) {
 	o.ModalLayer.Widget = func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
 		defer op.Push(gtx.Ops).Pop()
 		width := gtx.Constraints.Max.X / 2
 		gtx.Constraints.Min.X = width
-		op.Offset(f32.Pt(float32(width), 0)).Add(gtx.Ops)
 		var menuMacro op.MacroOp
 		menuMacro = op.Record(gtx.Ops)
+		gtx.Constraints.Min.Y = 0
 		dims := layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx C) D {
 				gtx.Constraints.Min.X = width
-				paintRect(gtx, gtx.Constraints.Min, th.Color.Hint)
+				paintRect(gtx, gtx.Constraints.Min, th.Color.InvText)
 				return layout.Dimensions{Size: gtx.Constraints.Min}
 			}),
 			layout.Stacked(func(gtx C) D {
-				return o.list.Layout(gtx, o.overflowLen(actions), func(gtx C, index int) D {
+				dims := o.list.Layout(gtx, o.overflowLen(actions), func(gtx C, index int) D {
 					action := o.actionForIndex(index, actions)
 					state := &actions.overflowState[index]
 					return material.Clickable(gtx, state, func(gtx C) D {
@@ -175,21 +189,41 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, actions *act
 						})
 					})
 				})
+				return dims
 			}),
 		)
 		menuOp := menuMacro.Stop()
 		progress := anim.Revealed(gtx)
-		maxWidth := dims.Size.X
-		rect := clip.Rect{
-			Max: image.Point{
-				X: maxWidth,
-				Y: int(float32(dims.Size.Y) * progress),
-			},
-			Min: image.Point{
-				X: maxWidth - int(float32(dims.Size.X)*progress),
-				Y: 0,
-			},
+		maxWidth, maxHeight := dims.Size.X, dims.Size.Y
+		offset := f32.Point{
+			X: float32(width),
 		}
+		var rect clip.Rect
+		if barPos == Top {
+			rect = clip.Rect{
+				Max: image.Point{
+					X: maxWidth,
+					Y: int(float32(dims.Size.Y) * progress),
+				},
+				Min: image.Point{
+					X: maxWidth - int(float32(dims.Size.X)*progress),
+					Y: 0,
+				},
+			}
+		} else {
+			offset.Y = float32(gtx.Constraints.Max.Y - maxHeight)
+			rect = clip.Rect{
+				Max: image.Point{
+					X: maxWidth,
+					Y: maxHeight,
+				},
+				Min: image.Point{
+					X: maxWidth - int(float32(dims.Size.X)*progress),
+					Y: maxHeight - int(float32(dims.Size.Y)*progress),
+				},
+			}
+		}
+		op.Offset(offset).Add(gtx.Ops)
 		rect.Add(gtx.Ops)
 		menuOp.Add(gtx.Ops)
 		return dims
@@ -217,7 +251,8 @@ func (a *AppBar) initialize() {
 }
 
 // AppBarAction configures an action in the App Bar's action items.
-// The state and icon should not be nil.
+// The embedded OverflowAction provides the action information for
+// when this item disappears into the overflow menu.
 type AppBarAction struct {
 	OverflowAction
 	Layout func(gtx layout.Context, bg, fg color.RGBA) layout.Dimensions
@@ -292,7 +327,7 @@ var overflowButtonInset = layout.Inset{
 	Bottom: unit.Dp(10),
 }
 
-// OverflowAction is an action that is always in the overflow menu.
+// OverflowAction holds information about an action available in an overflow menu
 type OverflowAction struct {
 	Name string
 	Tag  interface{}
@@ -324,7 +359,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		actionSet = &a.contextualActions
 	}
 	paintRect(gtx, gtx.Constraints.Max, fill)
-	a.overflowMenu.updateState(gtx, a.Theme, actionSet)
+	a.overflowMenu.updateState(gtx, a.Theme, a.BarPosition, actionSet)
 
 	layout.Flex{
 		Alignment: layout.Middle,

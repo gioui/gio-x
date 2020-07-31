@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"image/color"
 	"log"
 	"os"
@@ -48,7 +49,11 @@ var PlusIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+var barOnBottom bool
+
 func main() {
+	flag.BoolVar(&barOnBottom, "bottom-bar", false, "place the app bar on the bottom of the screen instead of the top")
+	flag.Parse()
 	go func() {
 		w := app.NewWindow()
 		if err := loop(w); err != nil {
@@ -73,6 +78,9 @@ func loop(w *app.Window) error {
 	nav := materials.NewModalNav(th, modal, "Navigation Drawer", "This is an example.")
 	bar := materials.NewAppBar(th, modal)
 	bar.NavigationIcon = MenuIcon
+	if barOnBottom {
+		bar.BarPosition = materials.Bottom
+	}
 
 	var (
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
@@ -208,7 +216,6 @@ func loop(w *app.Window) error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked(gtx) {
-				nav.Layout(gtx)
 				nav.ToggleVisibility(gtx.Now)
 			}
 			if bar.OverflowActionClicked() {
@@ -251,16 +258,20 @@ func loop(w *app.Window) error {
 				Left:   e.Insets.Left,
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return bar.Layout(gtx)
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return pages[nav.CurrentNavDestination().(int)].layout(gtx)
-						})
-					}),
-				)
+				content := layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return pages[nav.CurrentNavDestination().(int)].layout(gtx)
+					})
+				})
+				bar := layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return bar.Layout(gtx)
+				})
+				flex := layout.Flex{Axis: layout.Vertical}
+				if barOnBottom {
+					flex.Layout(gtx, content, bar)
+				} else {
+					flex.Layout(gtx, bar, content)
+				}
 				modal.Layout(gtx)
 				return layout.Dimensions{Size: gtx.Constraints.Max}
 			})

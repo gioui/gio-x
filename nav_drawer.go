@@ -203,6 +203,7 @@ type ModalNavDrawer struct {
 	dragOffset  float32
 }
 
+// NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
 func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
 	m := &ModalNavDrawer{
 		Theme:    th,
@@ -226,8 +227,8 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 	}
 }
 
-// Layout renders the nav drawer
-func (m *ModalNavDrawer) Layout(gtx layout.Context) {
+// ConfigureModal prepares the modal layer to draw this navigation drawer.
+func (m *ModalNavDrawer) ConfigureModal() {
 	m.Modal.Widget = func(gtx C, anim *VisibilityAnimation) D {
 		m.selectedChanged = false
 		m.updateDragState(gtx, anim)
@@ -340,6 +341,7 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 // ToggleVisibility changes the state of the nav drawer from retracted to
 // extended or visa versa.
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
+	m.ConfigureModal()
 	if !m.Modal.Visible() {
 		m.Modal.Appear(when)
 	} else {
@@ -370,6 +372,8 @@ func (m *ModalNavDrawer) CurrentNavDestination() interface{} {
 	return m.items[m.selectedItem].Tag
 }
 
+// NavDestinationChanged returns whether the selected navigation destination
+// has changed since the last frame.
 func (m *ModalNavDrawer) NavDestinationChanged() bool {
 	return m.selectedChanged
 }
