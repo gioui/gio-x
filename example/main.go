@@ -158,7 +158,7 @@ func loop(w *app.Window) error {
 				)
 			},
 			Actions: []materials.AppBarAction{
-				materials.SimpleIconAction(th, &plusBtn, HeartIcon,
+				materials.SimpleIconAction(th, &plusBtn, PlusIcon,
 					materials.OverflowAction{
 						Name: "Create",
 						Tag:  &plusBtn,
