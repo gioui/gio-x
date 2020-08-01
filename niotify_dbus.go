@@ -1,4 +1,4 @@
-//+build !android !darwin !windows !plan9 !js !aix !illumos !solaris
+//+build linux,!android openbsd freebsd netbsd
 
 package niotify
 
