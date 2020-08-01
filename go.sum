@@ -1,10 +1,6 @@
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-gioui.org v0.0.0-20200622185735-5bd0ecea5e43 h1:Nu7QkX+EakW4tOkSB5JqPJ+kxX45Pkme+1hx1BGl9d4=
-gioui.org v0.0.0-20200622185735-5bd0ecea5e43/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-gioui.org v0.0.0-20200712204002-a54b46059540 h1:jigiEccc+d6Eji99nSkDIqUAyFtJQqjwQqryB+to2ac=
-gioui.org v0.0.0-20200712204002-a54b46059540/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
-git.sr.ht/~whereswaldon/gio v0.0.0-20200610202233-95f471a13038 h1:Sy9RoxODcYWSAuHmFPqH8qz3sHwSM7/BKrLU0PO9NJY=
-git.sr.ht/~whereswaldon/gio v0.0.0-20200610202233-95f471a13038/go.mod h1:AHI9rFr6AEEHCb8EPVtb/p5M+NMJRKH58IOp8O3Je04=
+gioui.org v0.0.0-20200726090339-83673ecb203f h1:09YCGWJqqcRI/X3HEODsA/val03uLETNjTmQ/dUBSAY=
+gioui.org v0.0.0-20200726090339-83673ecb203f/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
