@@ -1,6 +1,6 @@
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-gioui.org v0.0.0-20200626142042-6a9a87046221 h1:E3YNhsdzdBYXX3ewLaOnQsDDPsTnsohh40JX+1jwXfY=
-gioui.org v0.0.0-20200626142042-6a9a87046221/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
+gioui.org v0.0.0-20200726090339-83673ecb203f h1:09YCGWJqqcRI/X3HEODsA/val03uLETNjTmQ/dUBSAY=
+gioui.org v0.0.0-20200726090339-83673ecb203f/go.mod h1:jiUwifN9cRl/zmco43aAqh0aV+s9GbhG13KcD+gEpkU=
 git.wow.st/gmp/jni v0.0.0-20200626212701-b33150047fd1 h1:B2TACS09CzTtjRmyPgek+1I3FjMIMendbdy58LQ3fvU=
 git.wow.st/gmp/jni v0.0.0-20200626212701-b33150047fd1/go.mod h1:+axXBRUTIDlCeE73IKeD/os7LoEnTKdkp8/gQOFjqyo=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
