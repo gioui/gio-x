@@ -26,11 +26,11 @@ var cancelIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
-// BarPosition indicates the anchor position for an app bar.
-type BarPosition uint
+// VerticalAnchorPosition indicates the anchor position for an app bar.
+type VerticalAnchorPosition uint
 
 const (
-	Top BarPosition = iota
+	Top VerticalAnchorPosition = iota
 	Bottom
 )
 
@@ -51,10 +51,10 @@ type AppBar struct {
 	// The modal layer is used to lay out the overflow menu. The nav
 	// bar is not functional if this field is not supplied.
 	*ModalLayer
-	// BarPosition indicates whether the app bar is anchored at the
+	// Anchor indicates whether the app bar is anchored at the
 	// top or bottom edge of the interface. It defaults to Top, and
 	// is used to orient the layout of menus relative to the bar.
-	BarPosition
+	Anchor VerticalAnchorPosition
 
 	normalActions, contextualActions actionGroup
 	overflowMenu
@@ -132,7 +132,7 @@ type overflowMenu struct {
 	selectedTag interface{}
 }
 
-func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, barPos BarPosition, actions *actionGroup) {
+func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, barPos VerticalAnchorPosition, actions *actionGroup) {
 	o.selectedTag = nil
 	if o.Clicked() && !o.Visible() {
 		o.Appear(gtx.Now)
@@ -158,7 +158,7 @@ func (o overflowMenu) actionForIndex(index int, actions *actionGroup) OverflowAc
 }
 
 // configureOverflow sets the overflowMenu's ModalLayer to display a overflow menu.
-func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos BarPosition, actions *actionGroup) {
+func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos VerticalAnchorPosition, actions *actionGroup) {
 	o.ModalLayer.Widget = func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
 		defer op.Push(gtx.Ops).Pop()
 		width := gtx.Constraints.Max.X / 2
@@ -359,7 +359,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		actionSet = &a.contextualActions
 	}
 	paintRect(gtx, gtx.Constraints.Max, fill)
-	a.overflowMenu.updateState(gtx, a.Theme, a.BarPosition, actionSet)
+	a.overflowMenu.updateState(gtx, a.Theme, a.Anchor, actionSet)
 
 	layout.Flex{
 		Alignment: layout.Middle,

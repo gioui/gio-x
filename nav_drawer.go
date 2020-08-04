@@ -190,6 +190,11 @@ type ModalNavDrawer struct {
 
 	Modal *ModalLayer
 
+	// Anchor indicates whether content in the nav drawer should be anchored to
+	// the upper or lower edge of the drawer. This value should match the anchor
+	// of an app bar if an app bar is used in conjunction with this nav drawer.
+	Anchor VerticalAnchorPosition
+
 	selectedItem    int
 	selectedChanged bool // selected item changed during the last frame
 	items           []renderNavItem
@@ -295,8 +300,15 @@ func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
 	m.drag.Add(gtx.Ops)
 	paintRect(gtx, gtx.Constraints.Max, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	spacing := layout.SpaceEnd
+	if m.Anchor == Bottom {
+		spacing = layout.SpaceStart
+	}
 
-	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+	layout.Flex{
+		Spacing: spacing,
+		Axis:    layout.Vertical,
+	}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return layout.Inset{
 				Left:   unit.Dp(16),
@@ -324,6 +336,7 @@ func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
 }
 
 func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))

@@ -79,7 +79,8 @@ func loop(w *app.Window) error {
 	bar := materials.NewAppBar(th, modal)
 	bar.NavigationIcon = MenuIcon
 	if barOnBottom {
-		bar.BarPosition = materials.Bottom
+		bar.Anchor = materials.Bottom
+		nav.Anchor = materials.Bottom
 	}
 
 	var (
