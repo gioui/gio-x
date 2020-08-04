@@ -28,6 +28,7 @@ Features:
 - Navigation items respond to hovering.
 - Navigation selection is animated.
 - Navigation item icons are optional.
+- Content can be anchored to the bottom of the drawer for pairing with a bottom app bar.
 
 Known issues:
 
