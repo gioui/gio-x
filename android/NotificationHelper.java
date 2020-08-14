@@ -1,6 +1,8 @@
 package ht.sr.git.whereswaldon.niotify;
 
 import android.content.Context;
+import android.content.Intent;
+import android.app.PendingIntent;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -17,12 +19,15 @@ public class NotificationHelper {
         NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
     }
-    public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text) {
+    public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text) throws ClassNotFoundException{
+        Intent resultIntent = new Intent(ctx, Class.forName("org.gioui.GioActivity"));
+        PendingIntent pending = PendingIntent.getActivity(ctx, notificationID, resultIntent, Intent.FLAG_ACTIVITY_CLEAR_TASK);
         Bitmap bitmap = Bitmap.createBitmap(data, 0, width, width, height, Bitmap.Config.ARGB_8888);
         Notification.Builder builder = new Notification.Builder(ctx, channelID)
                 .setContentTitle(title)
                 .setSmallIcon(Icon.createWithBitmap(bitmap))
                 .setContentText(text)
+                .setContentIntent(pending)
                 .setPriority(Notification.PRIORITY_DEFAULT);
 
         NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
