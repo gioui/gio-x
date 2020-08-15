@@ -13,6 +13,31 @@ import (
 	"gioui.org/unit"
 )
 
+// Sheet implements an unanimated sheet's state.
+//
+// TODO(whereswaldon): animate the appearance of this type, possibly by
+// wrapping it in anther type.
+type Sheet struct {
+	Background color.RGBA
+}
+
+// NewSheet returns a sheet with its background color initialized to white.
+func NewSheet() Sheet {
+	return Sheet{
+		Background: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+	}
+}
+
+// Layout renders the provided widget on a background. The background will use
+// the maximum space available.
+func (s Sheet) Layout(gtx layout.Context, widget layout.Widget) layout.Dimensions {
+	// lay out background
+	paintRect(gtx, gtx.Constraints.Max, s.Background)
+
+	// lay out sheet contents
+	return widget(gtx)
+}
+
 // ModalSheet implements the Modal Side Sheet component
 // specified at https://material.io/components/sheets-side#modal-side-sheet
 type ModalSheet struct {
@@ -26,8 +51,6 @@ type ModalSheet struct {
 
 	Modal *ModalLayer
 
-	Background color.RGBA
-
 	drag gesture.Drag
 
 	// animation state
@@ -35,7 +58,9 @@ type ModalSheet struct {
 	dragStarted f32.Point
 	dragOffset  float32
 
-	// This widget will be laid out as the contents of the sheet. This widget is responsible for implementing any scrolling behavior in its content.
+	// Sheet is the sheet upon which the contents of the modal sheet will be laid out.
+	Sheet
+
 	layout.Widget
 }
 
@@ -43,10 +68,10 @@ type ModalSheet struct {
 // widget within the provided modal layer when it is made visible.
 func NewModalSheet(m *ModalLayer, widget layout.Widget) *ModalSheet {
 	s := &ModalSheet{
-		MaxWidth:   unit.Dp(400),
-		Modal:      m,
-		Widget:     widget,
-		Background: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		MaxWidth: unit.Dp(400),
+		Modal:    m,
+		Sheet:    NewSheet(),
+		Widget:   widget,
 	}
 	return s
 }
@@ -98,10 +123,8 @@ func (s *ModalSheet) ConfigureModal() {
 		}
 		gtx.Constraints.Max.X = s.sheetWidth(gtx)
 
-		// draw background
-		paintRect(gtx, gtx.Constraints.Max, s.Background)
 		// lay out widget
-		dims := s.Widget(gtx)
+		dims := s.Sheet.Layout(gtx, s.Widget)
 
 		// listen for drag events
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
