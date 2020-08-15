@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"gioui.org/f32"
-	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -180,15 +179,6 @@ type ModalNavDrawer struct {
 
 	Title    string
 	Subtitle string
-	// MaxWidth constrains the maximum amount of horizontal screen real-estate
-	// covered by the drawer. If the screen is narrower than this value, the
-	// width will be inferred by reserving space for the scrim and using the
-	// leftover area for the drawer. Values between 200 and 400 Dp are recommended.
-	//
-	// The default value used by NewModalNav is 400 Dp.
-	MaxWidth unit.Value
-
-	Modal *ModalLayer
 
 	// Anchor indicates whether content in the nav drawer should be anchored to
 	// the upper or lower edge of the drawer. This value should match the anchor
@@ -200,12 +190,8 @@ type ModalNavDrawer struct {
 	items           []renderNavItem
 
 	navList layout.List
-	drag    gesture.Drag
 
-	// animation state
-	dragging    bool
-	dragStarted f32.Point
-	dragOffset  float32
+	sheet *ModalSheet
 }
 
 // NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
@@ -214,9 +200,9 @@ func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) 
 		Theme:    th,
 		Title:    title,
 		Subtitle: subtitle,
-		MaxWidth: unit.Dp(400),
-		Modal:    modal,
 	}
+	sheet := NewModalSheet(modal, m.Layout)
+	m.sheet = sheet
 	return m
 }
 
@@ -234,72 +220,10 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 
 // ConfigureModal prepares the modal layer to draw this navigation drawer.
 func (m *ModalNavDrawer) ConfigureModal() {
-	m.Modal.Widget = func(gtx C, anim *VisibilityAnimation) D {
-		m.selectedChanged = false
-		m.updateDragState(gtx, anim)
-		if !anim.Visible() {
-			return layout.Dimensions{}
-		}
-		for _, event := range m.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
-			switch event.Type {
-			case pointer.Press:
-				m.dragStarted = event.Position
-				m.dragOffset = 0
-				m.dragging = true
-			case pointer.Drag:
-				newOffset := m.dragStarted.X - event.Position.X
-				if newOffset > m.dragOffset {
-					m.dragOffset = newOffset
-				}
-			case pointer.Release:
-				fallthrough
-			case pointer.Cancel:
-				m.dragging = false
-			}
-		}
-		if m.dragOffset != 0 || anim.Animating() {
-			defer op.Push(gtx.Ops).Pop()
-			m.drawerTransform(gtx, anim).Add(gtx.Ops)
-			op.InvalidateOp{}.Add(gtx.Ops)
-		}
-		return m.layoutSheet(gtx)
-	}
+	m.sheet.ConfigureModal()
 }
 
-// updateDragState checks for drawer animations that have finished and
-// updates the drawerState accordingly.
-func (m *ModalNavDrawer) updateDragState(gtx layout.Context, anim *VisibilityAnimation) {
-	if m.dragOffset != 0 && !m.dragging && !anim.Animating() {
-		if m.dragOffset < 2 {
-			m.dragOffset = 0
-		} else {
-			m.dragOffset /= 2
-		}
-	} else if m.dragging && int(m.dragOffset) > gtx.Constraints.Max.X/10 {
-		anim.Disappear(gtx.Now)
-	}
-}
-
-// drawerTransform returns the TransformOp that should be used for the current
-// animation frame.
-func (m *ModalNavDrawer) drawerTransform(gtx layout.Context, anim *VisibilityAnimation) op.TransformOp {
-	revealed := -1 + anim.Revealed(gtx)
-	finalOffset := revealed*(float32(m.sheetWidth(gtx))) - m.dragOffset
-	return op.Offset(f32.Point{X: finalOffset})
-}
-
-func (m ModalNavDrawer) sheetWidth(gtx layout.Context) int {
-	scrimWidth := gtx.Px(unit.Dp(56))
-	withScrim := gtx.Constraints.Max.X - scrimWidth
-	max := gtx.Px(m.MaxWidth)
-	return min(withScrim, max)
-}
-
-func (m *ModalNavDrawer) layoutSheet(gtx layout.Context) layout.Dimensions {
-	gtx.Constraints.Max.X = m.sheetWidth(gtx)
-	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
-	m.drag.Add(gtx.Ops)
-	paintRect(gtx, gtx.Constraints.Max, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	spacing := layout.SpaceEnd
 	if m.Anchor == Bottom {
 		spacing = layout.SpaceStart
@@ -354,12 +278,7 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 // ToggleVisibility changes the state of the nav drawer from retracted to
 // extended or visa versa.
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
-	m.ConfigureModal()
-	if !m.Modal.Visible() {
-		m.Modal.Appear(when)
-	} else {
-		m.Modal.Disappear(when)
-	}
+	m.sheet.ToggleVisibility(when)
 }
 
 func (m *ModalNavDrawer) changeSelected(newIndex int) {
