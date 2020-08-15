@@ -82,6 +82,9 @@ func loop(w *app.Window) error {
 		bar.Anchor = materials.Bottom
 		nav.Anchor = materials.Bottom
 	}
+	sheet := materials.NewModalSheet(modal, func(gtx layout.Context) layout.Dimensions {
+		return material.Body1(th, "sheet").Layout(gtx)
+	})
 
 	var (
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
@@ -224,6 +227,9 @@ func loop(w *app.Window) error {
 			}
 			if heartBtn.Clicked() {
 				favorited = !favorited
+			}
+			if plusBtn.Clicked() {
+				sheet.ToggleVisibility(gtx.Now)
 			}
 			if contextBtn.Clicked() {
 				bar.SetContextualActions(
