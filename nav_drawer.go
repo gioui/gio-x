@@ -127,13 +127,13 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 	}.Layout(gtx, func(gtx C) D {
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
-				if n.Icon == nil {
+				if n.NavItem.Icon == nil {
 					return layout.Dimensions{}
 				}
 				return layout.Inset{Right: unit.Dp(40)}.Layout(gtx,
 					func(gtx C) D {
-						n.Icon.Color = contentColor
-						return n.Icon.Layout(gtx, unit.Dp(24))
+						n.NavItem.Icon.Color = contentColor
+						return n.NavItem.Icon.Layout(gtx, unit.Dp(24))
 					})
 			}),
 			layout.Rigid(func(gtx C) D {
