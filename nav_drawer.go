@@ -116,7 +116,7 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
-	gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+	gtx.Constraints.Min = gtx.Constraints.Max
 	contentColor := n.Theme.Color.Text
 	if n.selected {
 		contentColor = n.Theme.Color.Primary
