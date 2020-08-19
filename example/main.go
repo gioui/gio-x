@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -82,9 +83,11 @@ func loop(w *app.Window) error {
 		bar.Anchor = materials.Bottom
 		nav.Anchor = materials.Bottom
 	}
-	sheet := materials.NewModalSheet(modal, func(gtx layout.Context) layout.Dimensions {
-		return material.Body1(th, "sheet").Layout(gtx)
-	})
+	sheetAnim := materials.VisibilityAnimation{
+		Duration: time.Second,
+		State:    materials.Invisible,
+	}
+	sheet := materials.NewSheet(&sheetAnim)
 
 	var (
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
@@ -229,7 +232,11 @@ func loop(w *app.Window) error {
 				favorited = !favorited
 			}
 			if plusBtn.Clicked() {
-				sheet.ToggleVisibility(gtx.Now)
+				if sheet.Visible() {
+					sheet.Disappear(gtx.Now)
+				} else {
+					sheet.Appear(gtx.Now)
+				}
 			}
 			if contextBtn.Clicked() {
 				bar.SetContextualActions(
@@ -266,9 +273,19 @@ func loop(w *app.Window) error {
 				Right:  e.Insets.Right,
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				content := layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return pages[nav.CurrentNavDestination().(int)].layout(gtx)
-					})
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints.Max.X /= 3
+							return sheet.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return material.Body1(th, "hello").Layout(gtx)
+							})
+						}),
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return pages[nav.CurrentNavDestination().(int)].layout(gtx)
+							})
+						}),
+					)
 				})
 				bar := layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return bar.Layout(gtx)

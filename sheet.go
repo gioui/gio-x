@@ -13,29 +13,43 @@ import (
 	"gioui.org/unit"
 )
 
-// Sheet implements an unanimated sheet's state.
-//
-// TODO(whereswaldon): animate the appearance of this type, possibly by
-// wrapping it in anther type.
+// Sheet implements the standard side sheet described here:
+// https://material.io/components/sheets-side#usage
 type Sheet struct {
 	Background color.RGBA
+	*VisibilityAnimation
 }
 
 // NewSheet returns a sheet with its background color initialized to white.
-func NewSheet() Sheet {
+func NewSheet(anim *VisibilityAnimation) Sheet {
 	return Sheet{
-		Background: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		Background:          color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		VisibilityAnimation: anim,
 	}
 }
 
 // Layout renders the provided widget on a background. The background will use
 // the maximum space available.
 func (s Sheet) Layout(gtx layout.Context, widget layout.Widget) layout.Dimensions {
+	defer op.Push(gtx.Ops).Pop()
+
+	revealed := -1 + s.Revealed(gtx)
+	finalOffset := revealed * (float32(gtx.Constraints.Max.X))
+	revealedWidth := finalOffset + float32(gtx.Constraints.Max.X)
+	op.Offset(f32.Point{X: finalOffset}).Add(gtx.Ops)
 	// lay out background
 	paintRect(gtx, gtx.Constraints.Max, s.Background)
 
 	// lay out sheet contents
-	return widget(gtx)
+	dims := widget(gtx)
+
+	return layout.Dimensions{
+		Size: image.Point{
+			X: int(revealedWidth),
+			Y: gtx.Constraints.Max.Y,
+		},
+		Baseline: dims.Baseline,
+	}
 }
 
 // ModalSheet implements the Modal Side Sheet component
@@ -58,9 +72,6 @@ type ModalSheet struct {
 	dragStarted f32.Point
 	dragOffset  float32
 
-	// Sheet is the sheet upon which the contents of the modal sheet will be laid out.
-	Sheet
-
 	layout.Widget
 }
 
@@ -70,7 +81,6 @@ func NewModalSheet(m *ModalLayer, widget layout.Widget) *ModalSheet {
 	s := &ModalSheet{
 		MaxWidth: unit.Dp(400),
 		Modal:    m,
-		Sheet:    NewSheet(),
 		Widget:   widget,
 	}
 	return s
@@ -124,7 +134,7 @@ func (s *ModalSheet) ConfigureModal() {
 		gtx.Constraints.Max.X = s.sheetWidth(gtx)
 
 		// lay out widget
-		dims := s.Sheet.Layout(gtx, s.Widget)
+		dims := NewSheet(anim).Layout(gtx, s.Widget)
 
 		// listen for drag events
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
@@ -139,8 +149,7 @@ func (s *ModalSheet) ConfigureModal() {
 // of the sheet taking both drag and animation progress
 // into account.
 func (s ModalSheet) drawerTransform(gtx C, anim *VisibilityAnimation) op.TransformOp {
-	revealed := -1 + anim.Revealed(gtx)
-	finalOffset := revealed*(float32(s.sheetWidth(gtx))) - s.dragOffset
+	finalOffset := -s.dragOffset
 	return op.Offset(f32.Point{X: finalOffset})
 }
 
