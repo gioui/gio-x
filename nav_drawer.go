@@ -172,9 +172,9 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
-// ModalNavDrawer implements the Material Design Modal Navigation Drawer
+// NavDrawer implements the Material Design Navigation Drawer
 // described here: https://material.io/components/navigation-drawer
-type ModalNavDrawer struct {
+type NavDrawer struct {
 	*material.Theme
 
 	Title    string
@@ -185,30 +185,33 @@ type ModalNavDrawer struct {
 	// of an app bar if an app bar is used in conjunction with this nav drawer.
 	Anchor VerticalAnchorPosition
 
+	// Persistent configures whether the nav drawer will remain open after
+	// a navigation item is selected.
+	Persistent bool
+
 	selectedItem    int
 	selectedChanged bool // selected item changed during the last frame
 	items           []renderNavItem
 
 	navList layout.List
 
-	sheet *ModalSheet
+	*VisibilityAnimation
 }
 
-// NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
-func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
-	m := &ModalNavDrawer{
-		Theme:    th,
-		Title:    title,
-		Subtitle: subtitle,
+// NewNav configures a navigation drawer
+func NewNav(th *material.Theme, anim *VisibilityAnimation, title, subtitle string) NavDrawer {
+	m := NavDrawer{
+		Theme:               th,
+		Title:               title,
+		Subtitle:            subtitle,
+		VisibilityAnimation: anim,
 	}
-	sheet := NewModalSheet(modal, m.Layout)
-	m.sheet = sheet
 	return m
 }
 
 // AddNavItem inserts a navigation target into the drawer. This should be
 // invoked only from the layout thread to avoid nasty race conditions.
-func (m *ModalNavDrawer) AddNavItem(item NavItem) {
+func (m *NavDrawer) AddNavItem(item NavItem) {
 	m.items = append(m.items, renderNavItem{
 		Theme:   m.Theme,
 		NavItem: item,
@@ -218,12 +221,7 @@ func (m *ModalNavDrawer) AddNavItem(item NavItem) {
 	}
 }
 
-// ConfigureModal prepares the modal layer to draw this navigation drawer.
-func (m *ModalNavDrawer) ConfigureModal() {
-	m.sheet.ConfigureModal()
-}
-
-func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
+func (m *NavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	spacing := layout.SpaceEnd
 	if m.Anchor == Bottom {
 		spacing = layout.SpaceStart
@@ -259,7 +257,7 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
-func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
+func (m *NavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
@@ -268,7 +266,9 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 		dimensions := m.items[index].Layout(gtx)
 		if m.items[index].Clicked() {
 			m.changeSelected(index)
-			m.ToggleVisibility(gtx.Now)
+			if !m.Persistent {
+				m.ToggleVisibility(gtx.Now)
+			}
 			m.selectedChanged = true
 		}
 		return dimensions
@@ -277,11 +277,15 @@ func (m *ModalNavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 
 // ToggleVisibility changes the state of the nav drawer from retracted to
 // extended or visa versa.
-func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
-	m.sheet.ToggleVisibility(when)
+func (m *NavDrawer) ToggleVisibility(when time.Time) {
+	if m.Visible() {
+		m.Disappear(when)
+	} else {
+		m.Appear(when)
+	}
 }
 
-func (m *ModalNavDrawer) changeSelected(newIndex int) {
+func (m *NavDrawer) changeSelected(newIndex int) {
 	m.items[m.selectedItem].selected = false
 	m.selectedItem = newIndex
 	m.items[m.selectedItem].selected = true
@@ -289,7 +293,7 @@ func (m *ModalNavDrawer) changeSelected(newIndex int) {
 
 // SetNavDestination changes the selected navigation item to the item with
 // the provided tag. If the provided tag does not exist, it has no effect.
-func (m *ModalNavDrawer) SetNavDestination(tag interface{}) {
+func (m *NavDrawer) SetNavDestination(tag interface{}) {
 	for i, item := range m.items {
 		if item.Tag == tag {
 			m.changeSelected(i)
@@ -300,14 +304,40 @@ func (m *ModalNavDrawer) SetNavDestination(tag interface{}) {
 
 // CurrentNavDestination returns the tag of the navigation destination
 // selected in the drawer.
-func (m *ModalNavDrawer) CurrentNavDestination() interface{} {
+func (m *NavDrawer) CurrentNavDestination() interface{} {
 	return m.items[m.selectedItem].Tag
 }
 
 // NavDestinationChanged returns whether the selected navigation destination
 // has changed since the last frame.
-func (m *ModalNavDrawer) NavDestinationChanged() bool {
+func (m *NavDrawer) NavDestinationChanged() bool {
 	return m.selectedChanged
+}
+
+// ModalNavDrawer implements the Material Design Modal Navigation Drawer
+// described here: https://material.io/components/navigation-drawer
+type ModalNavDrawer struct {
+	NavDrawer
+	sheet *ModalSheet
+}
+
+// NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
+func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
+	m := &ModalNavDrawer{}
+	modalSheet := NewModalSheet(modal, m.Layout)
+	m.NavDrawer = NewNav(th, &modal.VisibilityAnimation, title, subtitle)
+	m.sheet = modalSheet
+	return m
+}
+
+// ConfigureModal prepares the modal layer to draw this navigation drawer.
+func (m *ModalNavDrawer) ConfigureModal() {
+	m.sheet.ConfigureModal()
+}
+
+func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
+	m.ConfigureModal()
+	m.NavDrawer.ToggleVisibility(when)
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {
