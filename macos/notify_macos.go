@@ -66,6 +66,13 @@ notify(char *id, char *title, char *content) {
 	}
 	NSString *ret;
 	@autoreleasepool {
+		NSLog(@"Getting notification center");
+		nc = [UNUserNotificationCenter currentNotificationCenter];
+		del = [[UNDelegate alloc] init];
+		nc.delegate = del;
+		[nc getNotificationSettingsWithCompletionHandler: ^(UNNotificationSettings *settings) {
+			NSLog(@"Settings: %@", settings);
+		}];
 		NSLog(@"Creating notification");
 		UNMutableNotificationContent *note = [[UNMutableNotificationContent alloc] init];
 		note.title = [[NSString alloc] initWithUTF8String: title];
