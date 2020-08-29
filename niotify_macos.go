@@ -1,3 +1,5 @@
+//+build macos
+
 package niotify
 
 import (
@@ -17,7 +19,6 @@ func newManager() (Manager, error) {
 }
 
 func (a *macosManager) CreateNotification(title, text string) (*Notification, error) {
-
 	notification, err := a.channel.Send(title, text)
 	if err != nil {
 		return nil, err
