@@ -1,4 +1,4 @@
-//+build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd
+//+build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd,!darwin
 
 package niotify
 
