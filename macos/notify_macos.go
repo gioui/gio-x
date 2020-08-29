@@ -46,9 +46,10 @@ notify(char *id, char *title, char *content) {
 		UNMutableNotificationContent *note = [[UNMutableNotificationContent alloc] init];
 		note.title = [[NSString alloc] initWithUTF8String: title];
 		note.body = [[NSString alloc] initWithUTF8String: content];
+		NSString *identifier = [[NSString alloc] initWithUTF8String: id];
 
 		NSLog(@"Creating request");
-		UNNotificationRequest *req = [UNNotificationRequest requestWithIdentifier:@"Gio" content: note trigger:nil];
+		UNNotificationRequest *req = [UNNotificationRequest requestWithIdentifier:identifier content: note trigger:nil];
 		ret = req.identifier; // FIXME: need to call retain?
 		NSLog(@"Adding notification request");
 		[nc addNotificationRequest:req withCompletionHandler: ^(NSError *error) {
