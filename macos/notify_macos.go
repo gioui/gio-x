@@ -1,3 +1,5 @@
+//+build darwin
+
 package macos
 
 //#cgo LDFLAGS: -framework Foundation -framework UserNotifications
@@ -115,7 +117,7 @@ type NotificationChannel struct {
 }
 
 func NewNotificationChannel(id string) NotificationChannel {
-	return NotificationChannel{ id: C.CString(id) }
+	return NotificationChannel{id: C.CString(id)}
 }
 
 func (c NotificationChannel) Send(title, text string) (*Notification, error) {

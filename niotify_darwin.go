@@ -1,3 +1,5 @@
+//+build darwin
+
 package niotify
 
 import (
@@ -12,7 +14,7 @@ func newManager() (Manager, error) {
 	c := macos.NewNotificationChannel("Gio App")
 
 	return Manager{
-		&macosManager{ channel: c },
+		&macosManager{channel: c},
 	}, nil
 }
 
