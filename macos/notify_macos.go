@@ -15,7 +15,8 @@ package macos
 
 const unsigned char NIOTIFY_SUCCESS = 0;
 const unsigned char NIOTIFY_NO_PERMISSION = 1;
-const unsigned char NIOTIFY_UKNOWN_ERR = 2;
+const unsigned char NIOTIFY_NO_BUNDLE = 2;
+const unsigned char NIOTIFY_UKNOWN_ERR = 3;
 
 @interface UNDelegate : NSObject <UNUserNotificationCenterDelegate>
 { }
@@ -40,17 +41,20 @@ const unsigned char NIOTIFY_UKNOWN_ERR = 2;
 
 UNUserNotificationCenter *nc;
 BOOL enabled;
+BOOL hasBundle;
 UNDelegate *del;
 
 void setup() {
 	@autoreleasepool {
 		NSLog(@"Getting application bundle");
 		enabled = NO;
+		hasBundle = NO;
 		NSBundle *main = [NSBundle mainBundle];
 		if (main.bundleIdentifier == nil) {
 			NSLog(@"No app bundle.");
 			return;
 		}
+		hasBundle = YES;
 		NSLog(@"Bundle ID: %@", main.bundleIdentifier);
 		NSLog(@"Getting notification center");
 		nc = [UNUserNotificationCenter currentNotificationCenter];
@@ -62,6 +66,12 @@ void setup() {
 NSString*
 notify(char *id, char *title, char *content, unsigned char *errorCode) {
 	NSString *ret;
+
+	if (!hasBundle) {
+    		*errorCode = NIOTIFY_NO_BUNDLE;
+    		return ret;
+	}
+
 	@autoreleasepool {
 		dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
 		NSLog(@"Creating notification");
@@ -98,6 +108,11 @@ notify(char *id, char *title, char *content, unsigned char *errorCode) {
 
 void
 cancel(void *nid, unsigned char *errorCode) {
+	if (!hasBundle) {
+    		*errorCode = NIOTIFY_NO_BUNDLE;
+    		return;
+	}
+
     @try {
 	[nc removePendingNotificationRequestsWithIdentifiers: @[(NSString*)nid]];
 	[nc removeDeliveredNotificationsWithIdentifiers: @[(NSString*)nid]];
@@ -144,6 +159,8 @@ func toErr(errCode C.uchar) error {
 		return nil
 	case C.NIOTIFY_NO_PERMISSION:
 		return fmt.Errorf("permission denied")
+	case C.NIOTIFY_NO_BUNDLE:
+		return fmt.Errorf("no app bundle detected")
 	default:
 		return fmt.Errorf("unknown error: %v", errCode)
 	}

@@ -38,6 +38,7 @@ func loop(w *app.Window) error {
 	first := true
 	notificationRequests := make(chan struct{})
 	var button widget.Clickable
+	var err error
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -48,23 +49,38 @@ func loop(w *app.Window) error {
 				notificationRequests <- struct{}{}
 			}
 			gtx := layout.NewContext(&ops, e)
-			material.Button(th, &button, "Send Notification").Layout(gtx)
+			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+                              layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+                                           var text string
+                                           if err != nil {
+                                               text = err.Error()
+                                           }
+                                   return material.Body1(th, text).Layout(gtx)
+                              }),
+                              layout.Flexed(1,func(gtx layout.Context) layout.Dimensions {
+                                    return material.Button(th, &button, "Send Notification").Layout(gtx)
+                              }),
+                          )
 			e.Frame(gtx.Ops)
 			if first {
 				first = false
 				go func() {
-					mgr, err := niotify.NewManager()
-					if err != nil {
-						log.Printf("manager creation failed: %v", err)
+					mgr, e := niotify.NewManager()
+					if e != nil {
+						log.Printf("manager creation failed: %v", e)
+						err = e
 					}
 					for _ = range notificationRequests {
-						notif, err := mgr.CreateNotification("hello!", "IS GIO OUT THERE?")
-						if err != nil {
-							log.Printf("notification send failed: %v", err)
+    						log.Println("trying to send notification")
+						notif, e := mgr.CreateNotification("hello!", "IS GIO OUT THERE?")
+						if e != nil {
+							log.Printf("notification send failed: %v", e)
+							err = e
+							continue
 						}
 						go func() {
 							time.Sleep(time.Second * 10)
-							if err := notif.Cancel(); err != nil {
+							if err = notif.Cancel(); err != nil {
 								log.Printf("failed cancelling: %v", err)
 							}
 						}()
