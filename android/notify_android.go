@@ -8,6 +8,10 @@ import (
 	"git.wow.st/gmp/jni"
 )
 
+//go:generate javac -target 1.8 -source 1.8 -bootclasspath $ANDROID_HOME/platforms/android-26/android.jar ./NotificationHelper.java
+//go:generate jar cf NotificationHelper.jar ./NotificationHelper.class
+//go:generate rm ./NotificationHelper.class
+
 // Importance represents the priority of notifications sent over a particular NotificationChannel.
 // You MUST use one of the constants defined here when specifying an importance for a channel.
 // These constants map to different values within the JVM.
