@@ -15,20 +15,22 @@ configurations.
 
 The list of currently-Implemented components follows:
 
-### Modal Navigation Drawer
+### Navigation Drawer (static and modal)
 
-The modal navigation drawer [specified here](https://material.io/components/navigation-drawer#modal-drawer) is mostly implemented by the type
-`ModalNavDrawer`. It looks like this:
+The navigation drawer [specified here](https://material.io/components/navigation-drawer) is mostly implemented by the type
+`NavDrawer`, and the modal variant can be created with a `ModalNavDrawer`. The modal variant looks like this:
 
 ![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/modal-nav.png)
 
 Features:
 - Animated drawer open/close.
-- Swipe or touch scrim to close the drawer.
 - Navigation items respond to hovering.
 - Navigation selection is animated.
 - Navigation item icons are optional.
 - Content can be anchored to the bottom of the drawer for pairing with a bottom app bar.
+
+Modal features:
+- Swipe or touch scrim to close the drawer.
 
 Known issues:
 
@@ -59,7 +61,21 @@ Features:
 Known Issues:
  - Compact and prominent App Bars are not yet implemented.
 
-### Example
+### Side sheet (static and modal)
+
+Side sheets ([specified here](https://material.io/components/sheets-side)) are implemented by the `Sheet` and `ModalSheet` types.
+
+Features:
+- Animated appear/disappear
+
+Modal features:
+- Swipe to close
+- Touch scrim to close
+
+Known Issues:
+- Only sheets anchored on the left are currently supported (contributions welcome!)
+
+## Example
 
 Want to see it?
 
