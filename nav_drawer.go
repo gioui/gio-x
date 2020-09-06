@@ -185,26 +185,19 @@ type NavDrawer struct {
 	// of an app bar if an app bar is used in conjunction with this nav drawer.
 	Anchor VerticalAnchorPosition
 
-	// Persistent configures whether the nav drawer will remain open after
-	// a navigation item is selected.
-	Persistent bool
-
 	selectedItem    int
 	selectedChanged bool // selected item changed during the last frame
 	items           []renderNavItem
 
 	navList layout.List
-
-	*VisibilityAnimation
 }
 
 // NewNav configures a navigation drawer
-func NewNav(th *material.Theme, anim *VisibilityAnimation, title, subtitle string) NavDrawer {
+func NewNav(th *material.Theme, title, subtitle string) NavDrawer {
 	m := NavDrawer{
-		Theme:               th,
-		Title:               title,
-		Subtitle:            subtitle,
-		VisibilityAnimation: anim,
+		Theme:    th,
+		Title:    title,
+		Subtitle: subtitle,
 	}
 	return m
 }
@@ -221,7 +214,13 @@ func (m *NavDrawer) AddNavItem(item NavItem) {
 	}
 }
 
-func (m *NavDrawer) Layout(gtx layout.Context) layout.Dimensions {
+func (m *NavDrawer) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+	return NewSheet().Layout(gtx, anim, func(gtx C) D {
+		return m.LayoutContents(gtx, anim)
+	})
+}
+
+func (m *NavDrawer) LayoutContents(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
 	spacing := layout.SpaceEnd
 	if m.Anchor == Bottom {
 		spacing = layout.SpaceStart
@@ -252,12 +251,14 @@ func (m *NavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 				)
 			})
 		}),
-		layout.Flexed(1, m.layoutNavList),
+		layout.Flexed(1, func(gtx C) D {
+			return m.layoutNavList(gtx, anim)
+		}),
 	)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
-func (m *NavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
+func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
 	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
@@ -266,23 +267,10 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context) layout.Dimensions {
 		dimensions := m.items[index].Layout(gtx)
 		if m.items[index].Clicked() {
 			m.changeSelected(index)
-			if !m.Persistent {
-				m.ToggleVisibility(gtx.Now)
-			}
 			m.selectedChanged = true
 		}
 		return dimensions
 	})
-}
-
-// ToggleVisibility changes the state of the nav drawer from retracted to
-// extended or visa versa.
-func (m *NavDrawer) ToggleVisibility(when time.Time) {
-	if m.Visible() {
-		m.Disappear(when)
-	} else {
-		m.Appear(when)
-	}
 }
 
 func (m *NavDrawer) changeSelected(newIndex int) {
@@ -317,27 +305,37 @@ func (m *NavDrawer) NavDestinationChanged() bool {
 // ModalNavDrawer implements the Material Design Modal Navigation Drawer
 // described here: https://material.io/components/navigation-drawer
 type ModalNavDrawer struct {
-	NavDrawer
+	*NavDrawer
 	sheet *ModalSheet
 }
 
 // NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
 func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
+	nav := NewNav(th, title, subtitle)
+	return ModalNavFrom(&nav, modal)
+}
+
+func ModalNavFrom(nav *NavDrawer, modal *ModalLayer) *ModalNavDrawer {
 	m := &ModalNavDrawer{}
-	modalSheet := NewModalSheet(modal, m.Layout)
-	m.NavDrawer = NewNav(th, &modal.VisibilityAnimation, title, subtitle)
+	modalSheet := NewModalSheet(modal)
+	m.NavDrawer = nav
 	m.sheet = modalSheet
 	return m
 }
 
-// ConfigureModal prepares the modal layer to draw this navigation drawer.
-func (m *ModalNavDrawer) ConfigureModal() {
-	m.sheet.ConfigureModal()
+func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
+	m.sheet.LayoutModal(func(gtx C, anim *VisibilityAnimation) D {
+		dims := m.NavDrawer.LayoutContents(gtx, anim)
+		if m.selectedChanged {
+			anim.Disappear(gtx.Now)
+		}
+		return dims
+	})
+	return D{}
 }
 
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
-	m.ConfigureModal()
-	m.NavDrawer.ToggleVisibility(when)
+	m.sheet.ToggleVisibility(when)
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {

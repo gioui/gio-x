@@ -17,23 +17,21 @@ import (
 // https://material.io/components/sheets-side#usage
 type Sheet struct {
 	Background color.RGBA
-	*VisibilityAnimation
 }
 
 // NewSheet returns a sheet with its background color initialized to white.
-func NewSheet(anim *VisibilityAnimation) Sheet {
+func NewSheet() Sheet {
 	return Sheet{
-		Background:          color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
-		VisibilityAnimation: anim,
+		Background: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	}
 }
 
 // Layout renders the provided widget on a background. The background will use
 // the maximum space available.
-func (s Sheet) Layout(gtx layout.Context, widget layout.Widget) layout.Dimensions {
+func (s Sheet) Layout(gtx layout.Context, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
 	defer op.Push(gtx.Ops).Pop()
 
-	revealed := -1 + s.Revealed(gtx)
+	revealed := -1 + anim.Revealed(gtx)
 	finalOffset := revealed * (float32(gtx.Constraints.Max.X))
 	revealedWidth := finalOffset + float32(gtx.Constraints.Max.X)
 	op.Offset(f32.Point{X: finalOffset}).Add(gtx.Ops)
@@ -71,17 +69,13 @@ type ModalSheet struct {
 	dragging    bool
 	dragStarted f32.Point
 	dragOffset  float32
-
-	layout.Widget
 }
 
-// NewModalSheet creates a modal sheet that will render the provided
-// widget within the provided modal layer when it is made visible.
-func NewModalSheet(m *ModalLayer, widget layout.Widget) *ModalSheet {
+// NewModalSheet creates a modal sheet that can render a widget on the modal layer.
+func NewModalSheet(m *ModalLayer) *ModalSheet {
 	s := &ModalSheet{
 		MaxWidth: unit.Dp(400),
 		Modal:    m,
-		Widget:   widget,
 	}
 	return s
 }
@@ -103,7 +97,7 @@ func (s *ModalSheet) updateDragState(gtx layout.Context, anim *VisibilityAnimati
 
 // ConfigureModal requests that the sheet prepare the associated
 // ModalLayer to render itself (rather than another modal widget).
-func (s *ModalSheet) ConfigureModal() {
+func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions) {
 	s.Modal.Widget = func(gtx C, anim *VisibilityAnimation) D {
 		s.updateDragState(gtx, anim)
 		if !anim.Visible() {
@@ -134,7 +128,9 @@ func (s *ModalSheet) ConfigureModal() {
 		gtx.Constraints.Max.X = s.sheetWidth(gtx)
 
 		// lay out widget
-		dims := NewSheet(anim).Layout(gtx, s.Widget)
+		dims := NewSheet().Layout(gtx, anim, func(gtx C) D {
+			return contents(gtx, anim)
+		})
 
 		// listen for drag events
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
@@ -163,12 +159,7 @@ func (s ModalSheet) sheetWidth(gtx layout.Context) int {
 }
 
 // ToggleVisibility triggers the appearance or disappearance of the
-// ModalSheet. It automatically calls ConfigureModal().
+// ModalSheet.
 func (s *ModalSheet) ToggleVisibility(when time.Time) {
-	s.ConfigureModal()
-	if !s.Modal.Visible() {
-		s.Modal.Appear(when)
-	} else {
-		s.Modal.Disappear(when)
-	}
+	s.Modal.ToggleVisibility(when)
 }
