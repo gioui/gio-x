@@ -1,6 +1,7 @@
 package materials
 
 import (
+	"fmt"
 	"time"
 
 	"gioui.org/layout"
@@ -85,6 +86,20 @@ func (v *VisibilityAnimation) Disappear(now time.Time) {
 	}
 }
 
+// ToggleVisibility will make an invisible animation begin the process of becoming
+// visible and a visible animation begin the process of disappearing.
+func (v *VisibilityAnimation) ToggleVisibility(now time.Time) {
+	if v.Visible() {
+		v.Disappear(now)
+	} else {
+		v.Appear(now)
+	}
+}
+
+func (v *VisibilityAnimation) String(gtx layout.Context) string {
+	return fmt.Sprintf("State: %v, Revealed: %f, Duration: %v, Started: %v", v.State, v.Revealed(gtx), v.Duration, v.Started.Local())
+}
+
 // VisibilityAnimationState represents possible states that a VisibilityAnimation can
 // be in.
 type VisibilityAnimationState int
@@ -95,3 +110,18 @@ const (
 	Appearing
 	Invisible
 )
+
+func (v VisibilityAnimationState) String() string {
+	switch v {
+	case Visible:
+		return "visible"
+	case Disappearing:
+		return "disappearing"
+	case Appearing:
+		return "appearing"
+	case Invisible:
+		return "invisible"
+	default:
+		return "invalid VisibilityAnimationState"
+	}
+}
