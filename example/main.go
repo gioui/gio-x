@@ -76,19 +76,20 @@ func loop(w *app.Window) error {
 	modal := materials.NewModal()
 	th := material.NewTheme(gofont.Collection())
 	var ops op.Ops
-	nav := materials.NewModalNav(th, modal, "Navigation Drawer", "This is an example.")
+	navAnim := materials.VisibilityAnimation{
+		Duration: time.Millisecond * 100,
+		State:    materials.Invisible,
+	}
+	useModalNav := true
+	nav := materials.NewNav(th, "Navigation Drawer", "This is an example.")
 	bar := materials.NewAppBar(th, modal)
 	bar.NavigationIcon = MenuIcon
 	if barOnBottom {
 		bar.Anchor = materials.Bottom
 		nav.Anchor = materials.Bottom
 	}
-	sheetAnim := materials.VisibilityAnimation{
-		Duration: time.Second,
-		State:    materials.Invisible,
-	}
-	sheet := materials.NewSheet(&sheetAnim)
 
+	modalNav := materials.ModalNavFrom(&nav, modal)
 	var (
 		heartBtn, plusBtn, exampleOverflowState widget.Clickable
 		red, green, blue                        widget.Clickable
@@ -223,7 +224,12 @@ func loop(w *app.Window) error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked(gtx) {
-				nav.ToggleVisibility(gtx.Now)
+				if useModalNav {
+					modalNav.Layout(gtx)
+					modalNav.ToggleVisibility(gtx.Now)
+				} else {
+					navAnim.ToggleVisibility(gtx.Now)
+				}
 			}
 			if bar.OverflowActionClicked() {
 				log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
@@ -232,10 +238,9 @@ func loop(w *app.Window) error {
 				favorited = !favorited
 			}
 			if plusBtn.Clicked() {
-				if sheet.Visible() {
-					sheet.Disappear(gtx.Now)
-				} else {
-					sheet.Appear(gtx.Now)
+				useModalNav = !useModalNav
+				if navAnim.Visible() {
+					navAnim.Disappear(gtx.Now)
 				}
 			}
 			if contextBtn.Clicked() {
@@ -276,9 +281,7 @@ func loop(w *app.Window) error {
 					return layout.Flex{}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X /= 3
-							return sheet.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return material.Body1(th, "hello").Layout(gtx)
-							})
+							return nav.Layout(gtx, &navAnim)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
