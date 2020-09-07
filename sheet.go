@@ -163,3 +163,13 @@ func (s ModalSheet) sheetWidth(gtx layout.Context) int {
 func (s *ModalSheet) ToggleVisibility(when time.Time) {
 	s.Modal.ToggleVisibility(when)
 }
+
+// Appear triggers the appearance of the ModalSheet.
+func (s *ModalSheet) Appear(when time.Time) {
+	s.Modal.Appear(when)
+}
+
+// Disappear triggers the appearance of the ModalSheet.
+func (s *ModalSheet) Disappear(when time.Time) {
+	s.Modal.Disappear(when)
+}

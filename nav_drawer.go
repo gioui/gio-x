@@ -221,6 +221,9 @@ func (m *NavDrawer) Layout(gtx layout.Context, anim *VisibilityAnimation) layout
 }
 
 func (m *NavDrawer) LayoutContents(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+	if !anim.Visible() {
+		return D{}
+	}
 	spacing := layout.SpaceEnd
 	if m.Anchor == Bottom {
 		spacing = layout.SpaceStart
@@ -259,6 +262,7 @@ func (m *NavDrawer) LayoutContents(gtx layout.Context, anim *VisibilityAnimation
 }
 
 func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+	m.selectedChanged = false
 	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
@@ -267,7 +271,6 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation)
 		dimensions := m.items[index].Layout(gtx)
 		if m.items[index].Clicked() {
 			m.changeSelected(index)
-			m.selectedChanged = true
 		}
 		return dimensions
 	})
@@ -277,6 +280,7 @@ func (m *NavDrawer) changeSelected(newIndex int) {
 	m.items[m.selectedItem].selected = false
 	m.selectedItem = newIndex
 	m.items[m.selectedItem].selected = true
+	m.selectedChanged = true
 }
 
 // SetNavDestination changes the selected navigation item to the item with
@@ -323,7 +327,7 @@ func ModalNavFrom(nav *NavDrawer, modal *ModalLayer) *ModalNavDrawer {
 	return m
 }
 
-func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
+func (m *ModalNavDrawer) Layout() layout.Dimensions {
 	m.sheet.LayoutModal(func(gtx C, anim *VisibilityAnimation) D {
 		dims := m.NavDrawer.LayoutContents(gtx, anim)
 		if m.selectedChanged {
@@ -335,7 +339,18 @@ func (m *ModalNavDrawer) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (m *ModalNavDrawer) ToggleVisibility(when time.Time) {
+	m.Layout()
 	m.sheet.ToggleVisibility(when)
+}
+
+func (m *ModalNavDrawer) Appear(when time.Time) {
+	m.Layout()
+	m.sheet.Appear(when)
+}
+
+func (m *ModalNavDrawer) Disappear(when time.Time) {
+	m.Layout()
+	m.sheet.Disappear(when)
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {

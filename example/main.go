@@ -20,6 +20,11 @@ import (
 	"git.sr.ht/~whereswaldon/materials"
 )
 
+type (
+	C = layout.Context
+	D = layout.Dimensions
+)
+
 var MenuIcon *widget.Icon = func() *widget.Icon {
 	icon, _ := widget.NewIcon(icons.NavigationMenu)
 	return icon
@@ -65,6 +70,143 @@ func main() {
 	app.Main()
 }
 
+func LayoutAppBarPage(gtx C) D {
+	return layout.Flex{
+		Alignment: layout.Middle,
+		Axis:      layout.Vertical,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset.Layout(gtx, material.Body1(th, `The app bar widget provides a consistent interface element for triggering navigation and page-specific actions.
+
+The controls below allow you to see the various features available in our App Bar implementation.`).Layout)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Contextual App Bar").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if bar.OverflowActionClicked() {
+						log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
+					}
+					if contextBtn.Clicked() {
+						bar.SetContextualActions(
+							[]materials.AppBarAction{
+								materials.SimpleIconAction(th, &red, HeartIcon,
+									materials.OverflowAction{
+										Name: "House",
+										Tag:  &red,
+									},
+								),
+							},
+							[]materials.OverflowAction{
+								{
+									Name: "foo",
+									Tag:  &blue,
+								},
+								{
+									Name: "bar",
+									Tag:  &green,
+								},
+							},
+						)
+						bar.ToggleContextual(gtx.Now, "Contextual Title")
+					}
+					return material.Button(th, &contextBtn, "Trigger").Layout(gtx)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Bottom App Bar").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if bottomBar.Changed() {
+						if bottomBar.Value {
+							nav.Anchor = materials.Bottom
+						} else {
+							nav.Anchor = materials.Top
+						}
+					}
+
+					return inset.Layout(gtx, material.Switch(th, &bottomBar).Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Custom Navigation Icon").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if customNavIcon.Changed() {
+						if customNavIcon.Value {
+							bar.NavigationIcon = HomeIcon
+						} else {
+							bar.NavigationIcon = MenuIcon
+						}
+					}
+					return inset.Layout(gtx, material.Switch(th, &customNavIcon).Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Animated Resize").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body2(th, "Resize the width of your screen to see app bar actions collapse into or emerge from the overflow menu (as size permits).").Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Custom Action Buttons").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if heartBtn.Clicked() {
+						favorited = !favorited
+					}
+					return inset.Layout(gtx, material.Body2(th, "Click the heart action to see custom button behavior.").Layout)
+				}),
+			)
+		}),
+	)
+}
+
+func LayoutNavDrawerPage(gtx C) D {
+	return layout.Flex{
+		Alignment: layout.Middle,
+		Axis:      layout.Vertical,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset.Layout(gtx, material.Body1(th, `The nav drawer widget provides a consistent interface element for navigation.
+
+The controls below allow you to see the various features available in our Navigation Drawer implementation.`).Layout)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Use non-modal drawer").Layout)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if nonModalDrawer.Changed() {
+						if nonModalDrawer.Value {
+							navAnim.Appear(gtx.Now)
+						} else {
+							navAnim.Disappear(gtx.Now)
+						}
+					}
+					return inset.Layout(gtx, material.Switch(th, &nonModalDrawer).Layout)
+				}),
+			)
+		}),
+	)
+}
+
 type Page struct {
 	layout func(layout.Context) layout.Dimensions
 	materials.NavItem
@@ -72,50 +214,36 @@ type Page struct {
 	Overflow []materials.OverflowAction
 }
 
-func loop(w *app.Window) error {
-	modal := materials.NewModal()
-	th := material.NewTheme(gofont.Collection())
-	var ops op.Ops
-	navAnim := materials.VisibilityAnimation{
+var (
+	// initialize modal layer to draw modal components
+	modal   = materials.NewModal()
+	navAnim = materials.VisibilityAnimation{
 		Duration: time.Millisecond * 100,
 		State:    materials.Invisible,
 	}
-	useModalNav := true
-	nav := materials.NewNav(th, "Navigation Drawer", "This is an example.")
-	bar := materials.NewAppBar(th, modal)
-	bar.NavigationIcon = MenuIcon
-	if barOnBottom {
-		bar.Anchor = materials.Bottom
-		nav.Anchor = materials.Bottom
-	}
+	nav      = materials.NewNav(th, "Navigation Drawer", "This is an example.")
+	modalNav = materials.ModalNavFrom(&nav, modal)
 
-	modalNav := materials.ModalNavFrom(&nav, modal)
-	var (
-		heartBtn, plusBtn, exampleOverflowState widget.Clickable
-		red, green, blue                        widget.Clickable
-		contextBtn                              widget.Clickable
-		favorited                               bool
-	)
+	bar = materials.NewAppBar(th, modal)
 
-	pages := []Page{
+	inset = layout.UniformInset(unit.Dp(8))
+	th    = material.NewTheme(gofont.Collection())
+
+	heartBtn, plusBtn, exampleOverflowState widget.Clickable
+	red, green, blue                        widget.Clickable
+	contextBtn                              widget.Clickable
+	bottomBar                               widget.Bool
+	customNavIcon                           widget.Bool
+	nonModalDrawer                          widget.Bool
+	favorited                               bool
+
+	pages = []Page{
 		Page{
 			NavItem: materials.NavItem{
-				Name: "Home",
+				Name: "App Bar Features",
 				Icon: HomeIcon,
 			},
-			layout: func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{
-					Alignment: layout.Middle,
-					Axis:      layout.Vertical,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return material.H3(th, "Home").Layout(gtx)
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return material.Button(th, &contextBtn, "Context").Layout(gtx)
-					}),
-				)
-			},
+			layout: LayoutAppBarPage,
 			Actions: []materials.AppBarAction{
 				materials.AppBarAction{
 					OverflowAction: materials.OverflowAction{
@@ -142,49 +270,25 @@ func loop(w *app.Window) error {
 			},
 			Overflow: []materials.OverflowAction{
 				{
-					Name: "Example",
+					Name: "Example 1",
 					Tag:  &exampleOverflowState,
 				},
 				{
-					Name: "Red",
-					Tag:  &red,
-				},
-				{
-					Name: "Green",
-					Tag:  &green,
-				},
-				{
-					Name: "Blue",
-					Tag:  &blue,
+					Name: "Example 2",
+					Tag:  &exampleOverflowState,
 				},
 			},
 		},
 		Page{
 			NavItem: materials.NavItem{
-				Name: "Settings",
+				Name: "Nav Drawer Features",
 				Icon: SettingsIcon,
 			},
-			layout: func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{
-					Alignment: layout.Middle,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return material.H3(th, "Settings").Layout(gtx)
-					}),
-				)
-			},
-			Actions: []materials.AppBarAction{
-				materials.SimpleIconAction(th, &plusBtn, PlusIcon,
-					materials.OverflowAction{
-						Name: "Create",
-						Tag:  &plusBtn,
-					},
-				),
-			},
+			layout: LayoutNavDrawerPage,
 		},
 		Page{
 			NavItem: materials.NavItem{
-				Name: "Elsewhere",
+				Name: "About this library",
 				Icon: OtherIcon,
 			},
 			layout: func(gtx layout.Context) layout.Dimensions {
@@ -206,16 +310,28 @@ func loop(w *app.Window) error {
 			},
 		},
 	}
+)
 
+func loop(w *app.Window) error {
+	var ops op.Ops
+
+	bar.NavigationIcon = MenuIcon
+	if barOnBottom {
+		bar.Anchor = materials.Bottom
+		nav.Anchor = materials.Bottom
+	}
+
+	// assign navigation tags and configure navigation bar with all pages
 	for i, page := range pages {
 		page.NavItem.Tag = i
 		nav.AddNavItem(page.NavItem)
 	}
-	{
-		page := pages[nav.CurrentNavDestination().(int)]
-		bar.Title = page.Name
-		bar.SetActions(page.Actions, page.Overflow)
-	}
+
+	// configure app bar initial state
+	page := pages[nav.CurrentNavDestination().(int)]
+	bar.Title = page.Name
+	bar.SetActions(page.Actions, page.Overflow)
+
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -224,47 +340,12 @@ func loop(w *app.Window) error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked(gtx) {
-				if useModalNav {
-					modalNav.Layout(gtx)
-					modalNav.ToggleVisibility(gtx.Now)
+				if nonModalDrawer.Value {
+					navAnim.Appear(gtx.Now)
 				} else {
-					navAnim.ToggleVisibility(gtx.Now)
-				}
-			}
-			if bar.OverflowActionClicked() {
-				log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
-			}
-			if heartBtn.Clicked() {
-				favorited = !favorited
-			}
-			if plusBtn.Clicked() {
-				useModalNav = !useModalNav
-				if navAnim.Visible() {
+					modalNav.Appear(gtx.Now)
 					navAnim.Disappear(gtx.Now)
 				}
-			}
-			if contextBtn.Clicked() {
-				bar.SetContextualActions(
-					[]materials.AppBarAction{
-						materials.SimpleIconAction(th, &red, HeartIcon,
-							materials.OverflowAction{
-								Name: "House",
-								Tag:  &red,
-							},
-						),
-					},
-					[]materials.OverflowAction{
-						{
-							Name: "foo",
-							Tag:  &blue,
-						},
-						{
-							Name: "bar",
-							Tag:  &green,
-						},
-					},
-				)
-				bar.ToggleContextual(gtx.Now, "Contextual Title")
 			}
 			if nav.NavDestinationChanged() {
 				page := pages[nav.CurrentNavDestination().(int)]
@@ -294,7 +375,7 @@ func loop(w *app.Window) error {
 					return bar.Layout(gtx)
 				})
 				flex := layout.Flex{Axis: layout.Vertical}
-				if barOnBottom {
+				if bottomBar.Value {
 					flex.Layout(gtx, content, bar)
 				} else {
 					flex.Layout(gtx, bar, content)
