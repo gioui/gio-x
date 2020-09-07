@@ -127,12 +127,21 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, anim *Visibil
 		}
 		gtx.Constraints.Max.X = s.sheetWidth(gtx)
 
+		// Beneath sheet content, listen for tap events. This prevents taps in the
+		// empty sheet area from passing downward to the scrim underneath it.
+		pointer.PassOp{Pass: false}.Add(gtx.Ops)
+		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
+		pointer.InputOp{
+			Tag:   s,
+			Types: pointer.Press | pointer.Release,
+		}.Add(gtx.Ops)
+
 		// lay out widget
 		dims := NewSheet().Layout(gtx, anim, func(gtx C) D {
 			return contents(gtx, anim)
 		})
 
-		// listen for drag events
+		// On top of sheet content, listen for drag events to close the sheet.
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
 		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
 		s.drag.Add(gtx.Ops)
