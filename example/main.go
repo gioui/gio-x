@@ -70,6 +70,11 @@ func main() {
 	app.Main()
 }
 
+const (
+	settingNameColumnWidth    = .3
+	settingDetailsColumnWidth = 1 - settingNameColumnWidth
+)
+
 func LayoutAppBarPage(gtx C) D {
 	return layout.Flex{
 		Alignment: layout.Middle,
@@ -82,10 +87,10 @@ The controls below allow you to see the various features available in our App Ba
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Contextual App Bar").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					if bar.OverflowActionClicked() {
 						log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
 					}
@@ -118,10 +123,10 @@ The controls below allow you to see the various features available in our App Ba
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Bottom App Bar").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					if bottomBar.Changed() {
 						if bottomBar.Value {
 							nav.Anchor = materials.Bottom
@@ -136,10 +141,10 @@ The controls below allow you to see the various features available in our App Ba
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Custom Navigation Icon").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					if customNavIcon.Changed() {
 						if customNavIcon.Value {
 							bar.NavigationIcon = HomeIcon
@@ -153,20 +158,20 @@ The controls below allow you to see the various features available in our App Ba
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Animated Resize").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body2(th, "Resize the width of your screen to see app bar actions collapse into or emerge from the overflow menu (as size permits).").Layout)
 				}),
 			)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Custom Action Buttons").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					if heartBtn.Clicked() {
 						favorited = !favorited
 					}
@@ -189,10 +194,10 @@ The controls below allow you to see the various features available in our Naviga
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
 					return inset.Layout(gtx, material.Body1(th, "Use non-modal drawer").Layout)
 				}),
-				layout.Rigid(func(gtx C) D {
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
 					if nonModalDrawer.Changed() {
 						if nonModalDrawer.Value {
 							navAnim.Appear(gtx.Now)
@@ -201,6 +206,92 @@ The controls below allow you to see the various features available in our Naviga
 						}
 					}
 					return inset.Layout(gtx, material.Switch(th, &nonModalDrawer).Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Drag to Close").Layout)
+				}),
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body2(th, "You can close the modal nav drawer by dragging it to the left.").Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Touch Scrim to Close").Layout)
+				}),
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body2(th, "You can close the modal nav drawer touching anywhere in the translucent scrim to the right.").Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Bottom content anchoring").Layout)
+				}),
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body2(th, "If you toggle support for the bottom app bar in the App Bar settings, nav drawer content will anchor to the bottom of the drawer area instead of the top.").Layout)
+				}),
+			)
+		}),
+	)
+}
+
+const (
+	sponsorEliasURL          = "https://github.com/sponsors/eliasnaur"
+	sponsorChrisURLGitHub    = "https://github.com/sponsors/whereswaldon"
+	sponsorChrisURLLiberapay = "https://liberapay.com/whereswaldon/"
+)
+
+func LayoutAboutPage(gtx C) D {
+	return layout.Flex{
+		Alignment: layout.Middle,
+		Axis:      layout.Vertical,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset.Layout(gtx, material.Body1(th, `This library implements material design components from https://material.io using https://gioui.org.
+
+Materials (this library) would not be possible without the incredible work of Elias Naur and the Gio community. Materials is maintained by Chris Waldon.
+
+
+If you like this library and work like it, please consider sponsoring Elias and/or Chris!`).Layout)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Elias Naur can be sponsored on GitHub at "+sponsorEliasURL).Layout)
+				}),
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
+					if eliasCopyButton.Clicked() {
+						clipboardRequests <- sponsorEliasURL
+					}
+					return inset.Layout(gtx, material.Button(th, &eliasCopyButton, "Copy Sponsorship URL").Layout)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
+					return inset.Layout(gtx, material.Body1(th, "Chris Waldon can be sponsored on GitHub at "+sponsorChrisURLGitHub+" and on Liberapay at "+sponsorChrisURLLiberapay).Layout)
+				}),
+				layout.Flexed(settingNameColumnWidth, func(gtx C) D {
+					if chrisCopyButtonGH.Clicked() {
+						clipboardRequests <- sponsorChrisURLGitHub
+					}
+					if chrisCopyButtonLP.Clicked() {
+						clipboardRequests <- sponsorChrisURLLiberapay
+					}
+					return inset.Layout(gtx, func(gtx C) D {
+						return layout.Flex{}.Layout(gtx,
+							layout.Flexed(.5, material.Button(th, &chrisCopyButtonGH, "Copy GitHub URL").Layout),
+							layout.Flexed(.5, material.Button(th, &chrisCopyButtonLP, "Copy Liberapay URL").Layout),
+						)
+					})
 				}),
 			)
 		}),
@@ -215,6 +306,9 @@ type Page struct {
 }
 
 var (
+	// initialize channel to send clipboard content requests on
+	clipboardRequests = make(chan string, 1)
+
 	// initialize modal layer to draw modal components
 	modal   = materials.NewModal()
 	navAnim = materials.VisibilityAnimation{
@@ -229,13 +323,14 @@ var (
 	inset = layout.UniformInset(unit.Dp(8))
 	th    = material.NewTheme(gofont.Collection())
 
-	heartBtn, plusBtn, exampleOverflowState widget.Clickable
-	red, green, blue                        widget.Clickable
-	contextBtn                              widget.Clickable
-	bottomBar                               widget.Bool
-	customNavIcon                           widget.Bool
-	nonModalDrawer                          widget.Bool
-	favorited                               bool
+	heartBtn, plusBtn, exampleOverflowState               widget.Clickable
+	red, green, blue                                      widget.Clickable
+	contextBtn                                            widget.Clickable
+	eliasCopyButton, chrisCopyButtonGH, chrisCopyButtonLP widget.Clickable
+	bottomBar                                             widget.Bool
+	customNavIcon                                         widget.Bool
+	nonModalDrawer                                        widget.Bool
+	favorited                                             bool
 
 	pages = []Page{
 		Page{
@@ -291,23 +386,8 @@ var (
 				Name: "About this library",
 				Icon: OtherIcon,
 			},
-			layout: func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{
-					Alignment: layout.Middle,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return material.H3(th, "Elsewhere").Layout(gtx)
-					}),
-				)
-			},
-			Actions: []materials.AppBarAction{
-				materials.SimpleIconAction(th, &heartBtn, HeartIcon,
-					materials.OverflowAction{
-						Name: "Favorite",
-						Tag:  &heartBtn,
-					},
-				),
-			},
+			layout:  LayoutAboutPage,
+			Actions: []materials.AppBarAction{},
 		},
 	}
 )
@@ -333,57 +413,61 @@ func loop(w *app.Window) error {
 	bar.SetActions(page.Actions, page.Overflow)
 
 	for {
-		e := <-w.Events()
-		switch e := e.(type) {
-		case system.DestroyEvent:
-			return e.Err
-		case system.FrameEvent:
-			gtx := layout.NewContext(&ops, e)
-			if bar.NavigationClicked(gtx) {
-				if nonModalDrawer.Value {
-					navAnim.ToggleVisibility(gtx.Now)
-				} else {
-					modalNav.Appear(gtx.Now)
-					navAnim.Disappear(gtx.Now)
+		select {
+		case content := <-clipboardRequests:
+			w.WriteClipboard(content)
+		case e := <-w.Events():
+			switch e := e.(type) {
+			case system.DestroyEvent:
+				return e.Err
+			case system.FrameEvent:
+				gtx := layout.NewContext(&ops, e)
+				if bar.NavigationClicked(gtx) {
+					if nonModalDrawer.Value {
+						navAnim.ToggleVisibility(gtx.Now)
+					} else {
+						modalNav.Appear(gtx.Now)
+						navAnim.Disappear(gtx.Now)
+					}
 				}
-			}
-			if nav.NavDestinationChanged() {
-				page := pages[nav.CurrentNavDestination().(int)]
-				bar.Title = page.Name
-				bar.SetActions(page.Actions, page.Overflow)
-			}
-			layout.Inset{
-				Top:    e.Insets.Top,
-				Bottom: e.Insets.Bottom,
-				Left:   e.Insets.Left,
-				Right:  e.Insets.Right,
-			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				content := layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							gtx.Constraints.Max.X /= 3
-							return nav.Layout(gtx, &navAnim)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return pages[nav.CurrentNavDestination().(int)].layout(gtx)
-							})
-						}),
-					)
-				})
-				bar := layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return bar.Layout(gtx)
-				})
-				flex := layout.Flex{Axis: layout.Vertical}
-				if bottomBar.Value {
-					flex.Layout(gtx, content, bar)
-				} else {
-					flex.Layout(gtx, bar, content)
+				if nav.NavDestinationChanged() {
+					page := pages[nav.CurrentNavDestination().(int)]
+					bar.Title = page.Name
+					bar.SetActions(page.Actions, page.Overflow)
 				}
-				modal.Layout(gtx)
-				return layout.Dimensions{Size: gtx.Constraints.Max}
-			})
-			e.Frame(gtx.Ops)
+				layout.Inset{
+					Top:    e.Insets.Top,
+					Bottom: e.Insets.Bottom,
+					Left:   e.Insets.Left,
+					Right:  e.Insets.Right,
+				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					content := layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								gtx.Constraints.Max.X /= 3
+								return nav.Layout(gtx, &navAnim)
+							}),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return pages[nav.CurrentNavDestination().(int)].layout(gtx)
+								})
+							}),
+						)
+					})
+					bar := layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return bar.Layout(gtx)
+					})
+					flex := layout.Flex{Axis: layout.Vertical}
+					if bottomBar.Value {
+						flex.Layout(gtx, content, bar)
+					} else {
+						flex.Layout(gtx, bar, content)
+					}
+					modal.Layout(gtx)
+					return layout.Dimensions{Size: gtx.Constraints.Max}
+				})
+				e.Frame(gtx.Ops)
+			}
 		}
 	}
 }
