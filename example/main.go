@@ -341,7 +341,7 @@ func loop(w *app.Window) error {
 			gtx := layout.NewContext(&ops, e)
 			if bar.NavigationClicked(gtx) {
 				if nonModalDrawer.Value {
-					navAnim.Appear(gtx.Now)
+					navAnim.ToggleVisibility(gtx.Now)
 				} else {
 					modalNav.Appear(gtx.Now)
 					navAnim.Disappear(gtx.Now)
