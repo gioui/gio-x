@@ -1,6 +1,7 @@
 package materials
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"sync"
@@ -410,27 +411,56 @@ func min(a, b int) int {
 	return b
 }
 
-// NavigationClicked returns true when the navigation button has been
-// clicked in the last frame.
-func (a *AppBar) NavigationClicked(gtx layout.Context) bool {
-	clicked := a.NavigationButton.Clicked()
-	if clicked && a.contextualAnim.Visible() {
+// AppBarEvent
+type AppBarEvent interface {
+	AppBarEvent()
+}
+
+// AppBarNavigationClicked indicates that the navigation icon was clicked
+// during the last frame.
+type AppBarNavigationClicked struct{}
+
+func (a AppBarNavigationClicked) AppBarEvent() {}
+
+func (a AppBarNavigationClicked) String() string {
+	return "clicked app bar navigation button"
+}
+
+// AppBarContextMenuDismissed indicates that the app bar context menu was
+// dismissed during the last frame.
+type AppBarContextMenuDismissed struct{}
+
+func (a AppBarContextMenuDismissed) AppBarEvent() {}
+
+func (a AppBarContextMenuDismissed) String() string {
+	return "dismissed app bar context menu"
+}
+
+// AppBarOverflowActionClicked indicates that an action in the app bar overflow
+// menu was clicked during the last frame.
+type AppBarOverflowActionClicked struct {
+	Tag interface{}
+}
+
+func (a AppBarOverflowActionClicked) AppBarEvent() {}
+
+func (a AppBarOverflowActionClicked) String() string {
+	return fmt.Sprintf("clicked app bar overflow action with tag %v", a.Tag)
+}
+
+// Events returns a slice of all AppBarActions to occur since the last frame.
+func (a *AppBar) Events(gtx layout.Context) []AppBarEvent {
+	var out []AppBarEvent
+	if clicked := a.NavigationButton.Clicked(); clicked && a.contextualAnim.Visible() {
 		a.contextualAnim.Disappear(gtx.Now)
-		return false
+		out = append(out, AppBarContextMenuDismissed{})
+	} else if clicked {
+		out = append(out, AppBarNavigationClicked{})
 	}
-	return clicked
-}
-
-// OverflowActionClicked returns whether an overflow item was selected
-// during the last frame
-func (a *AppBar) OverflowActionClicked() bool {
-	return a.overflowMenu.selectedTag != nil
-}
-
-// SelectedOverflowAction returns the Tag of the overflow action selected
-// during the last frame (if any).
-func (a *AppBar) SelectedOverflowAction() interface{} {
-	return a.overflowMenu.selectedTag
+	if a.overflowMenu.selectedTag != nil {
+		out = append(out, AppBarOverflowActionClicked{Tag: a.overflowMenu.selectedTag})
+	}
+	return out
 }
 
 // SetActions configures the set of actions available in the

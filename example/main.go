@@ -91,9 +91,6 @@ The controls below allow you to see the various features available in our App Ba
 					return inset.Layout(gtx, material.Body1(th, "Contextual App Bar").Layout)
 				}),
 				layout.Flexed(settingDetailsColumnWidth, func(gtx C) D {
-					if bar.OverflowActionClicked() {
-						log.Printf("Overflow clicked: %v", bar.SelectedOverflowAction())
-					}
 					if contextBtn.Clicked() {
 						bar.SetContextualActions(
 							[]materials.AppBarAction{
@@ -422,12 +419,19 @@ func loop(w *app.Window) error {
 				return e.Err
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
-				if bar.NavigationClicked(gtx) {
-					if nonModalDrawer.Value {
-						navAnim.ToggleVisibility(gtx.Now)
-					} else {
-						modalNav.Appear(gtx.Now)
-						navAnim.Disappear(gtx.Now)
+				for _, event := range bar.Events(gtx) {
+					switch event := event.(type) {
+					case materials.AppBarNavigationClicked:
+						if nonModalDrawer.Value {
+							navAnim.ToggleVisibility(gtx.Now)
+						} else {
+							modalNav.Appear(gtx.Now)
+							navAnim.Disappear(gtx.Now)
+						}
+					case materials.AppBarContextMenuDismissed:
+						log.Printf("Context menu dismissed: %v", event)
+					case materials.AppBarOverflowActionClicked:
+						log.Printf("Overflow action selected: %v", event)
 					}
 				}
 				if nav.NavDestinationChanged() {
