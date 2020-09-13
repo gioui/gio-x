@@ -277,6 +277,9 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation)
 }
 
 func (m *NavDrawer) changeSelected(newIndex int) {
+	if newIndex == m.selectedItem {
+		return
+	}
 	m.items[m.selectedItem].selected = false
 	m.selectedItem = newIndex
 	m.items[m.selectedItem].selected = true
