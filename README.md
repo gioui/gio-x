@@ -4,7 +4,7 @@ A scroll progress indicator widget for [gio](https://gioui.org).
 
 ## Origin
 
-~whereswaldon developed a view-only version of this for [sprig](), and
+~whereswaldon developed a view-only version of this for [sprig](https://git.sr.ht/~whereswaldon/sprig), and
 ~jackmordaunt contributed support for clicking within the scroll tray
 area and for dragging the indicator to move it. We agreed that the
 feature was generally useful and have pulled it out of the sprig
