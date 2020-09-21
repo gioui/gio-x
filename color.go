@@ -86,7 +86,7 @@ func Mux(theme *material.Theme, state *MuxState, label string) MuxStyle {
 func (m MuxStyle) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = 0
 	var children []layout.FlexChild
-	inset := layout.UniformInset(unit.Dp(8))
+	inset := layout.UniformInset(unit.Dp(2))
 	children = append(children, layout.Rigid(func(gtx C) D {
 		return inset.Layout(gtx, func(gtx C) D {
 			return material.Body1(m.Theme, m.Label).Layout(gtx)
@@ -108,21 +108,35 @@ func (m MuxStyle) layoutOption(gtx C, option string) D {
 		layout.Rigid(func(gtx C) D {
 			return material.RadioButton(m.Theme, &m.Enum, option, option).Layout(gtx)
 		}),
-		layout.Rigid(func(gtx C) D {
+		layout.Flexed(1, func(gtx C) D {
 			return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx C) D {
 				color := m.Options[option]
 				if color == nil {
 					return D{}
 				}
-				defer op.Push(gtx.Ops).Pop()
-				paint.ColorOp{Color: *color}.Add(gtx.Ops)
-				size := gtx.Px(unit.Dp(20))
-				sizef := float32(size)
-				paint.PaintOp{Rect: f32.Rect(0, 0, sizef, sizef)}.Add(gtx.Ops)
-				return D{Size: image.Pt(size, size)}
+				return borderedSquare(gtx, *color)
 			})
 		}),
 	)
+}
+
+func borderedSquare(gtx C, c color.RGBA) D {
+	defer op.Push(gtx.Ops).Pop()
+	dims := square(gtx, unit.Dp(20), color.RGBA{A: 255})
+
+	off := float32(gtx.Px(unit.Dp(1)))
+	op.Offset(f32.Pt(off, off)).Add(gtx.Ops)
+	square(gtx, unit.Dp(18), c)
+	return dims
+}
+
+func square(gtx C, sizeDp unit.Value, color color.RGBA) D {
+	defer op.Push(gtx.Ops).Pop()
+	paint.ColorOp{Color: color}.Add(gtx.Ops)
+	size := gtx.Px(sizeDp)
+	sizef := float32(size)
+	paint.PaintOp{Rect: f32.Rect(0, 0, sizef, sizef)}.Add(gtx.Ops)
+	return D{Size: image.Pt(size, size)}
 }
 
 // State is the state of a colorpicker.
