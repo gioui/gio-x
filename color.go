@@ -131,12 +131,21 @@ func borderedSquare(gtx C, c color.RGBA) D {
 }
 
 func square(gtx C, sizeDp unit.Value, color color.RGBA) D {
+	return rect(gtx, sizeDp, sizeDp, color)
+}
+
+func rect(gtx C, width, height unit.Value, color color.RGBA) D {
+	w, h := gtx.Px(width), gtx.Px(height)
+	return rectAbs(gtx, w, h, color)
+}
+
+func rectAbs(gtx C, w, h int, color color.RGBA) D {
 	defer op.Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: color}.Add(gtx.Ops)
-	size := gtx.Px(sizeDp)
-	sizef := float32(size)
-	paint.PaintOp{Rect: f32.Rect(0, 0, sizef, sizef)}.Add(gtx.Ops)
-	return D{Size: image.Pt(size, size)}
+	wf := float32(w)
+	hf := float32(h)
+	paint.PaintOp{Rect: f32.Rect(0, 0, wf, hf)}.Add(gtx.Ops)
+	return D{Size: image.Pt(w, h)}
 }
 
 // State is the state of a colorpicker.
@@ -238,31 +247,50 @@ func Picker(th *material.Theme, state *State, label string) PickerStyle {
 // Layout renders the PickerStyle into the provided context.
 func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	p.State.Layout(gtx)
-	stack := op.Push(gtx.Ops)
-	gtx.Constraints.Max.X /= 2
-	gtx.Constraints.Min.X = gtx.Constraints.Max.X
-	gtx.Constraints.Min.Y = 0
-	sliderMacro := op.Record(gtx.Ops)
-	sliderDims := p.layoutSliders(gtx)
-	slider := sliderMacro.Stop()
+
+	// lay out the label and editor to compute their width
+	leftSide := op.Record(gtx.Ops)
+	leftSideDims := p.layoutLeftPane(gtx)
+	layoutLeft := leftSide.Stop()
+
+	// lay out the sliders in the remaining horizontal space
+	gtx.Constraints.Max.X -= leftSideDims.Size.X
+	rightSide := op.Record(gtx.Ops)
+	rightSideDims := p.layoutSliders(gtx)
+	layoutRight := rightSide.Stop()
+
+	// compute the space beneath the editor that will not extend
+	// past the sliders vertically
+	margin := gtx.Px(unit.Dp(4))
+	sampleWidth, sampleHeight := leftSideDims.Size.X, rightSideDims.Size.Y-leftSideDims.Size.Y
+
+	// lay everything out for real, starting with the editor/label
+	layoutLeft.Add(gtx.Ops)
+
+	// offset downwards and lay out the color sample
+	var stack op.StackOp
+	stack = op.Push(gtx.Ops)
+	op.Offset(f32.Pt(float32(margin), float32(leftSideDims.Size.Y))).Add(gtx.Ops)
+	rectAbs(gtx, sampleWidth-(2*margin), sampleHeight-(2*margin), p.State.Color())
 	stack.Pop()
 
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(func(gtx C) D {
-			gtx.Constraints = layout.Exact(sliderDims.Size)
+	// offset to the right to lay out the sliders
+	defer op.Push(gtx.Ops).Pop()
+	op.Offset(f32.Pt(float32(leftSideDims.Size.X), 0)).Add(gtx.Ops)
+	layoutRight.Add(gtx.Ops)
 
-			return p.layoutLeftPane(gtx)
-		}),
-		layout.Rigid(func(gtx C) D {
-			slider.Add(gtx.Ops)
-			return sliderDims
-		}),
-	)
+	return layout.Dimensions{
+		Size: image.Point{
+			X: gtx.Constraints.Max.X,
+			Y: rightSideDims.Size.Y,
+		},
+	}
 }
 
 func (p PickerStyle) layoutLeftPane(gtx C) D {
-	inset := layout.UniformInset(unit.Dp(8))
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+	gtx.Constraints.Min.X = 0
+	inset := layout.UniformInset(unit.Dp(4))
+	dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
 				return material.Body1(p.Theme, p.Label).Layout(gtx)
@@ -270,26 +298,38 @@ func (p PickerStyle) layoutLeftPane(gtx C) D {
 		}),
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
-				return material.Editor(p.Theme, &p.Editor, "rrggbb").Layout(gtx)
-			})
-		}),
-		layout.Flexed(1, func(gtx C) D {
-			return inset.Layout(gtx, func(gtx C) D {
-				stack := op.Push(gtx.Ops)
-				paint.ColorOp{Color: p.State.Color()}.Add(gtx.Ops)
-				paint.PaintOp{
-					Rect: f32.Rectangle{
-						Max: f32.Point{
-							X: float32(gtx.Constraints.Max.X),
-							Y: float32(gtx.Constraints.Max.Y),
-						},
-					},
-				}.Add(gtx.Ops)
-				stack.Pop()
-				return layout.Dimensions{Size: gtx.Constraints.Max}
+				return layout.Stack{}.Layout(gtx,
+					layout.Expanded(func(gtx C) D {
+						return rectAbs(gtx, gtx.Constraints.Min.X, gtx.Constraints.Min.Y, color.RGBA{R: 230, G: 230, B: 230, A: 255})
+					}),
+					layout.Stacked(func(gtx C) D {
+						return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {
+							return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
+								layout.Rigid(func(gtx C) D {
+									label := material.Body1(p.Theme, "#")
+									label.Font.Variant = "Mono"
+									return label.Layout(gtx)
+								}),
+								layout.Rigid(func(gtx C) D {
+									editor := material.Editor(p.Theme, &p.Editor, "rrggbb")
+									editor.Font.Variant = "Mono"
+									return editor.Layout(gtx)
+								}),
+							)
+						})
+					}),
+				)
 			})
 		}),
 	)
+	return dims
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (p PickerStyle) layoutSliders(gtx C) D {
@@ -319,7 +359,7 @@ func valueString(in uint8) string {
 }
 
 func (p PickerStyle) layoutSlider(gtx C, value *widget.Float, label, valueStr string) D {
-	inset := layout.UniformInset(unit.Dp(8))
+	inset := layout.UniformInset(unit.Dp(2))
 	layoutDims := layout.Flex{}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
