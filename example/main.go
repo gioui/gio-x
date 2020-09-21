@@ -300,6 +300,10 @@ type Page struct {
 	materials.NavItem
 	Actions  []materials.AppBarAction
 	Overflow []materials.OverflowAction
+
+	// laying each page out within a layout.List enables scrolling for the page
+	// content.
+	layout.List
 }
 
 var (
@@ -399,7 +403,9 @@ func loop(w *app.Window) error {
 	}
 
 	// assign navigation tags and configure navigation bar with all pages
-	for i, page := range pages {
+	for i := range pages {
+		page := &pages[i]
+		page.List.Axis = layout.Vertical
 		page.NavItem.Tag = i
 		nav.AddNavItem(page.NavItem)
 	}
@@ -452,8 +458,11 @@ func loop(w *app.Window) error {
 								return nav.Layout(gtx, &navAnim)
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return pages[nav.CurrentNavDestination().(int)].layout(gtx)
+								page := &pages[nav.CurrentNavDestination().(int)]
+								return page.List.Layout(gtx, 1, func(gtx C, _ int) D {
+									return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return page.layout(gtx)
+									})
 								})
 							}),
 						)
