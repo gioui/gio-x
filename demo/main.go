@@ -11,14 +11,13 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
-	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"git.sr.ht/~whereswaldon/colorpicker"
 )
 
 func main() {
 	go func() {
-		w := app.NewWindow(app.Size(unit.Dp(200), unit.Dp(300)))
+		w := app.NewWindow()
 		if err := loop(w); err != nil {
 			log.Fatal(err)
 		}
@@ -36,27 +35,29 @@ var white = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	background := white
+	current := color.RGBA{R: 255, G: 128, B: 75, A: 255}
 	picker := colorpicker.State{}
-	picker.SetColor(color.RGBA{R: 255, G: 128, B: 75, A: 255})
+	picker.SetColor(current)
 	muxState := colorpicker.NewMuxState(
 		[]colorpicker.MuxOption{
 			{
-				Label: "white",
-				Value: &white,
-			},
-			{
-				Label: "primary",
-				Value: &th.Color.Primary,
+				Label: "current",
+				Value: &current,
 			},
 			{
 				Label: "hint",
 				Value: &th.Color.Hint,
 			},
 			{
+				Label: "white",
+				Value: &white,
+			},
+			{
 				Label: "text",
 				Value: &th.Color.Text,
 			},
 		}...)
+	background = *muxState.Color()
 	var ops op.Ops
 	for {
 		e := <-w.Events()
@@ -70,12 +71,13 @@ func loop(w *app.Window) error {
 				log.Printf("mux changed")
 			}
 			if picker.Changed() {
-				th.Color.Primary = picker.Color()
+				current = picker.Color()
+				background = *muxState.Color()
 				log.Printf("picker changed")
 			}
 			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return colorpicker.PickerStyle{Label: "Primary", Theme: th, State: &picker}.Layout(gtx)
+					return colorpicker.PickerStyle{Label: "Current", Theme: th, State: &picker}.Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{}.Layout(gtx,
