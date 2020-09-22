@@ -2,6 +2,8 @@
 
 A scroll progress indicator widget for [gio](https://gioui.org).
 
+![example screenshot](https://git.sr.ht/~whereswaldon/scroll/blob/main/img/example-screenshot.png)
+
 ## Origin
 
 ~whereswaldon developed a view-only version of this for [sprig](https://git.sr.ht/~whereswaldon/sprig), and
