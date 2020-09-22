@@ -63,11 +63,12 @@ const (
 )
 
 // DefaultBar returns a bar with a translucent gray background.
-func DefaultBar() Bar {
+func DefaultBar(state *Scrollable) Bar {
 	return Bar{
-		Color:     color.RGBA{A: 200},
-		Thickness: unit.Dp(8),
-		Length:    unit.Dp(16),
+		Scrollable: state,
+		Color:      color.RGBA{A: 200},
+		Thickness:  unit.Dp(8),
+		Length:     unit.Dp(16),
 	}
 }
 
