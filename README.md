@@ -12,8 +12,12 @@ repository so that other gio users can benefit.
 
 ## Status
 
-This repo is Work-in-Progress. We have not yet completed the extraction
-of the code from sprig.
+This repository does not have a stable API. Pin yourself to a particular version
+with go modules.
+
+## Example
+
+See the `example` folder for a simple program demonstrating how to use the scroll bar.
 
 ## License
 
