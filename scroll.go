@@ -20,23 +20,23 @@ type (
 	D = layout.Dimensions
 )
 
-// Scrollable holds the stateful part of a scrolling. The Progress property
-// can be used to check how far the bar has been scrolled, and the Scrolled()
-// method can be used to determine if the scroll position changed within the
-// last frame.
+// Scrollable holds state of a scrolling widget. The Scrolled() method is
+// used to tell both whether a scroll operation occurred during the last frame
+// as well as the progress through the scrollable region at the end of the
+// scroll operation.
 type Scrollable struct {
 	// Track clicks.
-	widget.Clickable
+	clickable widget.Clickable
 	// Track drag events.
-	gesture.Drag
+	drag gesture.Drag
 	// Has the bar scrolled since the previous frame?
 	scrolled bool
 	// Cached length of scroll region after layout has been computed. This can be
 	// off if the screen is being resized, but we have no better way to acquire
 	// this data.
 	length int
-	// Progress is how far along we are as a fraction between 0 and 1.
-	Progress float32
+	// progress is how far along we are as a fraction between 0 and 1.
+	progress float32
 }
 
 // Bar represents a scrolling indicator for a layout.List
@@ -46,11 +46,18 @@ type Bar struct {
 	Color color.RGBA
 	// Progress tells the bar where to render the indicator as a fraction [0, 1].
 	Progress float32
+	// Scale tells the bar what fraction of the available axis space it should
+	// occupy as a fraction between [0, 1].
+	Scale float32
 	// Axis along which the bar is oriented.
 	Axis Axis
 	// Axis independent size.
 	Thickness unit.Value
-	Length    unit.Value
+	// MinLength is the minimum length of the scroll indicator. Regardless of
+	// the scale of the bar, it will not be displayed shorter than this. If
+	// the scale parameter isn't provided, the indicator will always have
+	// this length.
+	MinLength unit.Value
 }
 
 // Axis specifies the scroll bar orientation.
@@ -62,13 +69,19 @@ const (
 	Horizontal = 1
 )
 
-// DefaultBar returns a bar with a translucent gray background.
-func DefaultBar(state *Scrollable) Bar {
+// DefaultBar returns a bar with a translucent gray background. The progress
+// parameter tells the bar how far through its range of motion to draw itself.
+// The scale parameter tells the bar what fraction of the scrollable space is
+// visible. Scale may be left as zero to use a minimum-length scroll indicator
+// that does not respond to changes in the length of the scrollable region.
+func DefaultBar(state *Scrollable, progress, scale float32) Bar {
 	return Bar{
 		Scrollable: state,
+		Progress:   progress,
+		Scale:      scale,
 		Color:      color.RGBA{A: 200},
 		Thickness:  unit.Dp(8),
-		Length:     unit.Dp(16),
+		MinLength:  unit.Dp(16),
 	}
 }
 
@@ -77,10 +90,10 @@ func (sb *Scrollable) Update(gtx C, axis Axis) {
 	sb.scrolled = false
 	// Restrict progress to [0, 1].
 	defer func() {
-		if sb.Progress > 1 {
-			sb.Progress = 1
-		} else if sb.Progress < 0 {
-			sb.Progress = 0
+		if sb.progress > 1 {
+			sb.progress = 1
+		} else if sb.progress < 0 {
+			sb.progress = 0
 		}
 	}()
 	pickAxis := func(pt f32.Point) (v float32) {
@@ -92,35 +105,45 @@ func (sb *Scrollable) Update(gtx C, axis Axis) {
 		}
 		return v
 	}
-	if sb.Clicked() {
-		if presses := sb.History(); len(presses) > 0 {
+	if sb.clickable.Clicked() {
+		if presses := sb.clickable.History(); len(presses) > 0 {
 			press := presses[len(presses)-1]
-			sb.Progress = float32(pickAxis(press.Position)) / float32(sb.length)
+			sb.progress = float32(pickAxis(press.Position)) / float32(sb.length)
 			sb.scrolled = true
 		}
 	}
-	if drags := sb.Drag.Events(gtx.Metric, gtx, axis.ToGesture()); len(drags) > 0 {
+	if drags := sb.drag.Events(gtx.Metric, gtx, axis.ToGesture()); len(drags) > 0 {
 		delta := pickAxis(drags[len(drags)-1].Position)
-		sb.Progress = (sb.Progress*float32(sb.length) + (delta / 2)) / float32(sb.length)
+		sb.progress = (sb.progress*float32(sb.length) + (delta / 2)) / float32(sb.length)
 		sb.scrolled = true
 	}
 }
 
 // Scrolled returns true if the scroll position changed within the last frame.
-func (sb Scrollable) Scrolled() bool {
-	return sb.scrolled
+func (sb Scrollable) Scrolled() (didScroll bool, progress float32) {
+	return sb.scrolled, sb.progress
 }
 
 // Layout renders the bar into the provided context.
 func (sb Bar) Layout(gtx C) D {
-	sb.Scrollable.Progress = sb.Progress
+	sb.Scrollable.progress = sb.Progress
 	sb.Update(gtx, sb.Axis)
-	if sb.Scrolled() {
+	if scrolled, _ := sb.Scrolled(); scrolled {
 		op.InvalidateOp{}.Add(gtx.Ops)
 	}
+	scaledLength := float32(0)
+	switch sb.Axis {
+	case Horizontal:
+		scaledLength = (sb.Scale * float32(gtx.Constraints.Max.X))
+	case Vertical:
+		scaledLength = (sb.Scale * float32(gtx.Constraints.Max.Y))
+	}
+	if int(scaledLength) > gtx.Px(sb.MinLength) {
+		sb.MinLength = unit.Dp(scaledLength / gtx.Metric.PxPerDp)
+	}
 	return sb.Axis.Layout(gtx, func(gtx C) D {
-		if sb.Length == (unit.Value{}) {
-			sb.Length = unit.Dp(16)
+		if sb.MinLength == (unit.Value{}) {
+			sb.MinLength = unit.Dp(16)
 		}
 		if sb.Thickness == (unit.Value{}) {
 			sb.Thickness = unit.Dp(8)
@@ -135,27 +158,27 @@ func (sb Bar) Layout(gtx C) D {
 		case Horizontal:
 			sb.length = gtx.Constraints.Max.X
 			size = f32.Point{
-				X: float32(gtx.Px(sb.Length)),
+				X: float32(gtx.Px(sb.MinLength)),
 				Y: float32(gtx.Px(sb.Thickness)),
 			}
 			total = float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
 			left = unit.Dp(total * sb.Progress)
-			if left.V+sb.Length.V > total {
-				left = unit.Dp(total - sb.Length.V)
+			if left.V+sb.MinLength.V > total {
+				left = unit.Dp(total - sb.MinLength.V)
 			}
 		case Vertical:
 			sb.length = gtx.Constraints.Max.Y
 			size = f32.Point{
 				X: float32(gtx.Px(sb.Thickness)),
-				Y: float32(gtx.Px(sb.Length)),
+				Y: float32(gtx.Px(sb.MinLength)),
 			}
 			total = float32(gtx.Constraints.Max.Y) / gtx.Metric.PxPerDp
 			top = unit.Dp(total * sb.Progress)
-			if top.V+sb.Length.V > total {
-				top = unit.Dp(total - sb.Length.V)
+			if top.V+sb.MinLength.V > total {
+				top = unit.Dp(total - sb.MinLength.V)
 			}
 		}
-		return clickBox(gtx, &sb.Clickable, func(gtx C) D {
+		return clickBox(gtx, &sb.clickable, func(gtx C) D {
 			barAreaDims := layout.Inset{
 				Top:    top,
 				Right:  unit.Dp(2),
@@ -168,7 +191,7 @@ func (sb Bar) Layout(gtx C) D {
 						Y: int(size.Y),
 					},
 				}).Add(gtx.Ops)
-				sb.Drag.Add(gtx.Ops)
+				sb.drag.Add(gtx.Ops)
 				return rect{
 					Color: sb.Color,
 					Size:  size,
