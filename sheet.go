@@ -69,6 +69,8 @@ type ModalSheet struct {
 	dragging    bool
 	dragStarted f32.Point
 	dragOffset  float32
+
+	Sheet
 }
 
 // NewModalSheet creates a modal sheet that can render a widget on the modal layer.
@@ -76,6 +78,7 @@ func NewModalSheet(m *ModalLayer) *ModalSheet {
 	s := &ModalSheet{
 		MaxWidth: unit.Dp(400),
 		Modal:    m,
+		Sheet:    NewSheet(),
 	}
 	return s
 }
@@ -137,7 +140,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, anim *Visibil
 		}.Add(gtx.Ops)
 
 		// lay out widget
-		dims := NewSheet().Layout(gtx, anim, func(gtx C) D {
+		dims := s.Sheet.Layout(gtx, anim, func(gtx C) D {
 			return contents(gtx, anim)
 		})
 

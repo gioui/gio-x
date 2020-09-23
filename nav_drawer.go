@@ -177,6 +177,10 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 type NavDrawer struct {
 	*material.Theme
 
+	// Background (if set) will be passed down to the underlying sheet when the
+	// drawer is rendered.
+	Background *color.RGBA
+
 	Title    string
 	Subtitle string
 
@@ -215,7 +219,11 @@ func (m *NavDrawer) AddNavItem(item NavItem) {
 }
 
 func (m *NavDrawer) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
-	return NewSheet().Layout(gtx, anim, func(gtx C) D {
+	sheet := NewSheet()
+	if m.Background != nil {
+		sheet.Background = *m.Background
+	}
+	return sheet.Layout(gtx, anim, func(gtx C) D {
 		return m.LayoutContents(gtx, anim)
 	})
 }
@@ -327,6 +335,9 @@ func ModalNavFrom(nav *NavDrawer, modal *ModalLayer) *ModalNavDrawer {
 	modalSheet := NewModalSheet(modal)
 	m.NavDrawer = nav
 	m.sheet = modalSheet
+	if nav.Background != nil {
+		m.sheet.Sheet.Background = *nav.Background
+	}
 	return m
 }
 
