@@ -254,9 +254,10 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	layoutLeft := leftSide.Stop()
 
 	// lay out the sliders in the remaining horizontal space
-	gtx.Constraints.Max.X -= leftSideDims.Size.X
+	rgtx := gtx
+	rgtx.Constraints.Max.X -= leftSideDims.Size.X
 	rightSide := op.Record(gtx.Ops)
-	rightSideDims := p.layoutSliders(gtx)
+	rightSideDims := p.layoutSliders(rgtx)
 	layoutRight := rightSide.Stop()
 
 	// compute the space beneath the editor that will not extend
