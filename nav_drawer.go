@@ -32,12 +32,8 @@ const (
 )
 
 var (
-	hoverOverlayAlpha     = 0.16 * 256
-	focuseOverlayAlpha    = 0.48 * 256
-	selectedOverlayAlpha  = 0.32 * 256
-	activatedOverlayAlpha = 0.48 * 256
-	pressedOverlayAlpha   = 0.48 * 256
-	draggedOverlayAlpha   = 0.32 * 256
+	hoverOverlayAlpha    uint8 = 25
+	selectedOverlayAlpha uint8 = 50
 )
 
 const (
@@ -151,11 +147,9 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	}
 	var fill color.RGBA
 	if n.hovering {
-		fill = n.Theme.Color.Text
-		fill.A = uint8(hoverOverlayAlpha)
+		fill = AlphaMultiply(n.Theme.Color.Text, hoverOverlayAlpha)
 	} else if n.selected {
-		fill = n.Theme.Color.Primary
-		fill.A = uint8(selectedOverlayAlpha)
+		fill = AlphaMultiply(n.Theme.Color.Primary, selectedOverlayAlpha)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))
@@ -276,6 +270,7 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation)
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
+		m.items[index].Theme = m.Theme
 		dimensions := m.items[index].Layout(gtx)
 		if m.items[index].Clicked() {
 			m.changeSelected(index)
