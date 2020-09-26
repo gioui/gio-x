@@ -206,12 +206,9 @@ func (c *CardState) layoutFace(gtx C) D {
 								X: float32(gtx.Constraints.Max.X / 2),
 								Y: float32(gtx.Constraints.Max.Y / 2),
 							}
-							macro := op.Record(gtx.Ops)
 							c.layoutCorner(gtx)
-							call := macro.Stop()
-							call.Add(gtx.Ops)
 							op.Affine(f32.Affine2D{}.Rotate(origin, math.Pi)).Add(gtx.Ops)
-							call.Add(gtx.Ops)
+							c.layoutCorner(gtx)
 
 							return D{Size: gtx.Constraints.Max}
 						})
