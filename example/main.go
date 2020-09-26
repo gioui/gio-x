@@ -17,6 +17,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"git.sr.ht/~whereswaldon/outlay"
@@ -34,17 +35,115 @@ func main() {
 	app.Main()
 }
 
+type Suit uint8
+type Rank uint8
+type Color bool
+
+const (
+	Spades Suit = iota
+	Clubs
+	Hearts
+	Diamonds
+)
+
+const (
+	Ace Rank = iota
+	Two
+	Three
+	Four
+	Five
+	Six
+	Seven
+	Eight
+	Nine
+	Ten
+	Jack
+	Queen
+	King
+)
+
+const (
+	Red   Color = true
+	Black Color = false
+)
+
+type Card struct {
+	Suit
+	Rank
+}
+
+func (r Rank) String() string {
+	switch r {
+	case Ace:
+		return "A"
+	case Two:
+		return "2"
+	case Three:
+		return "3"
+	case Four:
+		return "4"
+	case Five:
+		return "5"
+	case Six:
+		return "6"
+	case Seven:
+		return "7"
+	case Eight:
+		return "8"
+	case Nine:
+		return "9"
+	case Ten:
+		return "10"
+	case Jack:
+		return "J"
+	case Queen:
+		return "Q"
+	case King:
+		return "K"
+	default:
+		return "?"
+	}
+}
+
+func (s Suit) String() string {
+	switch s {
+	case Spades:
+		return "♠"
+	case Hearts:
+		return "♥"
+	case Diamonds:
+		return "♦"
+	case Clubs:
+		return "♣"
+	default:
+		return "?"
+	}
+}
+
+func (s Suit) Color() Color {
+	switch s {
+	case Spades, Clubs:
+		return Black
+	case Hearts, Diamonds:
+		return Red
+	default:
+		return Black
+	}
+}
+
 type (
 	C = layout.Context
 	D = layout.Dimensions
 )
 
-type Card struct {
-	Rect
+type CardState struct {
+	*material.Theme
+	Card
+	Height   unit.Value
 	hovering bool
 }
 
-func (c *Card) Hovering(gtx C) bool {
+func (c *CardState) Hovering(gtx C) bool {
 	start := c.hovering
 	for _, ev := range gtx.Events(c) {
 		switch ev := ev.(type) {
@@ -65,10 +164,93 @@ func (c *Card) Hovering(gtx C) bool {
 	return c.hovering
 }
 
-func (c *Card) Layout(gtx C) D {
+const borderWidth = 0.03
+
+func (c *CardState) layoutFace(gtx C) D {
+	gtx.Constraints.Max.Y = gtx.Px(c.Height)
+	gtx.Constraints.Max.X = int(float32(gtx.Constraints.Max.Y) / cardHeightToWidth)
+	outerRadius := float32(gtx.Constraints.Max.X) * cardRadiusToWidth
+	innerRadius := (1 - borderWidth) * outerRadius
+
+	borderWidth := c.Height.Scale(borderWidth)
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx C) D {
+			return Rect{
+				Color: color.RGBA{
+					R: 255,
+					A: 255,
+				},
+				Size:  layout.FPt(gtx.Constraints.Max),
+				Radii: outerRadius,
+			}.Layout(gtx)
+		}),
+		layout.Stacked(func(gtx C) D {
+			return layout.UniformInset(borderWidth).Layout(gtx, func(gtx C) D {
+				return layout.Stack{}.Layout(gtx,
+					layout.Expanded(func(gtx C) D {
+						return Rect{
+							Color: color.RGBA{
+								R: 255,
+								G: 255,
+								B: 255,
+								A: 255,
+							},
+							Size:  layout.FPt(gtx.Constraints.Max),
+							Radii: innerRadius,
+						}.Layout(gtx)
+					}),
+					layout.Stacked(func(gtx C) D {
+						return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {
+							defer op.Push(gtx.Ops).Pop()
+							origin := f32.Point{
+								X: float32(gtx.Constraints.Max.X / 2),
+								Y: float32(gtx.Constraints.Max.Y / 2),
+							}
+							c.layoutCorner(gtx)
+							op.Affine(f32.Affine2D{}.Rotate(origin, math.Pi)).Add(gtx.Ops)
+							c.layoutCorner(gtx)
+
+							return D{Size: gtx.Constraints.Max}
+						})
+					}),
+				)
+			})
+		}),
+	)
+}
+
+func (c *CardState) layoutCorner(gtx layout.Context) layout.Dimensions {
+	var col color.RGBA
+	if c.Suit.Color() == Red {
+		col = color.RGBA{R: 255, A: 255}
+	} else {
+		col = color.RGBA{A: 255}
+	}
+	return layout.NW.Layout(gtx, func(gtx C) D {
+		return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx C) D {
+			return layout.Flex{
+				Axis:      layout.Vertical,
+				Alignment: layout.Middle,
+			}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					label := material.Body1(c.Theme, c.Rank.String())
+					label.Color = col
+					return label.Layout(gtx)
+				}),
+				layout.Rigid(func(gtx C) D {
+					label := material.Body1(c.Theme, c.Suit.String())
+					label.Color = col
+					return label.Layout(gtx)
+				}),
+			)
+		})
+	})
+}
+
+func (c *CardState) Layout(gtx C) D {
 	defer op.Push(gtx.Ops).Pop()
 
-	dims := c.Rect.Layout(gtx)
+	dims := c.layoutFace(gtx)
 	pointer.Rect(image.Rectangle{Max: dims.Size}).Add(gtx.Ops)
 	pointer.InputOp{
 		Tag:   c,
@@ -77,25 +259,16 @@ func (c *Card) Layout(gtx C) D {
 	return dims
 }
 
-func genCards() []Card {
-	cardSize := f32.Point{
-		X: 270.0,
-		Y: 420.0,
-	}
-	radii := float32(30)
-	cards := []Card{}
+const cardHeightToWidth = 14.0 / 9.0
+const cardRadiusToWidth = 1.0 / 9.0
+
+func genCards(th *material.Theme) []CardState {
+	cards := []CardState{}
 	max := 10
-	step := 255 / (max - 1)
 	for i := 0; i < max; i++ {
-		cards = append(cards, Card{
-			Rect: Rect{
-				Size: cardSize,
-				Color: color.RGBA{
-					A: 255,
-					R: 255 - uint8(i*step),
-				},
-				Radii: radii,
-			},
+		cards = append(cards, CardState{
+			Theme:  th,
+			Height: unit.Dp(200),
 		})
 	}
 	return cards
@@ -110,7 +283,7 @@ func loop(w *app.Window) error {
 	}
 	numCards := widget.Float{}
 	cardChildren := []outlay.FanItem{}
-	cards := genCards()
+	cards := genCards(th)
 	for i := range cards {
 		cardChildren = append(cardChildren, outlay.Item(i == 5, cards[i].Layout))
 	}
