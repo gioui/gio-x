@@ -38,18 +38,20 @@ func main() {
 	app.Main()
 }
 
-func genCards(th *material.Theme) []boring.CardStyle {
-	cards := []boring.CardStyle{}
+func genCards(th *material.Theme) []boring.HoverCard {
+	cards := []boring.HoverCard{}
 	max := 10
 	deck := playing.Deck()
 	rand.Shuffle(len(deck), func(i, j int) {
 		deck[i], deck[j] = deck[j], deck[i]
 	})
 	for i := 0; i < max; i++ {
-		cards = append(cards, boring.CardStyle{
-			Card:      deck[i],
-			Theme:     th,
-			Height:    unit.Dp(200),
+		cards = append(cards, boring.HoverCard{
+			CardStyle: boring.CardStyle{
+				Card:   deck[i],
+				Theme:  th,
+				Height: unit.Dp(200),
+			},
 			CardState: &xwidget.CardState{},
 		})
 	}

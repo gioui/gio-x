@@ -38,7 +38,6 @@ var DefaultPalette = &CardPalette{
 }
 
 type CardStyle struct {
-	*xwidget.CardState
 	*material.Theme
 	playing.Card
 	Height unit.Value
@@ -56,7 +55,7 @@ func (c *CardStyle) Palette() *CardPalette {
 	return c.CardPalette
 }
 
-func (c *CardStyle) layoutFace(gtx C) D {
+func (c *CardStyle) Layout(gtx C) D {
 	gtx.Constraints.Max.Y = gtx.Px(c.Height)
 	gtx.Constraints.Max.X = int(float32(gtx.Constraints.Max.Y) / cardHeightToWidth)
 	outerRadius := float32(gtx.Constraints.Max.X) * cardRadiusToWidth
@@ -130,9 +129,15 @@ func (c *CardStyle) layoutCorner(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-func (c *CardStyle) Layout(gtx C) D {
-	dims := c.layoutFace(gtx)
+type HoverCard struct {
+	CardStyle
+	*xwidget.CardState
+}
+
+func (h HoverCard) Layout(gtx C) D {
+	dims := h.CardStyle.Layout(gtx)
 	gtx.Constraints.Max = dims.Size
-	c.CardState.Layout(gtx)
+	gtx.Constraints.Min = dims.Size
+	h.CardState.Layout(gtx)
 	return dims
 }
