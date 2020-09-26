@@ -2,7 +2,6 @@ package outlay
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"gioui.org/f32"
@@ -98,7 +97,6 @@ func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 		}
 		current.arc = f.last.arc - (f.last.arc-current.arc)*progress
 		current.radius = f.last.radius - (f.last.radius-current.radius)*progress
-		log.Println(progress, current)
 	}
 
 	visible := f.itemsCache[:min(f.last.len, current.len)]

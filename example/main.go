@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"time"
 
@@ -72,6 +73,19 @@ type Card struct {
 	Rank
 }
 
+func Deck() []Card {
+	d := make([]Card, 0, 52)
+	for i := 0; i < 4; i++ {
+		for k := 0; k < 13; k++ {
+			d = append(d, Card{
+				Suit: Suit(i),
+				Rank: Rank(k),
+			})
+		}
+	}
+	return d
+}
+
 func (r Rank) String() string {
 	switch r {
 	case Ace:
@@ -137,9 +151,6 @@ type (
 )
 
 type CardState struct {
-	*material.Theme
-	Card
-	Height   unit.Value
 	hovering bool
 }
 
@@ -164,9 +175,55 @@ func (c *CardState) Hovering(gtx C) bool {
 	return c.hovering
 }
 
-const borderWidth = 0.03
+func (c *CardState) Layout(gtx C) D {
+	defer op.Push(gtx.Ops).Pop()
+	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
+	pointer.InputOp{
+		Tag:   c,
+		Types: pointer.Enter | pointer.Leave,
+	}.Add(gtx.Ops)
+	return D{Size: gtx.Constraints.Max}
+}
 
-func (c *CardState) layoutFace(gtx C) D {
+type CardPalette struct {
+	RedSuit, BlackSuit color.RGBA
+	Border, Background color.RGBA
+}
+
+func (p CardPalette) ColorFor(s Suit) color.RGBA {
+	if s.Color() == Red {
+		return p.RedSuit
+	}
+	return p.BlackSuit
+}
+
+var DefaultPalette = &CardPalette{
+	RedSuit:    color.RGBA{R: 0xa0, B: 0x20, A: 0xff},
+	BlackSuit:  color.RGBA{A: 0xff},
+	Border:     color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+	Background: color.RGBA{R: 0xf0, G: 0xf0, B: 0xf0, A: 0xff},
+}
+
+type CardStyle struct {
+	*CardState
+	*material.Theme
+	Card
+	Height unit.Value
+	*CardPalette
+}
+
+const cardHeightToWidth = 14.0 / 9.0
+const cardRadiusToWidth = 1.0 / 16.0
+const borderWidth = 0.005
+
+func (c *CardStyle) Palette() *CardPalette {
+	if c.CardPalette == nil {
+		return DefaultPalette
+	}
+	return c.CardPalette
+}
+
+func (c *CardStyle) layoutFace(gtx C) D {
 	gtx.Constraints.Max.Y = gtx.Px(c.Height)
 	gtx.Constraints.Max.X = int(float32(gtx.Constraints.Max.Y) / cardHeightToWidth)
 	outerRadius := float32(gtx.Constraints.Max.X) * cardRadiusToWidth
@@ -176,10 +233,7 @@ func (c *CardState) layoutFace(gtx C) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
 			return Rect{
-				Color: color.RGBA{
-					R: 255,
-					A: 255,
-				},
+				Color: c.Palette().Border,
 				Size:  layout.FPt(gtx.Constraints.Max),
 				Radii: outerRadius,
 			}.Layout(gtx)
@@ -189,12 +243,7 @@ func (c *CardState) layoutFace(gtx C) D {
 				return layout.Stack{}.Layout(gtx,
 					layout.Expanded(func(gtx C) D {
 						return Rect{
-							Color: color.RGBA{
-								R: 255,
-								G: 255,
-								B: 255,
-								A: 255,
-							},
+							Color: c.Palette().Background,
 							Size:  layout.FPt(gtx.Constraints.Max),
 							Radii: innerRadius,
 						}.Layout(gtx)
@@ -202,10 +251,16 @@ func (c *CardState) layoutFace(gtx C) D {
 					layout.Stacked(func(gtx C) D {
 						return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {
 							defer op.Push(gtx.Ops).Pop()
+							gtx.Constraints.Min = gtx.Constraints.Max
 							origin := f32.Point{
 								X: float32(gtx.Constraints.Max.X / 2),
 								Y: float32(gtx.Constraints.Max.Y / 2),
 							}
+							layout.Center.Layout(gtx, func(gtx C) D {
+								face := material.H1(c.Theme, c.Rank.String())
+								face.Color = c.Palette().ColorFor(c.Suit)
+								return face.Layout(gtx)
+							})
 							c.layoutCorner(gtx)
 							op.Affine(f32.Affine2D{}.Rotate(origin, math.Pi)).Add(gtx.Ops)
 							c.layoutCorner(gtx)
@@ -219,13 +274,8 @@ func (c *CardState) layoutFace(gtx C) D {
 	)
 }
 
-func (c *CardState) layoutCorner(gtx layout.Context) layout.Dimensions {
-	var col color.RGBA
-	if c.Suit.Color() == Red {
-		col = color.RGBA{R: 255, A: 255}
-	} else {
-		col = color.RGBA{A: 255}
-	}
+func (c *CardStyle) layoutCorner(gtx layout.Context) layout.Dimensions {
+	col := c.Palette().ColorFor(c.Suit)
 	return layout.NW.Layout(gtx, func(gtx C) D {
 		return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx C) D {
 			return layout.Flex{
@@ -233,12 +283,12 @@ func (c *CardState) layoutCorner(gtx layout.Context) layout.Dimensions {
 				Alignment: layout.Middle,
 			}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					label := material.Body1(c.Theme, c.Rank.String())
+					label := material.H6(c.Theme, c.Rank.String())
 					label.Color = col
 					return label.Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D {
-					label := material.Body1(c.Theme, c.Suit.String())
+					label := material.H6(c.Theme, c.Suit.String())
 					label.Color = col
 					return label.Layout(gtx)
 				}),
@@ -247,28 +297,26 @@ func (c *CardState) layoutCorner(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-func (c *CardState) Layout(gtx C) D {
-	defer op.Push(gtx.Ops).Pop()
-
+func (c *CardStyle) Layout(gtx C) D {
 	dims := c.layoutFace(gtx)
-	pointer.Rect(image.Rectangle{Max: dims.Size}).Add(gtx.Ops)
-	pointer.InputOp{
-		Tag:   c,
-		Types: pointer.Enter | pointer.Leave,
-	}.Add(gtx.Ops)
+	gtx.Constraints.Max = dims.Size
+	c.CardState.Layout(gtx)
 	return dims
 }
 
-const cardHeightToWidth = 14.0 / 9.0
-const cardRadiusToWidth = 1.0 / 9.0
-
-func genCards(th *material.Theme) []CardState {
-	cards := []CardState{}
+func genCards(th *material.Theme) []CardStyle {
+	cards := []CardStyle{}
 	max := 10
+	deck := Deck()
+	rand.Shuffle(len(deck), func(i, j int) {
+		deck[i], deck[j] = deck[j], deck[i]
+	})
 	for i := 0; i < max; i++ {
-		cards = append(cards, CardState{
-			Theme:  th,
-			Height: unit.Dp(200),
+		cards = append(cards, CardStyle{
+			Card:      deck[i],
+			Theme:     th,
+			Height:    unit.Dp(200),
+			CardState: &CardState{},
 		})
 	}
 	return cards
@@ -278,7 +326,7 @@ func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	fan := outlay.Fan{
 		Normal: anim.Normal{
-			Duration: time.Second,
+			Duration: time.Second / 4,
 		},
 	}
 	numCards := widget.Float{}
