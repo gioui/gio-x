@@ -64,8 +64,13 @@ func loop(w *app.Window) error {
 		Normal: anim.Normal{
 			Duration: time.Second / 4,
 		},
+		WidthRadians:  math.Pi,
+		OffsetRadians: 2 * math.Pi,
 	}
 	numCards := widget.Float{}
+	numCards.Value = 1.0
+	var width, offset, radius widget.Float
+	var useRadius widget.Bool
 	cardChildren := []outlay.FanItem{}
 	cards := genCards(th)
 	for i := range cards {
@@ -83,6 +88,16 @@ func loop(w *app.Window) error {
 				cardChildren[i].Elevate = cards[i].Hovering(gtx)
 			}
 			visibleCards := int(math.Round(float64(numCards.Value*float32(len(cardChildren)-1)))) + 1
+			fan.OffsetRadians = offset.Value * 2 * math.Pi
+			fan.WidthRadians = width.Value * 2 * math.Pi
+			if useRadius.Changed() || radius.Changed() {
+				if useRadius.Value {
+					r := cards[0].Height.Scale(radius.Value * 2)
+					fan.HollowRadius = &r
+				} else {
+					fan.HollowRadius = nil
+				}
+			}
 			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					return layout.Flex{}.Layout(gtx,
@@ -94,6 +109,48 @@ func loop(w *app.Window) error {
 						}),
 						layout.Rigid(func(gtx C) D {
 							return material.Body1(th, "10").Layout(gtx)
+						}),
+					)
+				}),
+				layout.Rigid(func(gtx C) D {
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "width 0").Layout(gtx)
+						}),
+						layout.Flexed(1, func(gtx C) D {
+							return material.Slider(th, &width, 0.0, 1.0).Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "2pi").Layout(gtx)
+						}),
+					)
+				}),
+				layout.Rigid(func(gtx C) D {
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "offset 0").Layout(gtx)
+						}),
+						layout.Flexed(1, func(gtx C) D {
+							return material.Slider(th, &offset, 0.0, 1.0).Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "2pi").Layout(gtx)
+						}),
+					)
+				}),
+				layout.Rigid(func(gtx C) D {
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							return material.CheckBox(th, &useRadius, "use").Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "radius 0%").Layout(gtx)
+						}),
+						layout.Flexed(1, func(gtx C) D {
+							return material.Slider(th, &radius, 0.0, 1.0).Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return material.Body1(th, "200%").Layout(gtx)
 						}),
 					)
 				}),

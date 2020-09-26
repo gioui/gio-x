@@ -7,6 +7,7 @@ import (
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/unit"
 
 	"git.sr.ht/~whereswaldon/sprig/anim"
 )
@@ -16,6 +17,20 @@ type Fan struct {
 	last              fanParams
 	animatedLastFrame bool
 	anim.Normal
+
+	// The width, in radians, of the full arc that items should occupy.
+	// If zero, math.Pi/2 will be used (1/4 of a full circle).
+	WidthRadians float32
+
+	// The offset, in radians, above the X axis to apply before rendering the
+	// arc. This can be used with a value of Pi/4 to center an arc of width
+	// Pi/2. If zero, math.Pi/4 will be used (1/8 of a full circle). To get the
+	// equivalent of specifying zero, specify a value of 2*math.Pi.
+	OffsetRadians float32
+
+	// The radius of the hollow circle at the center of the fan. Leave nil to
+	// use the default heuristic of half the width of the widest item.
+	HollowRadius *unit.Value
 }
 
 type fanParams struct {
@@ -46,6 +61,20 @@ func Item(evelvate bool, w layout.Widget) FanItem {
 	}
 }
 
+func (f *Fan) fullWidthRadians() float32 {
+	if f.WidthRadians == 0 {
+		return math.Pi / 2
+	}
+	return f.WidthRadians
+}
+
+func (f *Fan) offsetRadians() float32 {
+	if f.OffsetRadians == 0 {
+		return math.Pi / 4
+	}
+	return f.OffsetRadians
+}
+
 func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 	defer op.Push(gtx.Ops).Pop()
 	op.Offset(f32.Point{
@@ -69,14 +98,18 @@ func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 	}
 	var current fanParams
 	current.len = len(items)
-	current.radius = float32(maxWidth * 2.0)
+	if f.HollowRadius == nil {
+		current.radius = float32(maxWidth * 2.0)
+	} else {
+		current.radius = float32(gtx.Px(*f.HollowRadius))
+	}
 	var itemArcFraction float32
 	if len(items) > 1 {
 		itemArcFraction = float32(1) / float32(len(items)-1)
 	} else {
 		itemArcFraction = 1
 	}
-	current.arc = math.Pi / 2 * itemArcFraction
+	current.arc = f.fullWidthRadians() * itemArcFraction
 
 	var empty fanParams
 	if f.last == empty {
@@ -128,9 +161,9 @@ func (f *Fan) layoutItem(gtx layout.Context, index int, params fanParams) layout
 	arc := params.arc
 	radius := params.radius
 	if len(f.itemsCache) > 1 {
-		arc = arc*float32(index) + math.Pi/4
+		arc = arc*float32(index) + f.offsetRadians()
 	} else {
-		arc = math.Pi / 2
+		arc = f.fullWidthRadians()
 	}
 	var transform f32.Affine2D
 	transform = transform.Rotate(f32.Point{}, -math.Pi/2).
