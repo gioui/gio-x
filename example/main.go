@@ -22,6 +22,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"git.sr.ht/~whereswaldon/outlay"
+	"git.sr.ht/~whereswaldon/outlay/example/playing"
 	"git.sr.ht/~whereswaldon/sprig/anim"
 )
 
@@ -34,115 +35,6 @@ func main() {
 		os.Exit(0)
 	}()
 	app.Main()
-}
-
-type Suit uint8
-type Rank uint8
-type Color bool
-
-const (
-	Spades Suit = iota
-	Clubs
-	Hearts
-	Diamonds
-)
-
-const (
-	Ace Rank = iota
-	Two
-	Three
-	Four
-	Five
-	Six
-	Seven
-	Eight
-	Nine
-	Ten
-	Jack
-	Queen
-	King
-)
-
-const (
-	Red   Color = true
-	Black Color = false
-)
-
-type Card struct {
-	Suit
-	Rank
-}
-
-func Deck() []Card {
-	d := make([]Card, 0, 52)
-	for i := 0; i < 4; i++ {
-		for k := 0; k < 13; k++ {
-			d = append(d, Card{
-				Suit: Suit(i),
-				Rank: Rank(k),
-			})
-		}
-	}
-	return d
-}
-
-func (r Rank) String() string {
-	switch r {
-	case Ace:
-		return "A"
-	case Two:
-		return "2"
-	case Three:
-		return "3"
-	case Four:
-		return "4"
-	case Five:
-		return "5"
-	case Six:
-		return "6"
-	case Seven:
-		return "7"
-	case Eight:
-		return "8"
-	case Nine:
-		return "9"
-	case Ten:
-		return "10"
-	case Jack:
-		return "J"
-	case Queen:
-		return "Q"
-	case King:
-		return "K"
-	default:
-		return "?"
-	}
-}
-
-func (s Suit) String() string {
-	switch s {
-	case Spades:
-		return "♠"
-	case Hearts:
-		return "♥"
-	case Diamonds:
-		return "♦"
-	case Clubs:
-		return "♣"
-	default:
-		return "?"
-	}
-}
-
-func (s Suit) Color() Color {
-	switch s {
-	case Spades, Clubs:
-		return Black
-	case Hearts, Diamonds:
-		return Red
-	default:
-		return Black
-	}
 }
 
 type (
@@ -190,8 +82,8 @@ type CardPalette struct {
 	Border, Background color.RGBA
 }
 
-func (p CardPalette) ColorFor(s Suit) color.RGBA {
-	if s.Color() == Red {
+func (p CardPalette) ColorFor(s playing.Suit) color.RGBA {
+	if s.Color() == playing.Red {
 		return p.RedSuit
 	}
 	return p.BlackSuit
@@ -207,7 +99,7 @@ var DefaultPalette = &CardPalette{
 type CardStyle struct {
 	*CardState
 	*material.Theme
-	Card
+	playing.Card
 	Height unit.Value
 	*CardPalette
 }
@@ -307,7 +199,7 @@ func (c *CardStyle) Layout(gtx C) D {
 func genCards(th *material.Theme) []CardStyle {
 	cards := []CardStyle{}
 	max := 10
-	deck := Deck()
+	deck := playing.Deck()
 	rand.Shuffle(len(deck), func(i, j int) {
 		deck[i], deck[j] = deck[j], deck[i]
 	})
