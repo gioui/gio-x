@@ -52,7 +52,7 @@ func genCards(th *material.Theme) []boring.HoverCard {
 				Theme:  th,
 				Height: unit.Dp(200),
 			},
-			CardState: &xwidget.CardState{},
+			HoverState: &xwidget.HoverState{},
 		})
 	}
 	return cards

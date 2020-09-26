@@ -13,11 +13,11 @@ type (
 	D = layout.Dimensions
 )
 
-type CardState struct {
+type HoverState struct {
 	hovering bool
 }
 
-func (c *CardState) Hovering(gtx C) bool {
+func (c *HoverState) Hovering(gtx C) bool {
 	start := c.hovering
 	for _, ev := range gtx.Events(c) {
 		switch ev := ev.(type) {
@@ -38,7 +38,7 @@ func (c *CardState) Hovering(gtx C) bool {
 	return c.hovering
 }
 
-func (c *CardState) Layout(gtx C) D {
+func (c *HoverState) Layout(gtx C) D {
 	defer op.Push(gtx.Ops).Pop()
 	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
 	pointer.InputOp{

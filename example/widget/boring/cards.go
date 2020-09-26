@@ -131,13 +131,13 @@ func (c *CardStyle) layoutCorner(gtx layout.Context) layout.Dimensions {
 
 type HoverCard struct {
 	CardStyle
-	*xwidget.CardState
+	*xwidget.HoverState
 }
 
 func (h HoverCard) Layout(gtx C) D {
 	dims := h.CardStyle.Layout(gtx)
 	gtx.Constraints.Max = dims.Size
 	gtx.Constraints.Min = dims.Size
-	h.CardState.Layout(gtx)
+	h.HoverState.Layout(gtx)
 	return dims
 }
