@@ -12,7 +12,6 @@ import (
 	"gioui.org/app"
 	"gioui.org/f32"
 	"gioui.org/font/gofont"
-	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -23,7 +22,13 @@ import (
 	"gioui.org/widget/material"
 	"git.sr.ht/~whereswaldon/outlay"
 	"git.sr.ht/~whereswaldon/outlay/example/playing"
+	xwidget "git.sr.ht/~whereswaldon/outlay/example/widget"
 	"git.sr.ht/~whereswaldon/sprig/anim"
+)
+
+type (
+	C = layout.Context
+	D = layout.Dimensions
 )
 
 func main() {
@@ -35,46 +40,6 @@ func main() {
 		os.Exit(0)
 	}()
 	app.Main()
-}
-
-type (
-	C = layout.Context
-	D = layout.Dimensions
-)
-
-type CardState struct {
-	hovering bool
-}
-
-func (c *CardState) Hovering(gtx C) bool {
-	start := c.hovering
-	for _, ev := range gtx.Events(c) {
-		switch ev := ev.(type) {
-		case pointer.Event:
-			switch ev.Type {
-			case pointer.Enter:
-				c.hovering = true
-			case pointer.Leave:
-				c.hovering = false
-			case pointer.Cancel:
-				c.hovering = false
-			}
-		}
-	}
-	if c.hovering != start {
-		op.InvalidateOp{}.Add(gtx.Ops)
-	}
-	return c.hovering
-}
-
-func (c *CardState) Layout(gtx C) D {
-	defer op.Push(gtx.Ops).Pop()
-	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
-	pointer.InputOp{
-		Tag:   c,
-		Types: pointer.Enter | pointer.Leave,
-	}.Add(gtx.Ops)
-	return D{Size: gtx.Constraints.Max}
 }
 
 type CardPalette struct {
@@ -97,7 +62,7 @@ var DefaultPalette = &CardPalette{
 }
 
 type CardStyle struct {
-	*CardState
+	*xwidget.CardState
 	*material.Theme
 	playing.Card
 	Height unit.Value
@@ -208,7 +173,7 @@ func genCards(th *material.Theme) []CardStyle {
 			Card:      deck[i],
 			Theme:     th,
 			Height:    unit.Dp(200),
-			CardState: &CardState{},
+			CardState: &xwidget.CardState{},
 		})
 	}
 	return cards
