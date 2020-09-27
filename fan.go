@@ -160,11 +160,7 @@ func (f *Fan) layoutItem(gtx layout.Context, index int, params fanParams) layout
 	defer op.Push(gtx.Ops).Pop()
 	arc := params.arc
 	radius := params.radius
-	if len(f.itemsCache) > 1 {
-		arc = arc*float32(index) + f.offsetRadians()
-	} else {
-		arc = f.fullWidthRadians()
-	}
+	arc = arc*float32(index) + f.offsetRadians()
 	var transform f32.Affine2D
 	transform = transform.Rotate(f32.Point{}, -math.Pi/2).
 		Offset(f32.Pt(-radius, float32(f.itemsCache[index].Dimensions.Size.X/2))).
