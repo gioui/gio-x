@@ -31,6 +31,10 @@ type Fan struct {
 	// The radius of the hollow circle at the center of the fan. Leave nil to
 	// use the default heuristic of half the width of the widest item.
 	HollowRadius *unit.Value
+
+	// Compensate for the rotation around the center so that each item appears
+	// in the same orientation all the others.
+	LockOrientation bool
 }
 
 type fanParams struct {
@@ -70,7 +74,7 @@ func (f *Fan) fullWidthRadians() float32 {
 
 func (f *Fan) offsetRadians() float32 {
 	if f.OffsetRadians == 0 {
-		return math.Pi / 4
+		return 0
 	}
 	return f.OffsetRadians
 }
@@ -99,7 +103,7 @@ func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 	var current fanParams
 	current.len = len(items)
 	if f.HollowRadius == nil {
-		current.radius = float32(maxWidth * 2.0)
+		current.radius = float32(maxWidth) * .5
 	} else {
 		current.radius = float32(gtx.Px(*f.HollowRadius))
 	}
@@ -163,11 +167,16 @@ func (f *Fan) layoutItem(gtx layout.Context, index int, params fanParams) layout
 	if len(f.itemsCache) > 1 {
 		arc = arc*float32(index) + f.offsetRadians()
 	} else {
-		arc = f.fullWidthRadians()
+		arc = arc*.5 + f.offsetRadians()
 	}
+	initialRotation := float32(math.Pi)
+	if f.LockOrientation {
+		initialRotation -= arc
+	}
+	item := f.itemsCache[index]
 	var transform f32.Affine2D
-	transform = transform.Rotate(f32.Point{}, -math.Pi/2).
-		Offset(f32.Pt(-radius, float32(f.itemsCache[index].Dimensions.Size.X/2))).
+	transform = transform.Rotate(f32.Point{}, initialRotation).
+		Offset(f32.Pt(float32(item.Dimensions.Size.X)/-2.0, radius)).
 		Rotate(f32.Point{}, arc)
 	op.Affine(transform).Add(gtx.Ops)
 	f.itemsCache[index].Add(gtx.Ops)

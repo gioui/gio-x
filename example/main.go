@@ -68,9 +68,9 @@ func loop(w *app.Window) error {
 		OffsetRadians: 2 * math.Pi,
 	}
 	numCards := widget.Float{}
-	numCards.Value = 1.0
+	numCards.Value = 0.0
 	var width, offset, radius widget.Float
-	var useRadius widget.Bool
+	var useRadius, lockOrientation widget.Bool
 	cardChildren := []outlay.FanItem{}
 	cards := genCards(th)
 	for i := range cards {
@@ -98,6 +98,7 @@ func loop(w *app.Window) error {
 					fan.HollowRadius = nil
 				}
 			}
+			fan.LockOrientation = lockOrientation.Value
 			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					return layout.Flex{}.Layout(gtx,
@@ -151,6 +152,9 @@ func loop(w *app.Window) error {
 						}),
 						layout.Rigid(func(gtx C) D {
 							return material.Body1(th, "200%").Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return material.CheckBox(th, &lockOrientation, "lock orientation").Layout(gtx)
 						}),
 					)
 				}),
