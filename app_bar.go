@@ -167,8 +167,7 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 		defer op.Push(gtx.Ops).Pop()
 		width := gtx.Constraints.Max.X / 2
 		gtx.Constraints.Min.X = width
-		var menuMacro op.MacroOp
-		menuMacro = op.Record(gtx.Ops)
+		menuMacro := op.Record(gtx.Ops)
 		gtx.Constraints.Min.Y = 0
 		dims := layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx C) D {
@@ -290,7 +289,6 @@ func SimpleIconButton(th *material.Theme, state *widget.Clickable, icon *widget.
 const (
 	actionAnimationDuration     = time.Millisecond * 250
 	contextualAnimationDuration = time.Millisecond * 250
-	overflowAnimationDuration   = time.Millisecond * 250
 )
 
 var actionButtonInset = layout.Inset{

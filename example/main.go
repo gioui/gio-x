@@ -362,14 +362,14 @@ var (
 	noteInput                                             materials.TextField
 
 	pages = []Page{
-		Page{
+		{
 			NavItem: materials.NavItem{
 				Name: "App Bar Features",
 				Icon: HomeIcon,
 			},
 			layout: LayoutAppBarPage,
 			Actions: []materials.AppBarAction{
-				materials.AppBarAction{
+				{
 					OverflowAction: materials.OverflowAction{
 						Name: "Favorite",
 						Tag:  &heartBtn,
@@ -403,21 +403,21 @@ var (
 				},
 			},
 		},
-		Page{
+		{
 			NavItem: materials.NavItem{
 				Name: "Nav Drawer Features",
 				Icon: SettingsIcon,
 			},
 			layout: LayoutNavDrawerPage,
 		},
-		Page{
+		{
 			NavItem: materials.NavItem{
 				Name: "Text Field Features",
 				Icon: EditIcon,
 			},
 			layout: LayoutTextFieldPage,
 		},
-		Page{
+		{
 			NavItem: materials.NavItem{
 				Name: "About this library",
 				Icon: OtherIcon,

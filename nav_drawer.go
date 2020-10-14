@@ -17,28 +17,9 @@ import (
 	"gioui.org/widget/material"
 )
 
-type (
-	C = layout.Context
-	D = layout.Dimensions
-)
-
-type drawerState uint8
-
-const (
-	retracted drawerState = iota
-	retracting
-	extended
-	extending
-)
-
 var (
 	hoverOverlayAlpha    uint8 = 25
 	selectedOverlayAlpha uint8 = 50
-)
-
-const (
-	drawerAnimationDuration   = time.Millisecond * 250
-	navPressAnimationDuration = time.Millisecond * 250
 )
 
 type NavItem struct {
