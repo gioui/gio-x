@@ -46,6 +46,7 @@ type renderNavItem struct {
 	hovering bool
 	selected bool
 	widget.Clickable
+	*AlphaPalette
 }
 
 func (n *renderNavItem) Clicked() bool {
@@ -128,9 +129,9 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	}
 	var fill color.RGBA
 	if n.hovering {
-		fill = AlphaMultiply(n.Theme.Color.Text, hoverOverlayAlpha)
+		fill = AlphaMultiply(n.Theme.Color.Text, n.AlphaPalette.Hover)
 	} else if n.selected {
-		fill = AlphaMultiply(n.Theme.Color.Primary, selectedOverlayAlpha)
+		fill = AlphaMultiply(n.Theme.Color.Primary, n.AlphaPalette.Selected)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))
@@ -155,6 +156,7 @@ type NavDrawer struct {
 	// Background (if set) will be passed down to the underlying sheet when the
 	// drawer is rendered.
 	Background *color.RGBA
+	AlphaPalette
 
 	Title    string
 	Subtitle string
@@ -177,6 +179,10 @@ func NewNav(th *material.Theme, title, subtitle string) NavDrawer {
 		Theme:    th,
 		Title:    title,
 		Subtitle: subtitle,
+		AlphaPalette: AlphaPalette{
+			Hover:    hoverOverlayAlpha,
+			Selected: selectedOverlayAlpha,
+		},
 	}
 	return m
 }
@@ -185,8 +191,9 @@ func NewNav(th *material.Theme, title, subtitle string) NavDrawer {
 // invoked only from the layout thread to avoid nasty race conditions.
 func (m *NavDrawer) AddNavItem(item NavItem) {
 	m.items = append(m.items, renderNavItem{
-		Theme:   m.Theme,
-		NavItem: item,
+		Theme:        m.Theme,
+		NavItem:      item,
+		AlphaPalette: &m.AlphaPalette,
 	})
 	if len(m.items) == 1 {
 		m.items[0].selected = true
