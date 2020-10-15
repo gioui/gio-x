@@ -75,6 +75,18 @@ Modal features:
 Known Issues:
 - Only sheets anchored on the left are currently supported (contributions welcome!)
 
+### Text Fields
+
+Text Fields ([specified here](https://material.io/components/text-fields)) are implemented by the `TextField` type.
+
+Features:
+- Animated label transition when selected
+- Responds to hover events
+- Exposes underlying gio editor
+
+Known Issues:
+- Icons, hint text, error text, prefix/suffix, and other features are not yet implemented.
+
 ## Example
 
 Want to see it?
