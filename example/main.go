@@ -310,12 +310,20 @@ func LayoutTextFieldPage(gtx C) D {
 		layout.Rigid(func(gtx C) D {
 			return nameInput.Layout(gtx, th, "Name")
 		}),
-
+		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "Responds to hover events.").Layout)
+		}),
 		layout.Rigid(func(gtx C) D {
 			return addressInput.Layout(gtx, th, "Address")
 		}),
 		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "Label animates properly when you click to select the text field.").Layout)
+		}),
+		layout.Rigid(func(gtx C) D {
 			return noteInput.Layout(gtx, th, "Note")
+		}),
+		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "This text field implementation was contributed by Jack Mordaunt. Thanks Jack!").Layout)
 		}),
 	)
 }
