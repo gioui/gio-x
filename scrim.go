@@ -32,6 +32,7 @@ func (s *Scrim) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dim
 		revealed := anim.Revealed(gtx)
 		currentAlpha = uint8(float32(s.FinalAlpha) * revealed)
 	}
+	s.Color.A = currentAlpha
 	fill := AlphaMultiply(s.Color, currentAlpha)
 	paintRect(gtx, gtx.Constraints.Max, fill)
 	s.Clickable.Layout(gtx)
