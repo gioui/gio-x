@@ -125,3 +125,104 @@ func (v VisibilityAnimationState) String() string {
 		return "invalid VisibilityAnimationState"
 	}
 }
+
+// Progress is an animation primitive that tracks progress of time over a fixed
+// duration as a float between [0, 1].
+//
+// Progress is reversable.
+//
+// Widgets map async UI events to state changes: stop, forward, reverse.
+// Widgets then interpolate visual data based on progress value.
+//
+// Update method must be called every tick to update the progress value.
+type Progress struct {
+	progress  float32
+	duration  time.Duration
+	began     time.Time
+	direction ProgressDirection
+	active    bool
+}
+
+// ProgressDirection specifies how to update progress every tick.
+type ProgressDirection int
+
+const (
+	// Forward progresses from 0 to 1.
+	Forward ProgressDirection = iota
+	// Reverse progresses from 1 to 0.
+	Reverse
+)
+
+// Progress reports the current progress as a float between [0, 1].
+func (p Progress) Progress() float32 {
+	if p.progress < 0.0 {
+		return 0.0
+	}
+	if p.progress > 1.0 {
+		return 1.0
+	}
+	return p.progress
+}
+
+// Direction reports the current direction.
+func (p Progress) Direction() ProgressDirection {
+	return p.direction
+}
+
+// Started reports true if progression has started.
+func (p Progress) Started() bool {
+	return p.active
+}
+
+func (p Progress) Finished() bool {
+	switch p.direction {
+	case Forward:
+		return p.progress >= 1.0
+	case Reverse:
+		return p.progress <= 0.0
+	}
+	return false
+}
+
+// Start the progress in the given direction over the given duration.
+func (p *Progress) Start(began time.Time, direction ProgressDirection, duration time.Duration) {
+	if !p.active {
+		p.active = true
+		p.began = began
+		p.direction = direction
+		p.duration = duration
+		p.Update(began)
+	}
+}
+
+// Stop the progress.
+func (p *Progress) Stop() {
+	p.active = false
+}
+
+func (p *Progress) Update(now time.Time) {
+	if !p.Started() || p.Finished() {
+		p.Stop()
+		return
+	}
+	var (
+		elapsed = now.Sub(p.began).Milliseconds()
+		total   = p.duration.Milliseconds()
+	)
+	switch p.direction {
+	case Forward:
+		p.progress = float32(elapsed) / float32(total)
+	case Reverse:
+		p.progress = 1 - float32(elapsed)/float32(total)
+	}
+}
+
+func (d ProgressDirection) String() string {
+	switch d {
+	case Forward:
+		return "forward"
+	case Reverse:
+		return "reverse"
+	}
+	return "unknown"
+}

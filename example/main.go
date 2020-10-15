@@ -55,6 +55,11 @@ var PlusIcon *widget.Icon = func() *widget.Icon {
 	return icon
 }()
 
+var EditIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ContentCreate)
+	return icon
+}()
+
 var barOnBottom bool
 
 func main() {
@@ -295,6 +300,26 @@ If you like this library and work like it, please consider sponsoring Elias and/
 	)
 }
 
+func LayoutTextFieldPage(gtx C) D {
+	gtx.Constraints.Min = gtx.Constraints.Max
+	return layout.Flex{
+		Alignment: layout.Middle,
+		Axis:      layout.Vertical,
+	}.Layout(
+		gtx,
+		layout.Rigid(func(gtx C) D {
+			return nameInput.Layout(gtx, th, "Name")
+		}),
+
+		layout.Rigid(func(gtx C) D {
+			return addressInput.Layout(gtx, th, "Address")
+		}),
+		layout.Rigid(func(gtx C) D {
+			return noteInput.Layout(gtx, th, "Note")
+		}),
+	)
+}
+
 type Page struct {
 	layout func(layout.Context) layout.Dimensions
 	materials.NavItem
@@ -332,6 +357,9 @@ var (
 	customNavIcon                                         widget.Bool
 	nonModalDrawer                                        widget.Bool
 	favorited                                             bool
+	nameInput                                             materials.TextField
+	addressInput                                          materials.TextField
+	noteInput                                             materials.TextField
 
 	pages = []Page{
 		Page{
@@ -381,6 +409,13 @@ var (
 				Icon: SettingsIcon,
 			},
 			layout: LayoutNavDrawerPage,
+		},
+		Page{
+			NavItem: materials.NavItem{
+				Name: "Text Field Features",
+				Icon: EditIcon,
+			},
+			layout: LayoutTextFieldPage,
 		},
 		Page{
 			NavItem: materials.NavItem{
