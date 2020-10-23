@@ -265,34 +265,7 @@ type Rect struct {
 }
 
 func (r Rect) Layout(gtx C) D {
-	return DrawRect(gtx, r.Color, r.Size, r.Radii)
-}
+	paint.FillShape(gtx.Ops, clip.UniformRRect(f32.Rectangle{Max: layout.FPt(r.Size)}, r.Radii).Op(gtx.Ops), r.Color)
+	return layout.Dimensions{Size: image.Pt(int(r.Size.X), int(r.Size.Y))}
 
-// DrawRect creates a rectangle of the provided background color with
-// Dimensions specified by size and a corner radius (on all corners)
-// specified by radii.
-func DrawRect(gtx C, background color.RGBA, size image.Point, radii float32) D {
-	stack := op.Push(gtx.Ops)
-	{
-		paint.ColorOp{
-			Color: background,
-		}.Add(gtx.Ops)
-		bounds := f32.Rectangle{
-			Max: layout.FPt(size),
-		}
-		if radii != 0 {
-			clip.RRect{
-				Rect: bounds,
-				NW:   radii,
-				NE:   radii,
-				SE:   radii,
-				SW:   radii,
-			}.Add(gtx.Ops)
-		}
-		paint.PaintOp{
-			Rect: bounds,
-		}.Add(gtx.Ops)
-	}
-	stack.Pop()
-	return layout.Dimensions{Size: size}
 }
