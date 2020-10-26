@@ -51,7 +51,10 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	if in.anim == nil {
 		in.anim = &Progress{}
 	}
-	if in.Editor.Focused() && !in.anim.Started() {
+	if in.Editor.Len() > 0 {
+		in.anim.Start(gtx.Now, Forward, 0)
+	}
+	if in.Editor.Focused() && in.Editor.Len() == 0 && !in.anim.Started() {
 		in.anim.Start(gtx.Now, Forward, duration)
 	}
 	if !in.Editor.Focused() && in.Editor.Len() == 0 && in.anim.Finished() {
