@@ -321,7 +321,6 @@ func LayoutTextFieldPage(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "Label animates properly when you click to select the text field.").Layout)
 		}),
 		layout.Rigid(func(gtx C) D {
-			priceInput.Alignment = layout.Middle
 			priceInput.Prefix = func(gtx C) D {
 				th := *th
 				th.Color.Text = color.RGBA{R: 100, G: 100, B: 100, A: 255}
