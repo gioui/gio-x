@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
+	"unicode"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -301,26 +302,132 @@ If you like this library and work like it, please consider sponsoring Elias and/
 }
 
 func LayoutTextFieldPage(gtx C) D {
-	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Flex{
-		Alignment: layout.Middle,
-		Axis:      layout.Vertical,
+		Axis: layout.Vertical,
 	}.Layout(
 		gtx,
 		layout.Rigid(func(gtx C) D {
+			nameInput.Alignment = inputAlignment
 			return nameInput.Layout(gtx, th, "Name")
 		}),
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "Responds to hover events.").Layout)
 		}),
 		layout.Rigid(func(gtx C) D {
+			addressInput.Alignment = inputAlignment
 			return addressInput.Layout(gtx, th, "Address")
 		}),
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "Label animates properly when you click to select the text field.").Layout)
 		}),
 		layout.Rigid(func(gtx C) D {
-			return noteInput.Layout(gtx, th, "Note")
+			priceInput.Alignment = layout.Middle
+			priceInput.Prefix = func(gtx C) D {
+				th := *th
+				th.Color.Text = color.RGBA{R: 100, G: 100, B: 100, A: 255}
+				return material.Label(&th, th.TextSize, "$").Layout(gtx)
+			}
+			priceInput.Suffix = func(gtx C) D {
+				th := *th
+				th.Color.Text = color.RGBA{R: 100, G: 100, B: 100, A: 255}
+				return material.Label(&th, th.TextSize, ".00").Layout(gtx)
+			}
+			priceInput.SingleLine = true
+			priceInput.Alignment = inputAlignment
+			return priceInput.Layout(gtx, th, "Price")
+		}),
+		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "Can have prefix and suffix elements.").Layout)
+		}),
+		layout.Rigid(func(gtx C) D {
+			numberInput.Validator = func(text string) string {
+				for _, r := range text {
+					if !unicode.IsDigit(r) {
+						return "Must contain only digits"
+					}
+				}
+				return ""
+			}
+			numberInput.SingleLine = true
+			numberInput.Alignment = inputAlignment
+			return numberInput.Layout(gtx, th, "Number")
+		}),
+		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "Can be validated.").Layout)
+		}),
+		layout.Rigid(func(gtx C) D {
+			tweetInput.Validator = func(text string) string {
+				if len(text) > int(128) {
+					return "Too many characters"
+				}
+				return ""
+			}
+			tweetInput.CharLimit = 128
+			tweetInput.Helper = "Tweets have a limited character count"
+			tweetInput.Alignment = inputAlignment
+			return tweetInput.Layout(gtx, th, "Tweet")
+		}),
+		layout.Rigid(func(gtx C) D {
+			return inset.Layout(gtx, material.Body2(th, "Can have a character counter and help text.").Layout)
+		}),
+		layout.Rigid(func(gtx C) D {
+			if inputAlignmentEnum.Changed() {
+				switch inputAlignmentEnum.Value {
+				case layout.Start.String():
+					inputAlignment = layout.Start
+				case layout.Middle.String():
+					inputAlignment = layout.Middle
+				case layout.End.String():
+					inputAlignment = layout.End
+				default:
+					inputAlignment = layout.Start
+				}
+				op.InvalidateOp{}.Add(gtx.Ops)
+			}
+			return inset.Layout(
+				gtx,
+				func(gtx C) D {
+					return layout.Flex{
+						Axis: layout.Vertical,
+					}.Layout(
+						gtx,
+						layout.Rigid(func(gtx C) D {
+							return material.Body2(th, "Text Alignment").Layout(gtx)
+						}),
+						layout.Rigid(func(gtx C) D {
+							return layout.Flex{
+								Axis: layout.Vertical,
+							}.Layout(
+								gtx,
+								layout.Rigid(func(gtx C) D {
+									return material.RadioButton(
+										th,
+										&inputAlignmentEnum,
+										layout.Start.String(),
+										"Start",
+									).Layout(gtx)
+								}),
+								layout.Rigid(func(gtx C) D {
+									return material.RadioButton(
+										th,
+										&inputAlignmentEnum,
+										layout.Middle.String(),
+										"Middle",
+									).Layout(gtx)
+								}),
+								layout.Rigid(func(gtx C) D {
+									return material.RadioButton(
+										th,
+										&inputAlignmentEnum,
+										layout.End.String(),
+										"End",
+									).Layout(gtx)
+								}),
+							)
+						}),
+					)
+				},
+			)
 		}),
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "This text field implementation was contributed by Jack Mordaunt. Thanks Jack!").Layout)
@@ -365,9 +472,13 @@ var (
 	customNavIcon                                         widget.Bool
 	nonModalDrawer                                        widget.Bool
 	favorited                                             bool
+	inputAlignment                                        layout.Alignment
+	inputAlignmentEnum                                    widget.Enum
 	nameInput                                             materials.TextField
 	addressInput                                          materials.TextField
-	noteInput                                             materials.TextField
+	priceInput                                            materials.TextField
+	tweetInput                                            materials.TextField
+	numberInput                                           materials.TextField
 
 	pages = []Page{
 		{

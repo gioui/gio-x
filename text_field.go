@@ -3,6 +3,7 @@ package materials
 import (
 	"image"
 	"image/color"
+	"strconv"
 	"time"
 
 	"gioui.org/f32"
@@ -23,12 +24,32 @@ type TextField struct {
 	widget.Editor
 	// Hoverable detects mouse hovers.
 	Hoverable Hoverable
+	// Alignment specifies where to anchor the text.
+	Alignment layout.Alignment
+
+	// Helper text to give additional context to a field.
+	Helper string
+	// CharLimit specifies the maximum number of characters the text input
+	// will allow. Zero means "no limit".
+	CharLimit uint
+	// Prefix appears before the content of the text input.
+	Prefix layout.Widget
+	// Suffix appears after the content of the text input.
+	Suffix layout.Widget
+	// Validator validates text content.
+	Validator Validator
 
 	// Animation state.
-	label
-	border
-	anim *Progress
+	state
+	label  label
+	border border
+	helper helper
+	anim   *Progress
 }
+
+// Validator validates text and returns a string describing the error.
+// Error is displayed as helper text.
+type Validator = func(string) string
 
 type label struct {
 	TextSize float32
@@ -41,9 +62,52 @@ type border struct {
 	Color     color.RGBA
 }
 
+type helper struct {
+	Color color.RGBA
+	Text  string
+}
+
+type state int
+
+const (
+	inactive state = iota
+	hovered
+	activated
+	focused
+	errored
+	// disabled
+)
+
+// IsActive if input is in an active state (Active, Focused or Errored).
+func (in TextField) IsActive() bool {
+	return in.state >= activated
+}
+
+// SetError puts the input into an errored state with the specified error text.
+func (in *TextField) SetError(err string) {
+	in.state = errored
+	in.helper.Text = err
+}
+
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	for in.Hoverable.Clicked() {
 		in.Editor.Focus()
+	}
+	in.helper.Text = in.Helper
+	in.state = inactive
+	if in.Hoverable.Hovered() {
+		in.state = hovered
+	}
+	if in.Editor.Len() > 0 {
+		in.state = activated
+	}
+	if in.Editor.Focused() {
+		in.state = focused
+	}
+	if in.Validator != nil && in.Editor.Len() > 0 {
+		if err := in.Validator(in.Editor.Text()); len(err) > 0 {
+			in.SetError(err)
+		}
 	}
 	const (
 		duration = time.Millisecond * 100
@@ -51,13 +115,13 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	if in.anim == nil {
 		in.anim = &Progress{}
 	}
-	if in.Editor.Len() > 0 {
+	if in.state == activated {
 		in.anim.Start(gtx.Now, Forward, 0)
 	}
-	if in.Editor.Focused() && in.Editor.Len() == 0 && !in.anim.Started() {
+	if in.state == focused && in.Editor.Len() == 0 && !in.anim.Started() {
 		in.anim.Start(gtx.Now, Forward, duration)
 	}
-	if !in.Editor.Focused() && in.Editor.Len() == 0 && in.anim.Finished() {
+	if in.state == inactive && in.Editor.Len() == 0 && in.anim.Finished() {
 		in.anim.Start(gtx.Now, Reverse, duration)
 	}
 	if in.anim.Started() {
@@ -72,19 +136,29 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		borderColor        = color.RGBA{A: 107}
 		borderColorHovered = color.RGBA{A: 221}
 		borderColorActive  = th.Color.Primary
+		// TODO: derive from Theme.Error or Theme.Danger
+		dangerColor = color.RGBA{R: 200, A: 255}
 		// Border thickness transitions.
 		borderThickness       = float32(0.5)
 		borderThicknessActive = float32(2.0)
 	)
 	in.label.TextSize = lerp(textSmall.V, textNormal.V, 1.0-in.anim.Progress())
-	in.border.Thickness = borderThickness
-	in.border.Color = borderColor
-	if in.Hoverable.Hovered() {
+	switch in.state {
+	case inactive:
+		in.border.Thickness = borderThickness
+		in.border.Color = borderColor
+		in.helper.Color = borderColor
+	case hovered, activated:
+		in.border.Thickness = borderThickness
 		in.border.Color = borderColorHovered
-	}
-	if in.Editor.Focused() {
+		in.helper.Color = borderColorHovered
+	case focused:
 		in.border.Thickness = borderThicknessActive
 		in.border.Color = borderColorActive
+		in.helper.Color = borderColorHovered
+	case errored:
+		in.border.Color = dangerColor
+		in.helper.Color = dangerColor
 	}
 	// Calculate the dimensions of the smallest label size and store the
 	// result for use in clipping.
@@ -123,75 +197,160 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 				return label.Layout(gtx)
 			})
 		})
-	dims := layout.Stack{}.Layout(
+	dims := layout.Flex{
+		Axis: layout.Vertical,
+	}.Layout(
 		gtx,
-		layout.Expanded(func(gtx C) D {
-			macro := op.Record(gtx.Ops)
-			dims := widget.Border{
-				Color:        in.border.Color,
-				Width:        unit.Dp(in.border.Thickness),
-				CornerRadius: unit.Dp(4),
+		layout.Rigid(func(gtx C) D {
+			return layout.Stack{}.Layout(
+				gtx,
+				layout.Expanded(func(gtx C) D {
+					macro := op.Record(gtx.Ops)
+					dims := widget.Border{
+						Color:        in.border.Color,
+						Width:        unit.Dp(in.border.Thickness),
+						CornerRadius: unit.Dp(4),
+					}.Layout(
+						gtx,
+						func(gtx C) D {
+							return D{Size: image.Point{
+								X: gtx.Constraints.Max.X,
+								Y: gtx.Constraints.Min.Y,
+							}}
+						},
+					)
+					border := macro.Stop()
+					if in.Editor.Focused() || in.Editor.Len() > 0 {
+						// Clip a concave shape which ignores the label area.
+						clips := []clip.Rect{
+							{
+								Max: image.Point{
+									X: gtx.Px(in.label.Inset.Left),
+									Y: gtx.Constraints.Min.Y,
+								},
+							},
+							{
+								Min: image.Point{
+									X: gtx.Px(in.label.Inset.Left),
+									Y: in.label.Smallest.Size.Y / 2,
+								},
+								Max: image.Point{
+									X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
+									Y: gtx.Constraints.Min.Y,
+								},
+							},
+							{
+								Min: image.Point{
+									X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
+								},
+								Max: image.Point{
+									X: gtx.Constraints.Max.X,
+									Y: gtx.Constraints.Min.Y,
+								},
+							},
+						}
+						for _, c := range clips {
+							stack := op.Push(gtx.Ops)
+							c.Add(gtx.Ops)
+							border.Add(gtx.Ops)
+							stack.Pop()
+						}
+					} else {
+						border.Add(gtx.Ops)
+					}
+					return dims
+				}),
+				layout.Stacked(func(gtx C) D {
+					return layout.UniformInset(unit.Dp(12)).Layout(
+						gtx,
+						func(gtx C) D {
+							items := []layout.FlexChild{
+								layout.Flexed(1, func(gtx C) D {
+									if in.Alignment != layout.Start {
+										return D{Size: gtx.Constraints.Min}
+									}
+									return D{}
+								}),
+								layout.Rigid(func(gtx C) D {
+									if in.IsActive() && in.Prefix != nil {
+										return in.Prefix(gtx)
+									}
+									return D{}
+								}),
+								layout.Rigid(func(gtx C) D {
+									return material.Editor(th, &in.Editor, "").Layout(gtx)
+								}),
+								layout.Rigid(func(gtx C) D {
+									if in.IsActive() && in.Suffix != nil {
+										return in.Suffix(gtx)
+									}
+									return D{}
+								}),
+							}
+							if in.Alignment == layout.Middle {
+								items = append(items, layout.Flexed(1, func(gtx C) D {
+									return D{Size: gtx.Constraints.Min}
+								}))
+							}
+							return layout.Flex{
+								Axis:      layout.Horizontal,
+								Alignment: layout.Middle,
+							}.Layout(
+								gtx,
+								items...,
+							)
+						},
+					)
+				}),
+				layout.Expanded(func(gtx C) D {
+					return in.Hoverable.Layout(gtx)
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx C) D {
+			return layout.Flex{
+				Axis:      layout.Horizontal,
+				Alignment: layout.Middle,
+				Spacing:   layout.SpaceBetween,
 			}.Layout(
 				gtx,
-				func(gtx C) D {
-					return D{Size: image.Point{
-						X: gtx.Constraints.Max.X,
-						Y: gtx.Constraints.Min.Y,
-					}}
-				},
+				layout.Rigid(func(gtx C) D {
+					if in.helper.Text == "" {
+						return D{}
+					}
+					return layout.Inset{
+						Top:  unit.Dp(4),
+						Left: unit.Dp(10),
+					}.Layout(
+						gtx,
+						func(gtx C) D {
+							helper := material.Label(th, unit.Dp(12), in.helper.Text)
+							helper.Color = in.helper.Color
+							return helper.Layout(gtx)
+						},
+					)
+				}),
+				layout.Rigid(func(gtx C) D {
+					if in.CharLimit == 0 {
+						return D{}
+					}
+					return layout.Inset{
+						Top:   unit.Dp(4),
+						Right: unit.Dp(10),
+					}.Layout(
+						gtx,
+						func(gtx C) D {
+							count := material.Label(
+								th,
+								unit.Dp(12),
+								strconv.Itoa(in.Editor.Len())+"/"+strconv.Itoa(int(in.CharLimit)),
+							)
+							count.Color = in.helper.Color
+							return count.Layout(gtx)
+						},
+					)
+				}),
 			)
-			border := macro.Stop()
-			if in.Editor.Focused() || in.Editor.Len() > 0 {
-				// Clip a concave shape which ignores the label area.
-				clips := []clip.Rect{
-					{
-						Max: image.Point{
-							X: gtx.Px(in.label.Inset.Left),
-							Y: gtx.Constraints.Min.Y,
-						},
-					},
-					{
-						Min: image.Point{
-							X: gtx.Px(in.label.Inset.Left),
-							Y: in.label.Smallest.Size.Y / 2,
-						},
-						Max: image.Point{
-							X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-							Y: gtx.Constraints.Min.Y,
-						},
-					},
-					{
-						Min: image.Point{
-							X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-						},
-						Max: image.Point{
-							X: gtx.Constraints.Max.X,
-							Y: gtx.Constraints.Min.Y,
-						},
-					},
-				}
-				for _, c := range clips {
-					stack := op.Push(gtx.Ops)
-					c.Add(gtx.Ops)
-					border.Add(gtx.Ops)
-					stack.Pop()
-				}
-			} else {
-				border.Add(gtx.Ops)
-			}
-			return dims
-		}),
-		layout.Stacked(func(gtx C) D {
-			return layout.UniformInset(unit.Dp(12)).Layout(
-				gtx,
-				func(gtx C) D {
-					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					return material.Editor(th, &in.Editor, "").Layout(gtx)
-				},
-			)
-		}),
-		layout.Expanded(func(gtx C) D {
-			return in.Hoverable.Layout(gtx)
 		}),
 	)
 	return D{
