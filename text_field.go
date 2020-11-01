@@ -89,6 +89,12 @@ func (in *TextField) SetError(err string) {
 	in.helper.Text = err
 }
 
+// TextTooLong returns whether the current editor text exceeds the set character
+// limit.
+func (in *TextField) TextTooLong() bool {
+	return !(in.CharLimit == 0 || uint(len(in.Editor.Text())) < in.CharLimit)
+}
+
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	for in.Hoverable.Clicked() {
 		in.Editor.Focus()

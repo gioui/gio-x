@@ -357,7 +357,7 @@ func LayoutTextFieldPage(gtx C) D {
 		}),
 		layout.Rigid(func(gtx C) D {
 			tweetInput.Validator = func(text string) string {
-				if len(text) > int(128) {
+				if tweetInput.TextTooLong() {
 					return "Too many characters"
 				}
 				return ""
