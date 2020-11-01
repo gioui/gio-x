@@ -264,13 +264,22 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 					return layout.UniformInset(unit.Dp(12)).Layout(
 						gtx,
 						func(gtx C) D {
-							items := []layout.FlexChild{
-								layout.Flexed(1, func(gtx C) D {
-									if in.Alignment != layout.Start {
-										return D{Size: gtx.Constraints.Min}
+							gtx.Constraints.Min.X = gtx.Constraints.Max.X
+							return layout.Flex{
+								Axis:      layout.Horizontal,
+								Alignment: layout.Middle,
+								Spacing: func() layout.Spacing {
+									switch in.Alignment {
+									case layout.Middle:
+										return layout.SpaceSides
+									case layout.End:
+										return layout.SpaceStart
+									default: // layout.Start and all others
+										return layout.SpaceEnd
 									}
-									return D{}
-								}),
+								}(),
+							}.Layout(
+								gtx,
 								layout.Rigid(func(gtx C) D {
 									if in.IsActive() && in.Prefix != nil {
 										return in.Prefix(gtx)
@@ -286,18 +295,6 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 									}
 									return D{}
 								}),
-							}
-							if in.Alignment == layout.Middle {
-								items = append(items, layout.Flexed(1, func(gtx C) D {
-									return D{Size: gtx.Constraints.Min}
-								}))
-							}
-							return layout.Flex{
-								Axis:      layout.Horizontal,
-								Alignment: layout.Middle,
-							}.Layout(
-								gtx,
-								items...,
 							)
 						},
 					)
