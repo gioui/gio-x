@@ -1,0 +1,44 @@
+/*
+Package events provides types to help manage Gio events and event routing.
+*/
+package events
+
+import (
+	"gioui.org/io/event"
+	"gioui.org/layout"
+)
+
+// Spy wraps an event.Queue and makes a copy of each event that
+// is requested from the queue. These copies can be accessed by
+// higher-level logic after laying out widgets that consume
+// events.
+type Spy struct {
+	Queue event.Queue
+
+	events []event.Event
+}
+
+var _ event.Queue = &Spy{}
+
+// Enspy returns a new spy and a copy of the layout.Context configured
+// to use that spy wrapped around its original queue.
+func Enspy(gtx layout.Context) (*Spy, layout.Context) {
+	spy := &Spy{Queue: gtx.Queue}
+	gtx.Queue = spy
+	return spy, gtx
+
+}
+
+// Events returns the events for a given tag from the wrapped Queue.
+func (s *Spy) Events(tag event.Tag) []event.Event {
+	events := s.Queue.Events(tag)
+	s.events = append(s.events, events...)
+	return events
+}
+
+// AllEvents returns all events that have been requested via the
+// Events() method since the last call to AllEvents().
+func (s *Spy) AllEvents() (events []event.Event) {
+	events, s.events = s.events, s.events[:0]
+	return events
+}
