@@ -247,23 +247,10 @@ func (r rect) Layout(gtx C) D {
 // Dimensions specified by size and a corner radius (on all corners)
 // specified by radii.
 func drawRect(gtx C, background color.RGBA, size f32.Point, radii float32) D {
-	stack := op.Push(gtx.Ops)
-	paintOp := paint.ColorOp{Color: background}
-	paintOp.Add(gtx.Ops)
 	bounds := f32.Rectangle{
 		Max: size,
 	}
-	clip.RRect{
-		Rect: bounds,
-		NW:   radii,
-		NE:   radii,
-		SE:   radii,
-		SW:   radii,
-	}.Add(gtx.Ops)
-	paint.PaintOp{
-		Rect: bounds,
-	}.Add(gtx.Ops)
-	stack.Pop()
+	paint.FillShape(gtx.Ops, background, clip.UniformRRect(bounds, radii).Op(gtx.Ops))
 	return layout.Dimensions{Size: image.Pt(int(size.X), int(size.Y))}
 }
 
