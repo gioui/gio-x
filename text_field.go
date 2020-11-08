@@ -430,7 +430,7 @@ type Rect struct {
 }
 
 func (r Rect) Layout(gtx C) D {
-	paint.FillShape(gtx.Ops, clip.UniformRRect(f32.Rectangle{Max: layout.FPt(r.Size)}, r.Radii).Op(gtx.Ops), r.Color)
-	return layout.Dimensions{Size: image.Pt(int(r.Size.X), int(r.Size.Y))}
+	paint.FillShape(gtx.Ops, r.Color, clip.UniformRRect(f32.Rectangle{Max: layout.FPt(r.Size)}, r.Radii).Op(gtx.Ops))
+	return layout.Dimensions{Size: image.Pt(r.Size.X, r.Size.Y)}
 
 }

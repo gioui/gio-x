@@ -10,7 +10,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -351,10 +350,8 @@ func (m *ModalNavDrawer) Disappear(when time.Time) {
 }
 
 func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {
-	paint.ColorOp{Color: fill}.Add(gtx.Ops)
-	paint.PaintOp{
-		Rect: f32.Rectangle{
-			Max: layout.FPt(size),
-		},
-	}.Add(gtx.Ops)
+	Rect{
+		Color: fill,
+		Size:  size,
+	}.Layout(gtx)
 }
