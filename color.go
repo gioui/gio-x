@@ -22,6 +22,7 @@ import (
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -140,11 +141,9 @@ func rect(gtx C, width, height unit.Value, color color.RGBA) D {
 }
 
 func rectAbs(gtx C, w, h int, color color.RGBA) D {
-	defer op.Push(gtx.Ops).Pop()
-	paint.ColorOp{Color: color}.Add(gtx.Ops)
-	wf := float32(w)
-	hf := float32(h)
-	paint.PaintOp{Rect: f32.Rect(0, 0, wf, hf)}.Add(gtx.Ops)
+	size := image.Point{X: w, Y: h}
+	bounds := image.Rectangle{Max: size}
+	paint.FillShape(gtx.Ops, color, clip.Rect(bounds).Op())
 	return D{Size: image.Pt(w, h)}
 }
 

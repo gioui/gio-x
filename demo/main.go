@@ -1,15 +1,16 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"log"
 
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget/material"
 	"git.sr.ht/~whereswaldon/colorpicker"
@@ -85,10 +86,9 @@ func loop(w *app.Window) error {
 							return colorpicker.Mux(th, &muxState, "Display Right:").Layout(gtx)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							defer op.Push(gtx.Ops).Pop()
-							paint.ColorOp{Color: background}.Add(gtx.Ops)
-							paint.PaintOp{Rect: f32.Rect(0, 0, float32(gtx.Constraints.Max.X), float32(gtx.Constraints.Max.Y))}.Add(gtx.Ops)
-							return D{}
+							size := gtx.Constraints.Max
+							paint.FillShape(gtx.Ops, background, clip.Rect(image.Rectangle{Max: size}).Op())
+							return D{Size: size}
 						}),
 					)
 				}),
