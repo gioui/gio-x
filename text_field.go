@@ -211,11 +211,12 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 			return layout.Stack{}.Layout(
 				gtx,
 				layout.Expanded(func(gtx C) D {
+					var cornerRadius = unit.Dp(4)
 					macro := op.Record(gtx.Ops)
 					dims := widget.Border{
 						Color:        in.border.Color,
 						Width:        unit.Dp(in.border.Thickness),
-						CornerRadius: unit.Dp(4),
+						CornerRadius: cornerRadius,
 					}.Layout(
 						gtx,
 						func(gtx C) D {
@@ -228,36 +229,50 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 					border := macro.Stop()
 					if in.Editor.Focused() || in.Editor.Len() > 0 {
 						// Clip a concave shape which ignores the label area.
-						clips := []clip.Rect{
-							{
-								Max: image.Point{
-									X: gtx.Px(in.label.Inset.Left),
-									Y: gtx.Constraints.Min.Y,
-								},
+						clips := []func(gtx C){
+							func(gtx C) {
+								clip.RRect{
+									Rect: layout.FRect(image.Rectangle{
+										Max: image.Point{
+											X: gtx.Px(in.label.Inset.Left),
+											Y: gtx.Constraints.Min.Y,
+										},
+									}),
+									NW: float32(gtx.Px(cornerRadius)),
+									SW: float32(gtx.Px(cornerRadius)),
+								}.Add(gtx.Ops)
 							},
-							{
-								Min: image.Point{
-									X: gtx.Px(in.label.Inset.Left),
-									Y: in.label.Smallest.Size.Y / 2,
-								},
-								Max: image.Point{
-									X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-									Y: gtx.Constraints.Min.Y,
-								},
+							func(gtx C) {
+								clip.Rect{
+									Min: image.Point{
+										X: gtx.Px(in.label.Inset.Left),
+										Y: in.label.Smallest.Size.Y / 2,
+									},
+									Max: image.Point{
+										X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
+										Y: gtx.Constraints.Min.Y,
+									},
+								}.Add(gtx.Ops)
 							},
-							{
-								Min: image.Point{
-									X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-								},
-								Max: image.Point{
-									X: gtx.Constraints.Max.X,
-									Y: gtx.Constraints.Min.Y,
-								},
+							func(gtx C) {
+								clip.RRect{
+									Rect: layout.FRect(image.Rectangle{
+										Min: image.Point{
+											X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
+										},
+										Max: image.Point{
+											X: gtx.Constraints.Max.X,
+											Y: gtx.Constraints.Min.Y,
+										},
+									}),
+									NE: float32(gtx.Px(cornerRadius)),
+									SE: float32(gtx.Px(cornerRadius)),
+								}.Add(gtx.Ops)
 							},
 						}
 						for _, c := range clips {
 							stack := op.Push(gtx.Ops)
-							c.Add(gtx.Ops)
+							c(gtx)
 							border.Add(gtx.Ops)
 							stack.Pop()
 						}
