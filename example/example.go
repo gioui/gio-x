@@ -18,6 +18,8 @@ import (
 	"git.sr.ht/~whereswaldon/haptic"
 )
 
+var buzzer *haptic.Buzzer
+
 func main() {
 	go func() {
 		w := app.NewWindow()
@@ -31,7 +33,7 @@ func main() {
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	btn := widget.Clickable{}
-	buzzer := haptic.NewBuzzer(w)
+	buzzer = haptic.NewBuzzer()
 	var ops op.Ops
 	for {
 		select {
@@ -46,6 +48,8 @@ func loop(w *app.Window) error {
 				gtx := layout.NewContext(&ops, e)
 				layout.Center.Layout(gtx, material.Button(th, &btn, "buzz").Layout)
 				e.Frame(gtx.Ops)
+			default:
+				ProcessPlatformEvent(e)
 			}
 		case err := <-buzzer.Errors():
 			if err != nil {

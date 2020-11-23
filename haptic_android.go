@@ -14,8 +14,12 @@ import (
 
 // Buzzer provides methods to trigger haptic feedback
 type Buzzer struct {
+	// the latest view reference from an app.ViewEvent
+	view uintptr
+	// updated signals changes to the view field
+	updated chan struct{}
+
 	jvm               jni.JVM
-	window            *app.Window
 	performFeedbackID jni.MethodID
 	jvmOperations     chan func(env jni.Env, view jni.Object) error
 	errors            chan error
@@ -26,14 +30,15 @@ type Buzzer struct {
 // processing code, so it's best not to invoke it directly and instead to submit
 // closures to b.jvmOperations.
 func (b *Buzzer) inJVM(req func(env jni.Env, view jni.Object) error) {
-	b.window.Do(func(view uintptr) {
-		if err := jni.Do(b.jvm, func(env jni.Env) error {
-			view := *(*jni.Object)(unsafe.Pointer(&view))
-			return req(env, view)
-		}); err != nil {
-			b.errors <- err
-		}
-	})
+	for b.view == 0 {
+		<-b.updated
+	}
+	if err := jni.Do(b.jvm, func(env jni.Env) error {
+		view := *(*jni.Object)(unsafe.Pointer(&b.view))
+		return req(env, view)
+	}); err != nil {
+		b.errors <- err
+	}
 }
 
 // Buzz attempts to trigger a haptic vibration without blocking. It returns whether
@@ -67,12 +72,21 @@ func (b *Buzzer) Errors() <-chan error {
 	return b.errors
 }
 
-// NewBuzzer constructs a buzzer that enables haptic feedback on the provided
-// window.
-func NewBuzzer(window *app.Window) *Buzzer {
+// Update should be called whenever the app emits a new ViewEvent.
+func (b *Buzzer) Update(event app.ViewEvent) {
+	b.view = event.View
+	// signal the state change if it isn't already being signaled.
+	select {
+	case b.updated <- struct{}{}:
+	default:
+	}
+}
+
+// NewBuzzer constructs a buzzer.
+func NewBuzzer() *Buzzer {
 	b := &Buzzer{
+		updated:       make(chan struct{}, 1),
 		jvm:           jni.JVMFor(app.JavaVM()),
-		window:        window,
 		jvmOperations: make(chan func(env jni.Env, view jni.Object) error),
 		errors:        make(chan error),
 	}
