@@ -33,7 +33,7 @@ func main() {
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	btn := widget.Clickable{}
-	buzzer = haptic.NewBuzzer()
+	buzzer = haptic.NewBuzzer(w)
 	var ops op.Ops
 	for {
 		select {

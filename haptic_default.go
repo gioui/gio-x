@@ -2,6 +2,8 @@
 
 package haptic
 
+import "gioui.org/app"
+
 // Buzzer provides methods to trigger haptic feedback. On OSes other than android,
 // all methods are no-ops.
 type Buzzer struct {
@@ -27,6 +29,6 @@ func (b *Buzzer) Errors() <-chan error {
 }
 
 // NewBuzzer constructs a buzzer.
-func NewBuzzer() *Buzzer {
+func NewBuzzer(_ *app.Window) *Buzzer {
 	return &Buzzer{}
 }

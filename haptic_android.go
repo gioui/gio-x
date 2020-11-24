@@ -83,7 +83,7 @@ func (b *Buzzer) Update(event app.ViewEvent) {
 }
 
 // NewBuzzer constructs a buzzer.
-func NewBuzzer() *Buzzer {
+func NewBuzzer(_ *app.Window) *Buzzer {
 	b := &Buzzer{
 		updated:       make(chan struct{}, 1),
 		jvm:           jni.JVMFor(app.JavaVM()),
