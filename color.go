@@ -33,7 +33,7 @@ import (
 // choosing from among a set of colors.
 type MuxState struct {
 	widget.Enum
-	Options        map[string]*color.RGBA
+	Options        map[string]*color.NRGBA
 	OrderedOptions []string
 }
 
@@ -41,7 +41,7 @@ type MuxState struct {
 // the MuxOptions given as parameters.
 func NewMuxState(options ...MuxOption) MuxState {
 	keys := make([]string, 0, len(options))
-	mapped := make(map[string]*color.RGBA)
+	mapped := make(map[string]*color.NRGBA)
 	for _, opt := range options {
 		keys = append(keys, opt.Label)
 		mapped[opt.Label] = opt.Value
@@ -59,11 +59,11 @@ func NewMuxState(options ...MuxOption) MuxState {
 // MuxOption is one choice for the value of a color multiplexer.
 type MuxOption struct {
 	Label string
-	Value *color.RGBA
+	Value *color.NRGBA
 }
 
 // Color returns the currently-selected color.
-func (m MuxState) Color() *color.RGBA {
+func (m MuxState) Color() *color.NRGBA {
 	return m.Options[m.Enum.Value]
 }
 
@@ -121,9 +121,9 @@ func (m MuxStyle) layoutOption(gtx C, option string) D {
 	)
 }
 
-func borderedSquare(gtx C, c color.RGBA) D {
+func borderedSquare(gtx C, c color.NRGBA) D {
 	defer op.Push(gtx.Ops).Pop()
-	dims := square(gtx, unit.Dp(20), color.RGBA{A: 255})
+	dims := square(gtx, unit.Dp(20), color.NRGBA{A: 255})
 
 	off := float32(gtx.Px(unit.Dp(1)))
 	op.Offset(f32.Pt(off, off)).Add(gtx.Ops)
@@ -131,16 +131,16 @@ func borderedSquare(gtx C, c color.RGBA) D {
 	return dims
 }
 
-func square(gtx C, sizeDp unit.Value, color color.RGBA) D {
+func square(gtx C, sizeDp unit.Value, color color.NRGBA) D {
 	return rect(gtx, sizeDp, sizeDp, color)
 }
 
-func rect(gtx C, width, height unit.Value, color color.RGBA) D {
+func rect(gtx C, width, height unit.Value, color color.NRGBA) D {
 	w, h := gtx.Px(width), gtx.Px(height)
 	return rectAbs(gtx, w, h, color)
 }
 
-func rectAbs(gtx C, w, h int, color color.RGBA) D {
+func rectAbs(gtx C, w, h int, color color.NRGBA) D {
 	size := image.Point{X: w, Y: h}
 	bounds := image.Rectangle{Max: size}
 	paint.FillShape(gtx.Ops, color, clip.Rect(bounds).Op())
@@ -156,7 +156,7 @@ type State struct {
 }
 
 // SetColor changes the color represented by the colorpicker.
-func (s *State) SetColor(c color.RGBA) {
+func (s *State) SetColor(c color.NRGBA) {
 	s.R.Value = float32(c.R) / 255.0
 	s.G.Value = float32(c.G) / 255.0
 	s.B.Value = float32(c.B) / 255.0
@@ -165,8 +165,8 @@ func (s *State) SetColor(c color.RGBA) {
 }
 
 // Color returns the currently selected color.
-func (s State) Color() color.RGBA {
-	return color.RGBA{
+func (s State) Color() color.NRGBA {
+	return color.NRGBA{
 		R: s.Red(),
 		G: s.Green(),
 		B: s.Blue(),
@@ -300,7 +300,7 @@ func (p PickerStyle) layoutLeftPane(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
 				return layout.Stack{}.Layout(gtx,
 					layout.Expanded(func(gtx C) D {
-						return rectAbs(gtx, gtx.Constraints.Min.X, gtx.Constraints.Min.Y, color.RGBA{R: 230, G: 230, B: 230, A: 255})
+						return rectAbs(gtx, gtx.Constraints.Min.X, gtx.Constraints.Min.Y, color.NRGBA{R: 230, G: 230, B: 230, A: 255})
 					}),
 					layout.Stacked(func(gtx C) D {
 						return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {

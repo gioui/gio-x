@@ -31,12 +31,12 @@ type (
 	D = layout.Dimensions
 )
 
-var white = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+var white = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	background := white
-	current := color.RGBA{R: 255, G: 128, B: 75, A: 255}
+	current := color.NRGBA{R: 255, G: 128, B: 75, A: 255}
 	picker := colorpicker.State{}
 	picker.SetColor(current)
 	muxState := colorpicker.NewMuxState(
