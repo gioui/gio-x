@@ -43,7 +43,7 @@ type Scrollable struct {
 type Bar struct {
 	*Scrollable
 	// Color of the scroll indicator.
-	Color color.RGBA
+	Color color.NRGBA
 	// Progress tells the bar where to render the indicator as a fraction [0, 1].
 	Progress float32
 	// Scale tells the bar what fraction of the available axis space it should
@@ -79,7 +79,7 @@ func DefaultBar(state *Scrollable, progress, scale float32) Bar {
 		Scrollable: state,
 		Progress:   progress,
 		Scale:      scale,
-		Color:      color.RGBA{A: 200},
+		Color:      color.NRGBA{A: 200},
 		Thickness:  unit.Dp(8),
 		MinLength:  unit.Dp(16),
 	}
@@ -233,7 +233,7 @@ func (axis Axis) ToGesture() (g gesture.Axis) {
 // Dimensions specified by size and a corner radius (on all corners)
 // specified by radii.
 type rect struct {
-	Color color.RGBA
+	Color color.NRGBA
 	Size  f32.Point
 	Radii float32
 }
@@ -246,7 +246,7 @@ func (r rect) Layout(gtx C) D {
 // drawRect creates a rectangle of the provided background color with
 // Dimensions specified by size and a corner radius (on all corners)
 // specified by radii.
-func drawRect(gtx C, background color.RGBA, size f32.Point, radii float32) D {
+func drawRect(gtx C, background color.NRGBA, size f32.Point, radii float32) D {
 	bounds := f32.Rectangle{
 		Max: size,
 	}
