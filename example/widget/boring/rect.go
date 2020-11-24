@@ -14,7 +14,7 @@ import (
 // Dimensions specified by size and a corner radius (on all corners)
 // specified by radii.
 type Rect struct {
-	Color color.RGBA
+	Color color.NRGBA
 	Size  f32.Point
 	Radii float32
 }
@@ -27,7 +27,7 @@ func (r Rect) Layout(gtx C) D {
 // DrawRect creates a rectangle of the provided background color with
 // Dimensions specified by size and a corner radius (on all corners)
 // specified by radii.
-func DrawRect(gtx C, background color.RGBA, size f32.Point, radii float32) D {
+func DrawRect(gtx C, background color.NRGBA, size f32.Point, radii float32) D {
 	bounds := f32.Rectangle{Max: size}
 	paint.FillShape(gtx.Ops, background, clip.UniformRRect(bounds, radii).Op(gtx.Ops))
 	return layout.Dimensions{Size: image.Pt(int(size.X), int(size.Y))}

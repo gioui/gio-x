@@ -19,11 +19,11 @@ type (
 )
 
 type CardPalette struct {
-	RedSuit, BlackSuit color.RGBA
-	Border, Background color.RGBA
+	RedSuit, BlackSuit color.NRGBA
+	Border, Background color.NRGBA
 }
 
-func (p CardPalette) ColorFor(s playing.Suit) color.RGBA {
+func (p CardPalette) ColorFor(s playing.Suit) color.NRGBA {
 	if s.Color() == playing.Red {
 		return p.RedSuit
 	}
@@ -31,10 +31,10 @@ func (p CardPalette) ColorFor(s playing.Suit) color.RGBA {
 }
 
 var DefaultPalette = &CardPalette{
-	RedSuit:    color.RGBA{R: 0xa0, B: 0x20, A: 0xff},
-	BlackSuit:  color.RGBA{A: 0xff},
-	Border:     color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
-	Background: color.RGBA{R: 0xf0, G: 0xf0, B: 0xf0, A: 0xff},
+	RedSuit:    color.NRGBA{R: 0xa0, B: 0x20, A: 0xff},
+	BlackSuit:  color.NRGBA{A: 0xff},
+	Border:     color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+	Background: color.NRGBA{R: 0xf0, G: 0xf0, B: 0xf0, A: 0xff},
 }
 
 type CardStyle struct {
