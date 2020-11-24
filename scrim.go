@@ -15,7 +15,7 @@ type Scrim struct {
 	// FinalAlpha is the final opacity of the scrim on a scale from 0 to 255.
 	FinalAlpha uint8
 	// Color is the color of the scrim. The Alpha component will be ignored.
-	Color color.RGBA
+	Color color.NRGBA
 	widget.Clickable
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 type interpolationTest struct {
-	start, end, expected color.RGBA
+	start, end, expected color.NRGBA
 	progress             float32
 }
 
@@ -21,11 +21,11 @@ func (i interpolationTest) Run(t *testing.T) {
 }
 
 func TestInterpolate(t *testing.T) {
-	zero := color.RGBA{}
-	fives := color.RGBA{R: 5, G: 5, B: 5, A: 5}
-	tens := color.RGBA{R: 10, G: 10, B: 10, A: 10}
-	blue := color.RGBA{R: 64, G: 80, B: 180, A: 255}
-	black := color.RGBA{A: 255}
+	zero := color.NRGBA{}
+	fives := color.NRGBA{R: 5, G: 5, B: 5, A: 5}
+	tens := color.NRGBA{R: 10, G: 10, B: 10, A: 10}
+	blue := color.NRGBA{R: 64, G: 80, B: 180, A: 255}
+	black := color.NRGBA{A: 255}
 	for i, testCase := range []interpolationTest{
 		{
 			start:    zero,
@@ -54,7 +54,7 @@ func TestInterpolate(t *testing.T) {
 		{
 			start:    blue,
 			end:      black,
-			expected: color.RGBA{R: 32, G: 40, B: 90, A: 255},
+			expected: color.NRGBA{R: 32, G: 40, B: 90, A: 255},
 			progress: .5,
 		},
 	} {

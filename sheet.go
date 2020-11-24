@@ -16,13 +16,13 @@ import (
 // Sheet implements the standard side sheet described here:
 // https://material.io/components/sheets-side#usage
 type Sheet struct {
-	Background color.RGBA
+	Background color.NRGBA
 }
 
 // NewSheet returns a sheet with its background color initialized to white.
 func NewSheet() Sheet {
 	return Sheet{
-		Background: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		Background: color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	}
 }
 

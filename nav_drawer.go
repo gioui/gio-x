@@ -126,7 +126,7 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	if !n.selected && !n.hovering {
 		return layout.Dimensions{}
 	}
-	var fill color.RGBA
+	var fill color.NRGBA
 	if n.hovering {
 		fill = AlphaMultiply(n.Theme.Color.Text, n.AlphaPalette.Hover)
 	} else if n.selected {
@@ -154,7 +154,7 @@ type NavDrawer struct {
 
 	// Background (if set) will be passed down to the underlying sheet when the
 	// drawer is rendered.
-	Background *color.RGBA
+	Background *color.NRGBA
 	AlphaPalette
 
 	Title    string
@@ -349,7 +349,7 @@ func (m *ModalNavDrawer) Disappear(when time.Time) {
 	m.sheet.Disappear(when)
 }
 
-func paintRect(gtx layout.Context, size image.Point, fill color.RGBA) {
+func paintRect(gtx layout.Context, size image.Point, fill color.NRGBA) {
 	Rect{
 		Color: fill,
 		Size:  size,

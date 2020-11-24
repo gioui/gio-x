@@ -323,12 +323,12 @@ func LayoutTextFieldPage(gtx C) D {
 		layout.Rigid(func(gtx C) D {
 			priceInput.Prefix = func(gtx C) D {
 				th := *th
-				th.Color.Text = color.RGBA{R: 100, G: 100, B: 100, A: 255}
+				th.Color.Text = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
 				return material.Label(&th, th.TextSize, "$").Layout(gtx)
 			}
 			priceInput.Suffix = func(gtx C) D {
 				th := *th
-				th.Color.Text = color.RGBA{R: 100, G: 100, B: 100, A: 255}
+				th.Color.Text = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
 				return material.Label(&th, th.TextSize, ".00").Layout(gtx)
 			}
 			priceInput.SingleLine = true
@@ -492,11 +492,11 @@ var (
 						Name: "Favorite",
 						Tag:  &heartBtn,
 					},
-					Layout: func(gtx layout.Context, bg, fg color.RGBA) layout.Dimensions {
+					Layout: func(gtx layout.Context, bg, fg color.NRGBA) layout.Dimensions {
 						btn := materials.SimpleIconButton(th, &heartBtn, HeartIcon)
 						btn.Background = bg
 						if favorited {
-							btn.Color = color.RGBA{R: 200, A: 255}
+							btn.Color = color.NRGBA{R: 200, A: 255}
 						} else {
 							btn.Color = fg
 						}

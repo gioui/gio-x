@@ -59,11 +59,11 @@ type label struct {
 
 type border struct {
 	Thickness float32
-	Color     color.RGBA
+	Color     color.NRGBA
 }
 
 type helper struct {
-	Color color.RGBA
+	Color color.NRGBA
 	Text  string
 }
 
@@ -139,11 +139,11 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		textNormal = th.TextSize
 		textSmall  = th.TextSize.Scale(0.8)
 		// Border color transitions.
-		borderColor        = color.RGBA{A: 107}
-		borderColorHovered = color.RGBA{A: 221}
+		borderColor        = color.NRGBA{A: 107}
+		borderColorHovered = color.NRGBA{A: 221}
 		borderColorActive  = th.Color.Primary
 		// TODO: derive from Theme.Error or Theme.Danger
-		dangerColor = color.RGBA{R: 200, A: 255}
+		dangerColor = color.NRGBA{R: 200, A: 255}
 		// Border thickness transitions.
 		borderThickness       = float32(0.5)
 		borderThicknessActive = float32(2.0)
@@ -439,7 +439,7 @@ func (h *Hoverable) update(gtx C) {
 }
 
 type Rect struct {
-	Color color.RGBA
+	Color color.NRGBA
 	Size  image.Point
 	Radii float32
 }

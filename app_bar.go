@@ -85,7 +85,7 @@ func (a *actionGroup) setActions(actions []AppBarAction, overflows []OverflowAct
 	a.overflowState = make([]widget.Clickable, len(a.actions)+len(a.overflow))
 }
 
-func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, background color.RGBA) D {
+func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, background color.NRGBA) D {
 	overflowedActions := len(a.actions)
 	gtx.Constraints.Min.Y = 0
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
@@ -258,7 +258,7 @@ func (a *AppBar) initialize() {
 // when this item disappears into the overflow menu.
 type AppBarAction struct {
 	OverflowAction
-	Layout func(gtx layout.Context, bg, fg color.RGBA) layout.Dimensions
+	Layout func(gtx layout.Context, bg, fg color.NRGBA) layout.Dimensions
 }
 
 // SimpleIconAction configures an AppBarAction that functions as a simple
@@ -267,7 +267,7 @@ type AppBarAction struct {
 func SimpleIconAction(th *material.Theme, state *widget.Clickable, icon *widget.Icon, overflow OverflowAction) AppBarAction {
 	a := AppBarAction{
 		OverflowAction: overflow,
-		Layout: func(gtx C, bg, fg color.RGBA) D {
+		Layout: func(gtx C, bg, fg color.NRGBA) D {
 			btn := SimpleIconButton(th, state, icon)
 			btn.Background = bg
 			btn.Color = fg
@@ -296,7 +296,7 @@ var actionButtonInset = layout.Inset{
 	Bottom: unit.Dp(4),
 }
 
-func (a AppBarAction) layout(bg, fg color.RGBA, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
+func (a AppBarAction) layout(bg, fg color.NRGBA, anim *VisibilityAnimation, gtx layout.Context) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -335,8 +335,8 @@ type OverflowAction struct {
 	Tag  interface{}
 }
 
-func Interpolate(a, b color.RGBA, progress float32) color.RGBA {
-	var out color.RGBA
+func Interpolate(a, b color.NRGBA, progress float32) color.NRGBA {
+	var out color.NRGBA
 	out.R = uint8(int16(a.R) - int16(float32(int16(a.R)-int16(b.R))*progress))
 	out.G = uint8(int16(a.G) - int16(float32(int16(a.G)-int16(b.G))*progress))
 	out.B = uint8(int16(a.B) - int16(float32(int16(a.B)-int16(b.B))*progress))
