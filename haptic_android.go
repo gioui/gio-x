@@ -72,9 +72,11 @@ func (b *Buzzer) Errors() <-chan error {
 	return b.errors
 }
 
-// Update should be called whenever the app emits a new ViewEvent.
-func (b *Buzzer) Update(event app.ViewEvent) {
-	b.view = event.View
+// SetView updates the buzzer's internal reference to the android view. This value
+// should come from the View field of an app.ViewEvent, and this method should be
+// invoked each time an app.ViewEvent is emitted.
+func (b *Buzzer) SetView(view uintptr) {
+	b.view = view
 	// signal the state change if it isn't already being signaled.
 	select {
 	case b.updated <- struct{}{}:

@@ -10,7 +10,7 @@ import (
 // event processing should occur.
 func ProcessPlatformEvent(event event.Event) bool {
 	if ve, ok := event.(app.ViewEvent); ok {
-		buzzer.Update(ve)
+		buzzer.SetView(ve.View)
 		return true
 	}
 	return false

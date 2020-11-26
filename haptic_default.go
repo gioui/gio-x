@@ -16,6 +16,11 @@ func (b *Buzzer) Buzz() bool {
 	return true
 }
 
+// Update does nothing on platforms other than Android. See the documentation with
+// GOOS=android for information on using this method correctly on that platform.
+func (b *Buzzer) SetView(_ uintptr) {
+}
+
 // Shutdown stops the background event loop that interfaces with the JVM.
 // Call this when you are done with a Buzzer to allow it to be garbage
 // collected. Do not call this method more than per Buzzer.
