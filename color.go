@@ -4,14 +4,12 @@ import (
 	"image/color"
 )
 
-// AlphaMultiply returns the input color with the new alpha value.
-// The Red, Green, and Blue components are automatically premultiplied
-// for the new alpha.
-func AlphaMultiply(c color.NRGBA, a uint8) color.NRGBA {
+// WithAlpha returns the input color with the new alpha value.
+func WithAlpha(c color.NRGBA, a uint8) color.NRGBA {
 	return color.NRGBA{
-		R: uint8(int(c.R) * int(a) / 255),
-		G: uint8(int(c.G) * int(a) / 255),
-		B: uint8(int(c.B) * int(a) / 255),
+		R: c.R,
+		G: c.G,
+		B: c.B,
 		A: a,
 	}
 }

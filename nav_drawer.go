@@ -128,9 +128,9 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	}
 	var fill color.NRGBA
 	if n.hovering {
-		fill = AlphaMultiply(n.Theme.Color.Text, n.AlphaPalette.Hover)
+		fill = WithAlpha(n.Theme.Color.Text, n.AlphaPalette.Hover)
 	} else if n.selected {
-		fill = AlphaMultiply(n.Theme.Color.Primary, n.AlphaPalette.Selected)
+		fill = WithAlpha(n.Theme.Color.Primary, n.AlphaPalette.Selected)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))
