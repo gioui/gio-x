@@ -81,6 +81,12 @@ func (in TextField) IsActive() bool {
 	return in.state >= activated
 }
 
+// IsErrored if input is in an errored state.
+// Typically this is when the validator has returned an error message.
+func (in *TextField) IsErrored() bool {
+	return in.state == errored
+}
+
 // SetError puts the input into an errored state with the specified error text.
 func (in *TextField) SetError(err string) {
 	in.state = errored
