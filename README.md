@@ -24,6 +24,17 @@ events within the spy for the keystrokes of interest.
 
 The Spy was conceived by ~eliasnaur in [this mailing list discussion](https://lists.sr.ht/~eliasnaur/gio-patches/patches/14507).
 
+### EventGroup
+
+This type is returned by the Spy, but can also be instantiated literally. It
+functions as a simple standalone event queue tha responds to a single, specific
+tag.
+
+### CombinedQueue
+
+CombinedQueue combines the output of two queues. This can be useful to join the
+events of the "real" gio event queue with a fake one like an EventGroup.
+
 ## Contributing
 
 You can send bug reports, feature requests, questions, and patches to [my public inbox](https://lists.sr.ht/~whereswaldon/public-inbox).
