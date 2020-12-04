@@ -11,7 +11,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -75,7 +74,6 @@ const (
 	activated
 	focused
 	errored
-	// disabled
 )
 
 // IsActive if input is in an active state (Active, Focused or Errored).
@@ -96,18 +94,19 @@ func (in *TextField) TextTooLong() bool {
 }
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
+	var disabled = gtx.Queue == nil
 	for in.Hoverable.Clicked() {
 		in.Editor.Focus()
 	}
 	in.helper.Text = in.Helper
 	in.state = inactive
-	if in.Hoverable.Hovered() {
+	if in.Hoverable.Hovered() && !disabled {
 		in.state = hovered
 	}
 	if in.Editor.Len() > 0 {
 		in.state = activated
 	}
-	if in.Editor.Focused() {
+	if in.Editor.Focused() && !disabled {
 		in.state = focused
 	}
 	if in.Validator != nil && in.Editor.Len() > 0 {
