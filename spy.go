@@ -15,10 +15,27 @@ import (
 type Spy struct {
 	Queue event.Queue
 
-	events []event.Event
+	events []EventGroup
 }
 
 var _ event.Queue = &Spy{}
+
+// EventGroup contains a list of events and the tag that they are
+// associated with. It can be used as an event.Queue.
+type EventGroup struct {
+	event.Tag
+	Items []event.Event
+}
+
+var _ event.Queue = &EventGroup{}
+
+func (e *EventGroup) Events(tag event.Tag) (out []event.Event) {
+	if tag != e.Tag {
+		return nil
+	}
+	out, e.Items = e.Items, nil
+	return
+}
 
 // Enspy returns a new spy and a copy of the layout.Context configured
 // to use that spy wrapped around its original queue.
@@ -32,13 +49,13 @@ func Enspy(gtx layout.Context) (*Spy, layout.Context) {
 // Events returns the events for a given tag from the wrapped Queue.
 func (s *Spy) Events(tag event.Tag) []event.Event {
 	events := s.Queue.Events(tag)
-	s.events = append(s.events, events...)
+	s.events = append(s.events, EventGroup{Tag: tag, Items: events})
 	return events
 }
 
 // AllEvents returns all events that have been requested via the
 // Events() method since the last call to AllEvents().
-func (s *Spy) AllEvents() (events []event.Event) {
+func (s *Spy) AllEvents() (events []EventGroup) {
 	events, s.events = s.events, s.events[:0]
 	return events
 }
