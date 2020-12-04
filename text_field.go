@@ -35,8 +35,6 @@ type TextField struct {
 	Prefix layout.Widget
 	// Suffix appears after the content of the text input.
 	Suffix layout.Widget
-	// Validator validates text content.
-	Validator Validator
 
 	// Animation state.
 	state
@@ -44,6 +42,11 @@ type TextField struct {
 	border border
 	helper helper
 	anim   *Progress
+
+	// errored tracks whether the input is in an errored state.
+	// This is orthogonal to the other states: the input can be both errored
+	// and inactive for example.
+	errored bool
 }
 
 // Validator validates text and returns a string describing the error.
@@ -73,7 +76,6 @@ const (
 	hovered
 	activated
 	focused
-	errored
 )
 
 // IsActive if input is in an active state (Active, Focused or Errored).
@@ -84,13 +86,25 @@ func (in TextField) IsActive() bool {
 // IsErrored if input is in an errored state.
 // Typically this is when the validator has returned an error message.
 func (in *TextField) IsErrored() bool {
-	return in.state == errored
+	return in.errored
 }
 
 // SetError puts the input into an errored state with the specified error text.
 func (in *TextField) SetError(err string) {
-	in.state = errored
+	in.errored = true
 	in.helper.Text = err
+}
+
+// ClearError clears any errored status.
+func (in *TextField) ClearError() {
+	in.errored = false
+	in.helper.Text = in.Helper
+}
+
+// Clear the input text and reset any error status.
+func (in *TextField) Clear() {
+	in.Editor.SetText("")
+	in.ClearError()
 }
 
 // TextTooLong returns whether the current editor text exceeds the set character
@@ -104,7 +118,6 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	for in.Hoverable.Clicked() {
 		in.Editor.Focus()
 	}
-	in.helper.Text = in.Helper
 	in.state = inactive
 	if in.Hoverable.Hovered() && !disabled {
 		in.state = hovered
@@ -114,11 +127,6 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	}
 	if in.Editor.Focused() && !disabled {
 		in.state = focused
-	}
-	if in.Validator != nil && in.Editor.Len() > 0 {
-		if err := in.Validator(in.Editor.Text()); len(err) > 0 {
-			in.SetError(err)
-		}
 	}
 	const (
 		duration = time.Millisecond * 100
@@ -167,7 +175,8 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		in.border.Thickness = borderThicknessActive
 		in.border.Color = borderColorActive
 		in.helper.Color = borderColorHovered
-	case errored:
+	}
+	if in.IsErrored() {
 		in.border.Color = dangerColor
 		in.helper.Color = dangerColor
 	}

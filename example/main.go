@@ -339,13 +339,17 @@ func LayoutTextFieldPage(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "Can have prefix and suffix elements.").Layout)
 		}),
 		layout.Rigid(func(gtx C) D {
-			numberInput.Validator = func(text string) string {
-				for _, r := range text {
+			if err := func() string {
+				for _, r := range numberInput.Text() {
 					if !unicode.IsDigit(r) {
 						return "Must contain only digits"
 					}
 				}
 				return ""
+			}(); err != "" {
+				numberInput.SetError(err)
+			} else {
+				numberInput.ClearError()
 			}
 			numberInput.SingleLine = true
 			numberInput.Alignment = inputAlignment
@@ -355,11 +359,10 @@ func LayoutTextFieldPage(gtx C) D {
 			return inset.Layout(gtx, material.Body2(th, "Can be validated.").Layout)
 		}),
 		layout.Rigid(func(gtx C) D {
-			tweetInput.Validator = func(text string) string {
-				if tweetInput.TextTooLong() {
-					return "Too many characters"
-				}
-				return ""
+			if tweetInput.TextTooLong() {
+				tweetInput.SetError("Too many characters")
+			} else {
+				tweetInput.ClearError()
 			}
 			tweetInput.CharLimit = 128
 			tweetInput.Helper = "Tweets have a limited character count"
