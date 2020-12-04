@@ -59,3 +59,25 @@ func (s *Spy) AllEvents() (events []EventGroup) {
 	events, s.events = s.events, s.events[:0]
 	return events
 }
+
+// CombinedQueue combines the results of two queues into one.
+type CombinedQueue struct {
+	A, B event.Queue
+}
+
+var _ event.Queue = &CombinedQueue{}
+
+// Combine configures the provided context so that its event queue is
+// a CombinedQueue of its original event queue and the provided
+// event queue.
+func Combine(gtx layout.Context, queue event.Queue) layout.Context {
+	gtx.Queue = CombinedQueue{A: gtx.Queue, B: queue}
+	return gtx
+}
+
+// Events returns the combined results of the two queues.
+func (u CombinedQueue) Events(tag event.Tag) []event.Event {
+	out := u.A.Events(tag)
+	out = append(out, u.B.Events(tag)...)
+	return out
+}
