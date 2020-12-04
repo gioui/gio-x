@@ -8,15 +8,13 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
-
-	"git.sr.ht/~whereswaldon/sprig/anim"
 )
 
 type Fan struct {
 	itemsCache        []cacheItem
 	last              fanParams
 	animatedLastFrame bool
-	anim.Normal
+	Animation
 
 	// The width, in radians, of the full arc that items should occupy.
 	// If zero, math.Pi/2 will be used (1/4 of a full circle).

@@ -19,7 +19,6 @@ import (
 	"git.sr.ht/~whereswaldon/outlay/example/playing"
 	xwidget "git.sr.ht/~whereswaldon/outlay/example/widget"
 	"git.sr.ht/~whereswaldon/outlay/example/widget/boring"
-	"git.sr.ht/~whereswaldon/sprig/anim"
 )
 
 type (
@@ -61,7 +60,7 @@ func genCards(th *material.Theme) []boring.HoverCard {
 func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	fan := outlay.Fan{
-		Normal: anim.Normal{
+		Animation: outlay.Animation{
 			Duration: time.Second / 4,
 		},
 		WidthRadians:  math.Pi,
