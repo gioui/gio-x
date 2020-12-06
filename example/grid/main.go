@@ -146,6 +146,7 @@ func newUI() *UI {
 			SingleLine: true,
 			Submit:     true,
 		}
+		tab.num = 99
 		tab.ed.SetText(strconv.Itoa(tab.num))
 	}
 	return ui
