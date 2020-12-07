@@ -46,16 +46,12 @@ func loop(w *app.Window) error {
 				Value: &current,
 			},
 			{
-				Label: "hint",
-				Value: &th.Color.Hint,
+				Label: "background",
+				Value: &th.Palette.Bg,
 			},
 			{
-				Label: "white",
-				Value: &white,
-			},
-			{
-				Label: "text",
-				Value: &th.Color.Text,
+				Label: "foreground",
+				Value: &th.Palette.Fg,
 			},
 		}...)
 	background = *muxState.Color()
