@@ -188,7 +188,7 @@ func (ui *UI) Layout(gtx layout.Context) layout.Dimensions {
 			clip.UniformRRect(f32.Rectangle{
 				Max: layout.FPt(pt),
 			}, 0).Add(gtx.Ops)
-			paint.Fill(gtx.Ops, ui.theme.Color.Primary)
+			paint.Fill(gtx.Ops, ui.theme.Palette.ContrastBg)
 			return layout.Dimensions{Size: pt}
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
