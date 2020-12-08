@@ -154,7 +154,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		// Border color transitions.
 		borderColor        = color.NRGBA{A: 107}
 		borderColorHovered = color.NRGBA{A: 221}
-		borderColorActive  = th.Color.Primary
+		borderColorActive  = th.Palette.ContrastBg
 		// TODO: derive from Theme.Error or Theme.Danger
 		dangerColor = color.NRGBA{R: 200, A: 255}
 		// Border thickness transitions.

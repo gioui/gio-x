@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	hoverOverlayAlpha    uint8 = 25
-	selectedOverlayAlpha uint8 = 50
+	hoverOverlayAlpha    uint8 = 48
+	selectedOverlayAlpha uint8 = 96
 )
 
 type NavItem struct {
@@ -93,9 +93,9 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 
 func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min = gtx.Constraints.Max
-	contentColor := n.Theme.Color.Text
+	contentColor := n.Theme.Palette.Fg
 	if n.selected {
-		contentColor = n.Theme.Color.Primary
+		contentColor = n.Theme.Palette.ContrastBg
 	}
 	return layout.Inset{
 		Left:  unit.Dp(8),
@@ -128,9 +128,9 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 	}
 	var fill color.NRGBA
 	if n.hovering {
-		fill = WithAlpha(n.Theme.Color.Text, n.AlphaPalette.Hover)
+		fill = WithAlpha(n.Theme.Palette.Fg, n.AlphaPalette.Hover)
 	} else if n.selected {
-		fill = WithAlpha(n.Theme.Color.Primary, n.AlphaPalette.Selected)
+		fill = WithAlpha(n.Theme.Palette.ContrastBg, n.AlphaPalette.Selected)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))

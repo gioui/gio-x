@@ -323,12 +323,12 @@ func LayoutTextFieldPage(gtx C) D {
 		layout.Rigid(func(gtx C) D {
 			priceInput.Prefix = func(gtx C) D {
 				th := *th
-				th.Color.Text = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
+				th.Palette.Fg = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
 				return material.Label(&th, th.TextSize, "$").Layout(gtx)
 			}
 			priceInput.Suffix = func(gtx C) D {
 				th := *th
-				th.Color.Text = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
+				th.Palette.Fg = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
 				return material.Label(&th, th.TextSize, ".00").Layout(gtx)
 			}
 			priceInput.SingleLine = true

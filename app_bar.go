@@ -85,7 +85,7 @@ func (a *actionGroup) setActions(actions []AppBarAction, overflows []OverflowAct
 	a.overflowState = make([]widget.Clickable, len(a.actions)+len(a.overflow))
 }
 
-func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, background color.NRGBA) D {
+func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable) D {
 	overflowedActions := len(a.actions)
 	gtx.Constraints.Min.Y = 0
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
@@ -110,7 +110,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			}
 		}
 		actions = append(actions, layout.Rigid(func(gtx C) D {
-			return action.layout(background, th.Color.InvText, anim, gtx)
+			return action.layout(th.Palette.Bg, th.Palette.Fg, anim, gtx)
 		}))
 	}
 	if len(a.overflow)+overflowedActions > 0 {
@@ -118,7 +118,8 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			btn := material.IconButton(th, overflowBtn, moreIcon)
 			btn.Size = unit.Dp(24)
-			btn.Background = background
+			btn.Background = th.Palette.Bg
+			btn.Color = th.Palette.Fg
 			btn.Inset = layout.UniformInset(unit.Dp(6))
 			return overflowButtonInset.Layout(gtx, btn.Layout)
 		}))
@@ -172,7 +173,7 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 		dims := layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx C) D {
 				gtx.Constraints.Min.X = width
-				paintRect(gtx, gtx.Constraints.Min, th.Color.InvText)
+				paintRect(gtx, gtx.Constraints.Min, th.Palette.Bg)
 				return layout.Dimensions{Size: gtx.Constraints.Min}
 			}),
 			layout.Stacked(func(gtx C) D {
@@ -349,14 +350,18 @@ func Interpolate(a, b color.NRGBA, progress float32) color.NRGBA {
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	a.initialize()
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
-	fill := a.Theme.Color.Primary
+	th := *a.Theme
+
+	th.Palette.Bg, th.Palette.Fg, th.Palette.ContrastBg, th.Palette.ContrastFg = th.Palette.ContrastBg, th.Palette.ContrastFg, th.Palette.Bg, th.Palette.Fg
+
+	fill := th.Palette.Bg
 	actionSet := &a.normalActions
 	if a.contextualAnim.Visible() {
 		if !a.contextualAnim.Animating() {
-			fill = a.Theme.Color.Text
+			fill = th.Palette.ContrastFg
 			fill.A = 255
 		} else {
-			fill = Interpolate(fill, a.Theme.Color.Text, a.contextualAnim.Revealed(gtx))
+			fill = Interpolate(fill, a.Theme.Palette.Fg, a.contextualAnim.Revealed(gtx))
 		}
 		actionSet = &a.contextualActions
 	}
@@ -387,7 +392,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 					titleText = a.ContextualTitle
 				}
 				title := material.Body1(a.Theme, titleText)
-				title.Color = a.Theme.Color.InvText
+				title.Color = a.Theme.Palette.ContrastFg
 				title.TextSize = unit.Dp(18)
 				return title.Layout(gtx)
 			})
@@ -395,7 +400,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(1, func(gtx C) D {
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			return layout.E.Layout(gtx, func(gtx C) D {
-				return actionSet.layout(gtx, a.Theme, &a.overflowMenu.Clickable, fill)
+				return actionSet.layout(gtx, &th, &a.overflowMenu.Clickable)
 			})
 		}),
 	)
