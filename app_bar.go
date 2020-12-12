@@ -345,6 +345,29 @@ func Interpolate(a, b color.NRGBA, progress float32) color.NRGBA {
 	return out
 }
 
+// SwapGrounds swaps the foreground and background colors
+// of both the contrast and non-constrast colors.
+//
+// Bg <-> Fg
+// ContrastBg <-> ContrastFg
+func SwapGrounds(p material.Palette) material.Palette {
+	out := p
+	out.Fg, out.Bg = out.Bg, out.Fg
+	out.ContrastFg, out.ContrastBg = out.ContrastBg, out.ContrastFg
+	return out
+}
+
+// SwapPairs swaps the contrast and non-constrast colors.
+//
+// Bg <-> ContrastBg
+// Fg <-> ContrastFg
+func SwapPairs(p material.Palette) material.Palette {
+	out := p
+	out.Bg, out.ContrastBg = out.ContrastBg, out.Bg
+	out.Fg, out.ContrastFg = out.ContrastFg, out.Fg
+	return out
+}
+
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
 func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
@@ -352,21 +375,25 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	th := *a.Theme
 
-	th.Palette.Bg, th.Palette.Fg, th.Palette.ContrastBg, th.Palette.ContrastFg = th.Palette.ContrastBg, th.Palette.ContrastFg, th.Palette.Bg, th.Palette.Fg
+	normalBg := th.Palette.ContrastBg
+	if a.contextualAnim.Visible() {
+		// switch the foreground and background colors
+		th.Palette = SwapGrounds(th.Palette)
+	} else {
+		// switch the contrast and main colors
+		th.Palette = SwapPairs(th.Palette)
+	}
 
-	fill := th.Palette.Bg
 	actionSet := &a.normalActions
 	if a.contextualAnim.Visible() {
-		if !a.contextualAnim.Animating() {
-			fill = th.Palette.ContrastFg
-			fill.A = 255
-		} else {
-			fill = Interpolate(fill, a.Theme.Palette.Fg, a.contextualAnim.Revealed(gtx))
+		if a.contextualAnim.Animating() {
+			th.Palette.Bg = Interpolate(normalBg, th.Palette.Bg, a.contextualAnim.Revealed(gtx))
 		}
 		actionSet = &a.contextualActions
 	}
-	paintRect(gtx, gtx.Constraints.Max, fill)
-	a.overflowMenu.updateState(gtx, a.Theme, a.Anchor, actionSet)
+	paintRect(gtx, gtx.Constraints.Max, th.Palette.Bg)
+	overflowTh := th.WithPalette(SwapGrounds(th.Palette))
+	a.overflowMenu.updateState(gtx, &overflowTh, a.Anchor, actionSet)
 
 	layout.Flex{
 		Alignment: layout.Middle,
@@ -379,9 +406,10 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 			if a.contextualAnim.Visible() {
 				icon = cancelIcon
 			}
-			button := material.IconButton(a.Theme, &a.NavigationButton, icon)
+			button := material.IconButton(&th, &a.NavigationButton, icon)
 			button.Size = unit.Dp(24)
-			button.Background = fill
+			button.Background = th.Palette.Bg
+			button.Color = th.Fg
 			button.Inset = layout.UniformInset(unit.Dp(16))
 			return button.Layout(gtx)
 		}),
@@ -391,8 +419,7 @@ func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
 				if a.contextualAnim.Visible() {
 					titleText = a.ContextualTitle
 				}
-				title := material.Body1(a.Theme, titleText)
-				title.Color = a.Theme.Palette.ContrastFg
+				title := material.Body1(&th, titleText)
 				title.TextSize = unit.Dp(18)
 				return title.Layout(gtx)
 			})
