@@ -47,8 +47,6 @@ type AppBar struct {
 	// syntax still have their fields initialized before use.
 	init sync.Once
 
-	*material.Theme
-
 	NavigationButton       widget.Clickable
 	NavigationIcon         *widget.Icon
 	Title, ContextualTitle string
@@ -235,9 +233,8 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 }
 
 // NewAppBar creates and initializes an App Bar.
-func NewAppBar(th *material.Theme, modal *ModalLayer) *AppBar {
+func NewAppBar(modal *ModalLayer) *AppBar {
 	ab := &AppBar{
-		Theme: th,
 		overflowMenu: overflowMenu{
 			ModalLayer: modal,
 		},
@@ -370,10 +367,10 @@ func SwapPairs(p material.Palette) material.Palette {
 
 // Layout renders the app bar. It will span all available horizontal
 // space (gtx.Constraints.Max.X), but has a fixed height.
-func (a *AppBar) Layout(gtx layout.Context) layout.Dimensions {
+func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	a.initialize()
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
-	th := *a.Theme
+	th := *theme
 
 	normalBg := th.Palette.ContrastBg
 	if a.contextualAnim.Visible() {
