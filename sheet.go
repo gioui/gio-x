@@ -2,7 +2,6 @@ package materials
 
 import (
 	"image"
-	"image/color"
 	"time"
 
 	"gioui.org/f32"
@@ -11,24 +10,21 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
+	"gioui.org/widget/material"
 )
 
 // Sheet implements the standard side sheet described here:
 // https://material.io/components/sheets-side#usage
-type Sheet struct {
-	Background color.NRGBA
-}
+type Sheet struct{}
 
-// NewSheet returns a sheet with its background color initialized to white.
+// NewSheet returns a new sheet
 func NewSheet() Sheet {
-	return Sheet{
-		Background: color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
-	}
+	return Sheet{}
 }
 
 // Layout renders the provided widget on a background. The background will use
 // the maximum space available.
-func (s Sheet) Layout(gtx layout.Context, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
+func (s Sheet) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
 	defer op.Push(gtx.Ops).Pop()
 
 	revealed := -1 + anim.Revealed(gtx)
@@ -36,7 +32,7 @@ func (s Sheet) Layout(gtx layout.Context, anim *VisibilityAnimation, widget layo
 	revealedWidth := finalOffset + float32(gtx.Constraints.Max.X)
 	op.Offset(f32.Point{X: finalOffset}).Add(gtx.Ops)
 	// lay out background
-	paintRect(gtx, gtx.Constraints.Max, s.Background)
+	paintRect(gtx, gtx.Constraints.Max, th.Bg)
 
 	// lay out sheet contents
 	dims := widget(gtx)
@@ -100,8 +96,8 @@ func (s *ModalSheet) updateDragState(gtx layout.Context, anim *VisibilityAnimati
 
 // ConfigureModal requests that the sheet prepare the associated
 // ModalLayer to render itself (rather than another modal widget).
-func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions) {
-	s.Modal.Widget = func(gtx C, anim *VisibilityAnimation) D {
+func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions) {
+	s.Modal.Widget = func(gtx C, th *material.Theme, anim *VisibilityAnimation) D {
 		s.updateDragState(gtx, anim)
 		if !anim.Visible() {
 			return D{}
@@ -140,8 +136,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, anim *Visibil
 		}.Add(gtx.Ops)
 
 		// lay out widget
-		dims := s.Sheet.Layout(gtx, anim, func(gtx C) D {
-			return contents(gtx, anim)
+		dims := s.Sheet.Layout(gtx, th, anim, func(gtx C) D {
+			return contents(gtx, th, anim)
 		})
 
 		// On top of sheet content, listen for drag events to close the sheet.

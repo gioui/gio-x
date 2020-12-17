@@ -1,11 +1,10 @@
 package materials
 
 import (
-	"image/color"
-
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget"
+	"gioui.org/widget/material"
 )
 
 // Scrim implments a clickable translucent overlay. It can animate appearing
@@ -14,14 +13,12 @@ import (
 type Scrim struct {
 	// FinalAlpha is the final opacity of the scrim on a scale from 0 to 255.
 	FinalAlpha uint8
-	// Color is the color of the scrim. The Alpha component will be ignored.
-	Color color.NRGBA
 	widget.Clickable
 }
 
 // Layout draws the scrim using the provided animation. If the animation indicates
 // that the scrim is not visible, this is a no-op.
-func (s *Scrim) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+func (s *Scrim) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
@@ -32,8 +29,9 @@ func (s *Scrim) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dim
 		revealed := anim.Revealed(gtx)
 		currentAlpha = uint8(float32(s.FinalAlpha) * revealed)
 	}
-	s.Color.A = currentAlpha
-	fill := WithAlpha(s.Color, currentAlpha)
+	color := th.Fg
+	color.A = currentAlpha
+	fill := WithAlpha(color, currentAlpha)
 	paintRect(gtx, gtx.Constraints.Max, fill)
 	s.Clickable.Layout(gtx)
 	return layout.Dimensions{Size: gtx.Constraints.Max}

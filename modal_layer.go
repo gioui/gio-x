@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gioui.org/layout"
+	"gioui.org/widget/material"
 )
 
 // ModalLayer is a widget drawn on top of the normal UI that can be populated
@@ -13,7 +14,7 @@ import (
 type ModalLayer struct {
 	VisibilityAnimation
 	Scrim
-	Widget func(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions
+	Widget func(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions
 }
 
 const defaultModalAnimationDuration = time.Millisecond * 250
@@ -29,16 +30,16 @@ func NewModal() *ModalLayer {
 
 // Layout renders the modal layer. Unless a modal widget has been triggered,
 // this will do nothing.
-func (m *ModalLayer) Layout(gtx layout.Context) layout.Dimensions {
+func (m *ModalLayer) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	if !m.Visible() {
 		return D{}
 	}
 	if m.Scrim.Clicked() {
 		m.Disappear(gtx.Now)
 	}
-	scrimDims := m.Scrim.Layout(gtx, &m.VisibilityAnimation)
+	scrimDims := m.Scrim.Layout(gtx, th, &m.VisibilityAnimation)
 	if m.Widget != nil {
-		_ = m.Widget(gtx, &m.VisibilityAnimation)
+		_ = m.Widget(gtx, th, &m.VisibilityAnimation)
 	}
 	return scrimDims
 }
