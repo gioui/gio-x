@@ -40,7 +40,6 @@ type NavItem struct {
 // renderNavItem holds both basic nav item state and the interaction
 // state for that item.
 type renderNavItem struct {
-	*material.Theme
 	NavItem
 	hovering bool
 	selected bool
@@ -52,7 +51,7 @@ func (n *renderNavItem) Clicked() bool {
 	return n.Clickable.Clicked()
 }
 
-func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
+func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	events := gtx.Events(n)
 	for _, event := range events {
 		switch event := event.(type) {
@@ -84,18 +83,18 @@ func (n *renderNavItem) Layout(gtx layout.Context) layout.Dimensions {
 	}.Layout(gtx, func(gtx C) D {
 		return material.Clickable(gtx, &n.Clickable, func(gtx C) D {
 			return layout.Stack{}.Layout(gtx,
-				layout.Expanded(n.layoutBackground),
-				layout.Stacked(n.layoutContent),
+				layout.Expanded(func(gtx C) D { return n.layoutBackground(gtx, th) }),
+				layout.Stacked(func(gtx C) D { return n.layoutContent(gtx, th) }),
 			)
 		})
 	})
 }
 
-func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
+func (n *renderNavItem) layoutContent(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	gtx.Constraints.Min = gtx.Constraints.Max
-	contentColor := n.Theme.Palette.Fg
+	contentColor := th.Palette.Fg
 	if n.selected {
-		contentColor = n.Theme.Palette.ContrastBg
+		contentColor = th.Palette.ContrastBg
 	}
 	return layout.Inset{
 		Left:  unit.Dp(8),
@@ -113,7 +112,7 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 					})
 			}),
 			layout.Rigid(func(gtx C) D {
-				label := material.Label(n.Theme, unit.Dp(14), n.Name)
+				label := material.Label(th, unit.Dp(14), n.Name)
 				label.Color = contentColor
 				label.Font.Weight = text.Bold
 				return layout.Center.Layout(gtx, TruncatingLabelStyle(label).Layout)
@@ -122,15 +121,15 @@ func (n *renderNavItem) layoutContent(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
+func (n *renderNavItem) layoutBackground(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	if !n.selected && !n.hovering {
 		return layout.Dimensions{}
 	}
 	var fill color.NRGBA
 	if n.hovering {
-		fill = WithAlpha(n.Theme.Palette.Fg, n.AlphaPalette.Hover)
+		fill = WithAlpha(th.Palette.Fg, n.AlphaPalette.Hover)
 	} else if n.selected {
-		fill = WithAlpha(n.Theme.Palette.ContrastBg, n.AlphaPalette.Selected)
+		fill = WithAlpha(th.Palette.ContrastBg, n.AlphaPalette.Selected)
 	}
 	defer op.Push(gtx.Ops).Pop()
 	rr := float32(gtx.Px(unit.Dp(4)))
@@ -150,11 +149,6 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context) layout.Dimensions {
 // NavDrawer implements the Material Design Navigation Drawer
 // described here: https://material.io/components/navigation-drawer
 type NavDrawer struct {
-	*material.Theme
-
-	// Background (if set) will be passed down to the underlying sheet when the
-	// drawer is rendered.
-	Background *color.NRGBA
 	AlphaPalette
 
 	Title    string
@@ -173,9 +167,8 @@ type NavDrawer struct {
 }
 
 // NewNav configures a navigation drawer
-func NewNav(th *material.Theme, title, subtitle string) NavDrawer {
+func NewNav(title, subtitle string) NavDrawer {
 	m := NavDrawer{
-		Theme:    th,
 		Title:    title,
 		Subtitle: subtitle,
 		AlphaPalette: AlphaPalette{
@@ -190,7 +183,6 @@ func NewNav(th *material.Theme, title, subtitle string) NavDrawer {
 // invoked only from the layout thread to avoid nasty race conditions.
 func (m *NavDrawer) AddNavItem(item NavItem) {
 	m.items = append(m.items, renderNavItem{
-		Theme:        m.Theme,
 		NavItem:      item,
 		AlphaPalette: &m.AlphaPalette,
 	})
@@ -199,17 +191,14 @@ func (m *NavDrawer) AddNavItem(item NavItem) {
 	}
 }
 
-func (m *NavDrawer) Layout(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+func (m *NavDrawer) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
 	sheet := NewSheet()
-	if m.Background != nil {
-		sheet.Background = *m.Background
-	}
-	return sheet.Layout(gtx, anim, func(gtx C) D {
-		return m.LayoutContents(gtx, anim)
+	return sheet.Layout(gtx, th, anim, func(gtx C) D {
+		return m.LayoutContents(gtx, th, anim)
 	})
 }
 
-func (m *NavDrawer) LayoutContents(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+func (m *NavDrawer) LayoutContents(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
 	if !anim.Visible() {
 		return D{}
 	}
@@ -231,34 +220,33 @@ func (m *NavDrawer) LayoutContents(gtx layout.Context, anim *VisibilityAnimation
 					layout.Rigid(func(gtx C) D {
 						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(36))
 						gtx.Constraints.Min = gtx.Constraints.Max
-						title := material.Label(m.Theme, unit.Dp(18), m.Title)
+						title := material.Label(th, unit.Dp(18), m.Title)
 						title.Font.Weight = text.Bold
 						return layout.SW.Layout(gtx, title.Layout)
 					}),
 					layout.Rigid(func(gtx C) D {
 						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(20))
 						gtx.Constraints.Min = gtx.Constraints.Max
-						return layout.SW.Layout(gtx, material.Label(m.Theme, unit.Dp(12), m.Subtitle).Layout)
+						return layout.SW.Layout(gtx, material.Label(th, unit.Dp(12), m.Subtitle).Layout)
 					}),
 				)
 			})
 		}),
 		layout.Flexed(1, func(gtx C) D {
-			return m.layoutNavList(gtx, anim)
+			return m.layoutNavList(gtx, th, anim)
 		}),
 	)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
-func (m *NavDrawer) layoutNavList(gtx layout.Context, anim *VisibilityAnimation) layout.Dimensions {
+func (m *NavDrawer) layoutNavList(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
 	m.selectedChanged = false
 	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
-		m.items[index].Theme = m.Theme
-		dimensions := m.items[index].Layout(gtx)
+		dimensions := m.items[index].Layout(gtx, th)
 		if m.items[index].Clicked() {
 			m.changeSelected(index)
 		}
@@ -307,8 +295,8 @@ type ModalNavDrawer struct {
 }
 
 // NewModalNav configures a modal navigation drawer that will render itself into the provided ModalLayer
-func NewModalNav(th *material.Theme, modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
-	nav := NewNav(th, title, subtitle)
+func NewModalNav(modal *ModalLayer, title, subtitle string) *ModalNavDrawer {
+	nav := NewNav(title, subtitle)
 	return ModalNavFrom(&nav, modal)
 }
 
@@ -317,15 +305,12 @@ func ModalNavFrom(nav *NavDrawer, modal *ModalLayer) *ModalNavDrawer {
 	modalSheet := NewModalSheet(modal)
 	m.NavDrawer = nav
 	m.sheet = modalSheet
-	if nav.Background != nil {
-		m.sheet.Sheet.Background = *nav.Background
-	}
 	return m
 }
 
 func (m *ModalNavDrawer) Layout() layout.Dimensions {
-	m.sheet.LayoutModal(func(gtx C, anim *VisibilityAnimation) D {
-		dims := m.NavDrawer.LayoutContents(gtx, anim)
+	m.sheet.LayoutModal(func(gtx C, th *material.Theme, anim *VisibilityAnimation) D {
+		dims := m.NavDrawer.LayoutContents(gtx, th, anim)
 		if m.selectedChanged {
 			anim.Disappear(gtx.Now)
 		}
