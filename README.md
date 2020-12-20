@@ -20,7 +20,7 @@ The list of currently-Implemented components follows:
 The navigation drawer [specified here](https://material.io/components/navigation-drawer) is mostly implemented by the type
 `NavDrawer`, and the modal variant can be created with a `ModalNavDrawer`. The modal variant looks like this:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/modal-nav.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/modal-nav.png)
 
 Features:
 - Animated drawer open/close.
@@ -43,11 +43,11 @@ The App Bar [specified here](https://material.io/components/app-bars-top) is mos
 
 Normal state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/app-bar-top.png)
 
 Contextual state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/master/img/app-bar-top-contextual.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/app-bar-top-contextual.png)
 
 Features:
  - Action buttons and overflow menu contents can be changed easily.
@@ -109,7 +109,7 @@ the [material design specifications](https://material.io/components) for the com
 
 You can send bug reports, feature requests, questions, and patches to [my public inbox](https://lists.sr.ht/~whereswaldon/public-inbox).
 
-All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/materials/tree/master/LICENSE) of this repo.
+All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/materials/tree/main/LICENSE) of this repo.
 
 ## License
 
