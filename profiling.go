@@ -166,8 +166,11 @@ func (c *CSVTimingRecorder) Stop() error {
 
 // Profile records profiling data from the last frame and prepares the
 // capture of the next frame. Calling this method every frame is sufficient
-// to profile all frames.
+// to profile all frames. It will simply return if c is nil.
 func (c *CSVTimingRecorder) Profile(gtx layout.Context) {
+	if c == nil {
+		return
+	}
 	var lastEventTime time.Time
 	lastEventTime, c.nextEventTime = c.nextEventTime, gtx.Now
 	profile.Op{Tag: c}.Add(gtx.Ops)
@@ -181,8 +184,11 @@ func (c *CSVTimingRecorder) Profile(gtx layout.Context) {
 
 // Write is a lower-level way to capture a single profile event. It should
 // be used instead of the Profile method if more granular profiling control
-// is desired.
+// is desired. It will simply return if c is nil.
 func (c *CSVTimingRecorder) Write(when time.Time, e profile.Event) error {
+	if c == nil {
+		return nil
+	}
 	var err error
 	select {
 	case err = <-c.errChan:
