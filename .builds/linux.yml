@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: Unlicense OR MIT
+image: debian/testing
+packages:
+ - curl
+ - pkg-config
+ - libwayland-dev
+ - libx11-dev
+ - libx11-xcb-dev
+ - libxkbcommon-dev
+ - libxkbcommon-x11-dev
+ - libgles2-mesa-dev
+ - libegl1-mesa-dev
+ - libffi-dev
+ - libxcursor-dev
+ - libxrandr-dev
+ - libxinerama-dev
+ - libxi-dev
+ - libxxf86vm-dev
+ - wine
+ - xvfb
+ - xdotool
+ - scrot
+ - sway
+ - grim
+ - wine
+ - unzip
+sources:
+ - https://git.sr.ht/~whereswaldon/gio-incoming
+environment:
+ GOFLAGS: -mod=readonly
+ PATH: /home/build/sdk/go/bin:/usr/bin:/home/build/go/bin
+ github_mirror: git@github.com:gioui/gio-incoming
+secrets:
+ - 4d571621-ab6e-457e-a8d9-a4fab24a9794
+tasks:
+ - install_go1_14: |
+     mkdir -p /home/build/sdk
+     curl https://dl.google.com/go/go1.14.linux-amd64.tar.gz | tar -C /home/build/sdk -xzf -
+ - test_gio: |
+     cd gio-incoming
+     go test -race ./...
+ - check_gofmt: |
+     cd gio-incoming
+     test -z "$(gofmt -s -l .)"
+ - check_sign_off: |
+     set +x -e
+     cd gio-incoming
+     for hash in $(git log -n 20 --format="%H"); do
+        message=$(git log -1 --format=%B $hash)
+        if [[ ! "$message" =~ "Signed-off-by: " ]]; then
+            echo "Missing 'Signed-off-by' in commit $hash"
+            exit 1
+        fi
+     done
+ - mirror: |
+     # mirror to github
+     ssh-keyscan github.com > "$HOME"/.ssh/known_hosts && cd gio && git push --mirror "$github_mirror" || echo "failed mirroring"
