@@ -1,4 +1,4 @@
-package materials
+package component
 
 import (
 	"image/color"
