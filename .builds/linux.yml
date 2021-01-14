@@ -45,7 +45,7 @@ tasks:
  - check_sign_off: |
      set +x -e
      cd gio-incoming
-     for hash in $(git log -n 20 --format="%H"); do
+     for hash in $(git log -n 10 --format="%H"); do
         message=$(git log -1 --format=%B $hash)
         if [[ ! "$message" =~ "Signed-off-by: " ]]; then
             echo "Missing 'Signed-off-by' in commit $hash"
