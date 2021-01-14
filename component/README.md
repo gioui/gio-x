@@ -1,4 +1,4 @@
-# materials
+# component
 
 This package provides various material design components for [gio](https://gioui.org).
 
@@ -20,7 +20,7 @@ The list of currently-Implemented components follows:
 The navigation drawer [specified here](https://material.io/components/navigation-drawer) is mostly implemented by the type
 `NavDrawer`, and the modal variant can be created with a `ModalNavDrawer`. The modal variant looks like this:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/modal-nav.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/modal-nav.png)
 
 Features:
 - Animated drawer open/close.
@@ -43,11 +43,11 @@ The App Bar [specified here](https://material.io/components/app-bars-top) is mos
 
 Normal state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/app-bar-top.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/app-bar-top.png)
 
 Contextual state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/materials/blob/main/img/app-bar-top-contextual.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/app-bar-top-contextual.png)
 
 Features:
  - Action buttons and overflow menu contents can be changed easily.
@@ -87,29 +87,14 @@ Features:
 Known Issues:
 - Icons, hint text, error text, prefix/suffix, and other features are not yet implemented.
 
-## Example
-
-Want to see it?
-
-```
-git clone https://git.sr.ht/~whereswaldon/materials
-cd materials
-go run ./example
-```
-
-You can also see the demo using a bottom bar with:
-```
-go run ./example/ -bottom-bar
-```
-
 ## Contributing
 
 Contributions to this collection are welcome! All contributions should adhere to
 the [material design specifications](https://material.io/components) for the components that they implement.
 
-You can send bug reports, feature requests, questions, and patches to [my public inbox](https://lists.sr.ht/~whereswaldon/public-inbox).
+You can send bug reports, feature requests, questions, and patches to [the gio discussion](https://lists.sr.ht/~eliasnaur/gio) or [gio patch](https://lists.sr.ht/~eliasnaur/gio-patches) mailing lists.
 
-All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/materials/tree/main/LICENSE) of this repo.
+All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-incoming/tree/main/LICENSE) of this repo.
 
 ## License
 
