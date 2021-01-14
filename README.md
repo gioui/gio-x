@@ -6,7 +6,7 @@ This repository hosts several packages in `gioui.org/x`. These packages are inte
 
 ## Contributing
 
-You can send bug reports, feature requests, questions, and patches to [the gio discussion](https://lists.sr.ht/~eliasnaur/gio) or [gio patch](https://lists.sr.ht/~eliasnaur/gio-patches) mailing lists.
+You can send bug reports, feature requests, questions, and patches to the [gio discussion](https://lists.sr.ht/~eliasnaur/gio) or [gio patch](https://lists.sr.ht/~eliasnaur/gio-patches) mailing lists.
 
 All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-incoming/tree/main/LICENSE) of this repo.
 
