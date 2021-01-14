@@ -1,11 +1,11 @@
-package materials_test
+package component_test
 
 import (
 	"image/color"
 	"strconv"
 	"testing"
 
-	"git.sr.ht/~whereswaldon/materials"
+	materials "gioui.org/x/component"
 )
 
 type interpolationTest struct {
