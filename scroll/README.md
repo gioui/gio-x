@@ -1,8 +1,10 @@
 # scroll
 
+[![Go Reference](https://pkg.go.dev/badge/gioui.org/x/scroll.svg)](https://pkg.go.dev/gioui.org/x/scroll)
+
 A scroll progress indicator widget for [gio](https://gioui.org).
 
-![example screenshot](https://git.sr.ht/~whereswaldon/scroll/blob/main/img/example-screenshot.png)
+![example screenshot](https://git.sr.ht/~whereswaldon/gio-incoming/blob/main/scroll/img/example-screenshot.png)
 
 ## Origin
 
@@ -16,11 +18,3 @@ repository so that other gio users can benefit.
 
 This repository does not have a stable API. Pin yourself to a particular version
 with go modules.
-
-## Example
-
-See the `example` folder for a simple program demonstrating how to use the scroll bar.
-
-## License
-
-Dual Unlicense/MIT, same as Gio

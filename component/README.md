@@ -1,5 +1,7 @@
 # component
 
+[![Go Reference](https://pkg.go.dev/badge/gioui.org/x/component.svg)](https://pkg.go.dev/gioui.org/x/component)
+
 This package provides various material design components for [gio](https://gioui.org).
 
 ## State
@@ -86,16 +88,3 @@ Features:
 
 Known Issues:
 - Icons, hint text, error text, prefix/suffix, and other features are not yet implemented.
-
-## Contributing
-
-Contributions to this collection are welcome! All contributions should adhere to
-the [material design specifications](https://material.io/components) for the components that they implement.
-
-You can send bug reports, feature requests, questions, and patches to [the gio discussion](https://lists.sr.ht/~eliasnaur/gio) or [gio patch](https://lists.sr.ht/~eliasnaur/gio-patches) mailing lists.
-
-All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-incoming/tree/main/LICENSE) of this repo.
-
-## License
-
-Dual MIT/Unlicense; same as Gio
