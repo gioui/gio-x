@@ -66,7 +66,7 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 			}
 		}
 	}
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	pointer.PassOp{Pass: true}.Add(gtx.Ops)
 	pointer.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,
@@ -131,7 +131,7 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context, th *material.Theme)
 	} else if n.selected {
 		fill = WithAlpha(th.Palette.ContrastBg, n.AlphaPalette.Selected)
 	}
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	rr := float32(gtx.Px(unit.Dp(4)))
 	clip.RRect{
 		Rect: f32.Rectangle{

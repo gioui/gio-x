@@ -22,7 +22,7 @@ func (s *Scrim) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityA
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	gtx.Constraints.Min = gtx.Constraints.Max
 	currentAlpha := s.FinalAlpha
 	if anim.Animating() {

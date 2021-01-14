@@ -202,7 +202,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 
 func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 	in.Update(gtx, th, hint)
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 	// Offset accounts for label height, which sticks above the border dimensions.
 	op.Offset(f32.Pt(0, float32(in.label.Smallest.Size.Y)/2)).Add(gtx.Ops)
 	in.label.Inset.Layout(
@@ -285,10 +285,10 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 							},
 						}
 						for _, c := range clips {
-							stack := op.Push(gtx.Ops)
+							stack := op.Save(gtx.Ops)
 							c(gtx)
 							border.Add(gtx.Ops)
-							stack.Pop()
+							stack.Load()
 						}
 					} else {
 						border.Add(gtx.Ops)
@@ -418,22 +418,22 @@ func (h *Hoverable) Hovered() bool {
 // Layout Hoverable according to min constraints.
 func (h *Hoverable) Layout(gtx C) D {
 	{
-		stack := op.Push(gtx.Ops)
+		stack := op.Save(gtx.Ops)
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
 		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 		h.Clickable.Layout(gtx)
-		stack.Pop()
+		stack.Load()
 	}
 	h.update(gtx)
 	{
-		stack := op.Push(gtx.Ops)
+		stack := op.Save(gtx.Ops)
 		pointer.PassOp{Pass: true}.Add(gtx.Ops)
 		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 		pointer.InputOp{
 			Tag:   h,
 			Types: pointer.Enter | pointer.Leave | pointer.Cancel,
 		}.Add(gtx.Ops)
-		stack.Pop()
+		stack.Load()
 	}
 	return D{Size: gtx.Constraints.Min}
 

@@ -25,7 +25,7 @@ func NewSheet() Sheet {
 // Layout renders the provided widget on a background. The background will use
 // the maximum space available.
 func (s Sheet) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
-	defer op.Push(gtx.Ops).Pop()
+	defer op.Save(gtx.Ops).Load()
 
 	revealed := -1 + anim.Revealed(gtx)
 	finalOffset := revealed * (float32(gtx.Constraints.Max.X))
@@ -120,7 +120,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 			}
 		}
 		if s.dragOffset != 0 || anim.Animating() {
-			defer op.Push(gtx.Ops).Pop()
+			defer op.Save(gtx.Ops).Load()
 			s.drawerTransform(gtx, anim).Add(gtx.Ops)
 			op.InvalidateOp{}.Add(gtx.Ops)
 		}
