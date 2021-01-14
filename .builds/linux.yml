@@ -54,4 +54,4 @@ tasks:
      done
  - mirror: |
      # mirror to github
-     ssh-keyscan github.com > "$HOME"/.ssh/known_hosts && cd gio && git push --mirror "$github_mirror" || echo "failed mirroring"
+     ssh-keyscan github.com > "$HOME"/.ssh/known_hosts && cd gio-incoming && git push --mirror "$github_mirror" || echo "failed mirroring"
