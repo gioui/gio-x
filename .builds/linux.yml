@@ -25,11 +25,11 @@ packages:
  - wine
  - unzip
 sources:
- - https://git.sr.ht/~whereswaldon/gio-incoming
+ - https://git.sr.ht/~whereswaldon/gio-x
 environment:
  GOFLAGS: -mod=readonly
  PATH: /home/build/sdk/go/bin:/usr/bin:/home/build/go/bin
- github_mirror: git@github.com:gioui/gio-incoming
+ github_mirror: git@github.com:gioui/gio-x
 secrets:
  - 4d571621-ab6e-457e-a8d9-a4fab24a9794
 tasks:
@@ -37,14 +37,14 @@ tasks:
      mkdir -p /home/build/sdk
      curl https://dl.google.com/go/go1.14.linux-amd64.tar.gz | tar -C /home/build/sdk -xzf -
  - test_gio: |
-     cd gio-incoming
+     cd gio-x
      go test -race ./...
  - check_gofmt: |
-     cd gio-incoming
+     cd gio-x
      test -z "$(gofmt -s -l .)"
  - check_sign_off: |
      set +x -e
-     cd gio-incoming
+     cd gio-x
      for hash in $(git log -n 10 --format="%H"); do
         message=$(git log -1 --format=%B $hash)
         if [[ ! "$message" =~ "Signed-off-by: " ]]; then
@@ -54,4 +54,4 @@ tasks:
      done
  - mirror: |
      # mirror to github
-     ssh-keyscan github.com > "$HOME"/.ssh/known_hosts && cd gio-incoming && git push --mirror "$github_mirror" || echo "failed mirroring"
+     ssh-keyscan github.com > "$HOME"/.ssh/known_hosts && cd gio-x && git push --mirror "$github_mirror" || echo "failed mirroring"
