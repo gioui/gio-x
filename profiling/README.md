@@ -1,9 +1,5 @@
-## gioprofiler
+## profiling
 
-[![Go Reference](https://pkg.go.dev/badge/git.sr.ht/~whereswaldon/gioprofiler.svg)](https://pkg.go.dev/git.sr.ht/~whereswaldon/gioprofiler)
+[![Go Reference](https://pkg.go.dev/badge/gioui.org/x/profiling.svg)](https://pkg.go.dev/gioui.org/x/profiling)
 
 Profiling tools for gio
-
-## Licensing
-
-Dual Unlicense/MIT

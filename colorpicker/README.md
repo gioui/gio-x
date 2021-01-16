@@ -1,15 +1,7 @@
 # colorpicker
 
-[![GoDoc](https://godoc.org/git.sr.ht/~whereswaldon/colorpicker?status.svg)](https://godoc.org/git.sr.ht/~whereswaldon/colorpicker)
+[![Go Reference](https://pkg.go.dev/badge/gioui.org/x/colorpicker.svg)](https://pkg.go.dev/gioui.org/x/colorpicker)
 
-This is a simple Go package that provides widgets for choosing colors.
+This is a simple Gio package that provides widgets for choosing colors.
 
-![screenshot of provided widgets](https://git.sr.ht/~whereswaldon/colorpicker/blob/master/img/screenshot.jpg)
-
-## Issues/Contribution
-
-Shoot an email to my [public inbox](https://lists.sr.ht/~whereswaldon/public-inbox) with and bug reports or feature requests. You can also send patches there!
-
-## License
-
-Dual MIT/Unlicense
+![screenshot of provided widgets](https://git.sr.ht/~whereswaldon/gio-x/blob/main/colorpicker/img/screenshot.jpg)

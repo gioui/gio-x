@@ -1,4 +1,6 @@
-# events
+# eventx
+
+[![Go Reference](https://pkg.go.dev/badge/gioui.org/x/eventx.svg)](https://pkg.go.dev/gioui.org/x/eventx)
 
 This package provides types to manage [Gio](https://gioui.org) events.
 
@@ -34,14 +36,3 @@ tag.
 
 CombinedQueue combines the output of two queues. This can be useful to join the
 events of the "real" gio event queue with a fake one like an EventGroup.
-
-## Contributing
-
-You can send bug reports, feature requests, questions, and patches to [my public inbox](https://lists.sr.ht/~whereswaldon/public-inbox).
-
-All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/events/tree/main/LICENSE) of this repo.
-
-## License
-
-Dual MIT/Unlicense; same as Gio
-
