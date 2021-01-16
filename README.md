@@ -25,7 +25,7 @@ Ask questions on the [gio discussion mailing list]().
 
 Send patches on the [gio patches mailing list]() with the subject line prefix `[PATCH gio-x]`
 
-All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-incoming/tree/main/LICENSE) of this repo.
+All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-x/tree/main/LICENSE) of this repo.
 
 ## Maintainers
 
