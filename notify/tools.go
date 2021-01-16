@@ -1,5 +1,5 @@
 //+build tools
 
-package niotify
+package notify
 
 import _ "gioui.org/cmd/gogio"

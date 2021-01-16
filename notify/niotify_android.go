@@ -1,6 +1,6 @@
 //+build android
 
-package niotify
+package notify
 
 import (
 	"git.sr.ht/~whereswaldon/niotify/android"

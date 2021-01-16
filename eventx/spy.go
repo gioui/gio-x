@@ -1,7 +1,7 @@
 /*
 Package events provides types to help manage Gio events and event routing.
 */
-package events
+package eventx
 
 import (
 	"gioui.org/io/event"

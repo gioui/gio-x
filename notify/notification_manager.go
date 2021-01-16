@@ -15,7 +15,7 @@ Sending a notification is easy:
     // you can also cancel notifications
     notification.Cancel()
 */
-package niotify
+package notify
 
 // Manager provides methods for creating and managing notifications.
 type Manager struct {

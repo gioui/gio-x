@@ -1,5 +1,5 @@
 /*
-Package gioprofiler provides tools for recording frame timings for later analysis.
+Package profiling provides tools for recording frame timings for later analysis.
 
 The simplest usage is to construct a profilier at the start of your event loop
 function and to defer stopping it until the window is closed. Something like:
@@ -34,7 +34,7 @@ function and to defer stopping it until the window is closed. Something like:
 
 The actual disk I/O is performed by a different goroutine and will not block the UI unless it gets more than 60 frames behind.
 */
-package gioprofiler
+package profiling
 
 import (
 	"encoding/csv"

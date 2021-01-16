@@ -1,6 +1,6 @@
 //+build linux,!android openbsd freebsd netbsd
 
-package niotify
+package notify
 
 import (
 	"fmt"

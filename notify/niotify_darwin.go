@@ -1,6 +1,6 @@
 //+build darwin
 
-package niotify
+package notify
 
 import (
 	"git.sr.ht/~whereswaldon/niotify/macos"
