@@ -3,7 +3,7 @@ module git.sr.ht/~whereswaldon/haptic
 go 1.14
 
 require (
-	gioui.org v0.0.0-20201206220452-acc3f704e478
+	gioui.org v0.0.0-20210116085804-99bfa6a33cdf
 	git.wow.st/gmp/jni v0.0.0-20200827154156-014cd5c7c4c0
-	golang.org/x/sys v0.0.0-20201204225414-ed752295db88 // indirect
+	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
 )
