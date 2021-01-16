@@ -57,7 +57,7 @@ func (b *Buzzer) Buzz() bool {
 
 // Shutdown stops the background event loop that interfaces with the JVM.
 // Call this when you are done with a Buzzer to allow it to be garbage
-// collected. Do not call this method more than per Buzzer.
+// collected. Do not call this method more than once per Buzzer.
 func (b *Buzzer) Shutdown() {
 	close(b.jvmOperations)
 	close(b.errors)
