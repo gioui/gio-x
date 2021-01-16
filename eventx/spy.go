@@ -1,5 +1,5 @@
 /*
-Package events provides types to help manage Gio events and event routing.
+Package eventx provides types to help manage Gio events and event routing.
 */
 package eventx
 
