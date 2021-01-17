@@ -6,16 +6,16 @@ This repository hosts `gioui.org/x`. Two kinds of package exist in this namespac
 
 This table describes the current status of each package in `gioui.org/x`:
 
-| Name        | Intended for core? | Non-core dependencies? | API Stability |
-| ---         | ---                | ---                    | ---           |
-| colorpicker | uncertain          | no                     | unstable      |
-| component   | uncertain          | no                     | unstable      |
-| eventx      | yes                | no                     | unstable      |
-| haptic      | no                 | yes                    | unstable      |
-| notify      | no                 | yes                    | unstable      |
-| outlay      | yes                | no                     | unstable      |
-| profiling   | uncertain          | no                     | unstable      |
-| scroll      | yes                | no                     | unstable      |
+| Name        | Purpose                                | Intended for core? | Non-core dependencies? | API Stability |
+| ---         | ---                                    | ---                | ---                    | ---           |
+| colorpicker | Widgets for choosing colors            | uncertain          | no                     | unstable      |
+| component   | Material.io components                 | uncertain          | no                     | unstable      |
+| eventx      | Event management tools                 | yes                | no                     | unstable      |
+| haptic      | Haptic feedback for mobile devices     | no                 | yes                    | unstable      |
+| notify      | Background notifications               | no                 | yes                    | unstable      |
+| outlay      | Extra layouts                          | yes                | no                     | unstable      |
+| profiling   | Gio render performance recording tools | uncertain          | no                     | unstable      |
+| scroll      | Scrollbar widget for Gio               | yes                | no                     | unstable      |
 
 ## Contributing
 
