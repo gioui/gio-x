@@ -3,7 +3,7 @@
 package notify
 
 import (
-	"git.sr.ht/~whereswaldon/niotify/macos"
+	"gioui.org/x/notify/macos"
 )
 
 type macosManager struct {
