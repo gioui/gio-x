@@ -3,7 +3,7 @@
 package notify
 
 import (
-	"git.sr.ht/~whereswaldon/niotify/android"
+	"gioui.org/x/notify/android"
 )
 
 type androidManager struct {
