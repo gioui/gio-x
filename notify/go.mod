@@ -1,4 +1,4 @@
-module git.sr.ht/~whereswaldon/niotify
+module gioui.org/x/niotify
 
 go 1.14
 
