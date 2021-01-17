@@ -1,4 +1,4 @@
-module git.sr.ht/~whereswaldon/haptic
+module gioui.org/x/haptic
 
 go 1.14
 
