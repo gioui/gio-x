@@ -4,7 +4,7 @@
 
 A scroll progress indicator widget for [gio](https://gioui.org).
 
-![example screenshot](https://git.sr.ht/~whereswaldon/gio-incoming/blob/main/scroll/img/example-screenshot.png)
+![example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/scroll/img/example-screenshot.png)
 
 ## Origin
 
