@@ -1,4 +1,4 @@
-module gioui.org/x/niotify
+module gioui.org/x/notify
 
 go 1.14
 
