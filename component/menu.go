@@ -64,18 +64,18 @@ func (c CardStyle) Layout(gtx C, w layout.Widget) D {
 			X: float32(left + dims.Size.X + right),
 		},
 		f32.Point{
-			X: float32(left + dims.Size.X),
+			X: float32(left+dims.Size.X) + .5,
 			Y: float32(top),
 		},
 		f32.Point{
-			X: float32(left),
+			X: float32(left) + .25,
 			Y: float32(top),
 		},
 	)
 	leftSpec := pathFrom(gtx,
 		f32.Point{},
-		f32.Point{X: float32(left), Y: float32(top)},
-		f32.Point{X: float32(left), Y: float32(top + dims.Size.Y)},
+		f32.Point{X: float32(left), Y: float32(top) - .5},
+		f32.Point{X: float32(left), Y: float32(top+dims.Size.Y) - .25},
 		f32.Point{Y: float32(top + dims.Size.Y + bottom)},
 	)
 	rightSpec := pathFrom(gtx,
@@ -83,17 +83,17 @@ func (c CardStyle) Layout(gtx C, w layout.Widget) D {
 		f32.Point{X: float32(left + right + dims.Size.X),
 			Y: float32(top + bottom + dims.Size.Y)},
 		f32.Point{X: float32(left + dims.Size.X),
-			Y: float32(top + dims.Size.Y)},
+			Y: float32(top+dims.Size.Y) + .5},
 		f32.Point{X: float32(left + dims.Size.X),
-			Y: float32(top)},
+			Y: float32(top) + .25},
 	)
 	bottomSpec := pathFrom(gtx,
 		f32.Point{Y: float32(top + bottom + dims.Size.Y)},
 		f32.Point{X: float32(left + right + dims.Size.X),
 			Y: float32(top + bottom + dims.Size.Y)},
-		f32.Point{X: float32(left + dims.Size.X),
+		f32.Point{X: float32(left+dims.Size.X) - .25,
 			Y: float32(top + dims.Size.Y)},
-		f32.Point{X: float32(left),
+		f32.Point{X: float32(left) - .5,
 			Y: float32(top + dims.Size.Y)},
 	)
 
