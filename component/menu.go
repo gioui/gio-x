@@ -1,6 +1,7 @@
 package component
 
 import (
+	"image"
 	"image/color"
 
 	"gioui.org/f32"
@@ -11,6 +12,100 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
+
+type ShadowStyle struct {
+	Shape     clip.RRect
+	Elevation unit.Value
+	Darkest   color.NRGBA
+}
+
+func Shadow(rect clip.RRect, elevation unit.Value) ShadowStyle {
+	return ShadowStyle{
+		Elevation: elevation,
+		Shape:     rect,
+		Darkest:   color.NRGBA{A: 200},
+	}
+}
+
+func (s ShadowStyle) radius(shapeRR float32) float32 {
+	return shapeRR
+}
+
+func (s ShadowStyle) spread(gtx C) float32 {
+	return float32(gtx.Px(s.Elevation))
+}
+
+func (s ShadowStyle) Layout(gtx C) D {
+	nwRR := s.radius(s.Shape.NW)
+	neRR := s.radius(s.Shape.NE)
+	seRR := s.radius(s.Shape.SE)
+	swRR := s.radius(s.Shape.SW)
+	spread := s.spread(gtx)
+
+	shadowW := s.Shape.Rect.Dx() + 2*spread
+	shadowH := s.Shape.Rect.Dy() + 2*spread
+
+	// topW := shadowW - nwRR - neRR
+	// leftH := shadowH - nwRR - swRR
+	// rightH := shadowH - neRR - seRR
+	// bottomW := shadowW - seRR - swRR
+
+	// NW corner.
+	saved := op.Save(gtx.Ops)
+	paint.RadialGradientOp{
+		Stop1: f32.Point{
+			X: nwRR,
+			Y: nwRR,
+		},
+		Color1: s.Darkest,
+		Stop2: f32.Point{
+			X: nwRR - spread,
+			Y: nwRR,
+		},
+	}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+	saved.Load()
+	// NE corner.
+	paint.RadialGradientOp{
+		Stop1: f32.Point{
+			X: shadowW - neRR,
+			Y: neRR,
+		},
+		Color1: s.Darkest,
+		Stop2: f32.Point{
+			X: shadowW - neRR + spread,
+			Y: neRR,
+		},
+	}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+	// SE corner.
+	paint.RadialGradientOp{
+		Stop1: f32.Point{
+			X: shadowW - seRR,
+			Y: shadowH - seRR,
+		},
+		Color1: s.Darkest,
+		Stop2: f32.Point{
+			X: shadowW - seRR + spread,
+			Y: shadowH - seRR,
+		},
+	}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+	// SW corner.
+	paint.RadialGradientOp{
+		Stop1: f32.Point{
+			X: swRR,
+			Y: shadowH - swRR,
+		},
+		Color1: s.Darkest,
+		Stop2: f32.Point{
+			X: swRR - spread,
+			Y: shadowH - swRR,
+		},
+	}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+	return D{Size: image.Pt(int(shadowW), int(shadowH))}
+}
 
 // CardStyle defines the visual aspects of a material design surface
 // with (optionally) rounded corners and a drop shadow.
