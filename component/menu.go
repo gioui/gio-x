@@ -16,37 +16,38 @@ import (
 // with (optionally) rounded corners and a drop shadow.
 type CardStyle struct {
 	*material.Theme
-	layout.Inset
-	Radius unit.Value
-	Shadow color.NRGBA
+	Radius    unit.Value
+	Elevation unit.Value
+	Shadow    color.NRGBA
 }
 
 func Card(th *material.Theme) CardStyle {
-	defaultShadowSize := unit.Dp(20)
 	return CardStyle{
-		Theme:  th,
-		Inset:  layout.UniformInset(defaultShadowSize),
-		Radius: defaultShadowSize,
-		Shadow: color.NRGBA{A: 155},
+		Theme:     th,
+		Radius:    unit.Dp(0),
+		Elevation: unit.Dp(8),
+		Shadow:    color.NRGBA{A: 155},
 	}
 }
 
 func (c CardStyle) Layout(gtx C, w layout.Widget) D {
+	inset := layout.UniformInset(c.Elevation.Scale(.5))
 	macro := op.Record(gtx.Ops)
 	dims := w(gtx)
 	call := macro.Stop()
+	dimsCopy := dims
 
-	finalDims := c.Inset.Layout(gtx, func(gtx C) D {
-		call.Add(gtx.Ops)
-		return dims
-	})
-	defer op.Save(gtx.Ops).Load()
-	clip.UniformRRect(f32.Rectangle{Max: layout.FPt(finalDims.Size)}, float32(gtx.Px(c.Radius))).Add(gtx.Ops)
+	elevationAdjustment := gtx.Px(c.Elevation)
 
-	left := (gtx.Px(c.Inset.Left))
-	top := (gtx.Px(c.Inset.Top))
-	right := (gtx.Px(c.Inset.Right))
-	bottom := (gtx.Px(c.Inset.Bottom))
+	// Adjust dims to account for the part of the drop shadow that will
+	// be underneath the card.
+	dims.Size.X -= 2 * elevationAdjustment
+	dims.Size.Y -= 2 * elevationAdjustment
+
+	left := (gtx.Px(inset.Left) + elevationAdjustment)
+	top := (gtx.Px(inset.Top) + elevationAdjustment)
+	right := (gtx.Px(inset.Right) + elevationAdjustment)
+	bottom := (gtx.Px(inset.Bottom) + elevationAdjustment)
 
 	pathFrom := func(gtx C, points ...f32.Point) clip.PathSpec {
 		p := clip.Path{}
@@ -121,10 +122,20 @@ func (c CardStyle) Layout(gtx C, w layout.Widget) D {
 		grad.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
 	}
-	apply(gtx, topGrad, topSpec)
-	apply(gtx, leftGrad, leftSpec)
-	apply(gtx, rightGrad, rightSpec)
-	apply(gtx, bottomGrad, bottomSpec)
+	func() {
+		defer op.Save(gtx.Ops).Load()
+		op.Offset(f32.Pt(0, float32(gtx.Px(unit.Dp(2))/2))).Add(gtx.Ops)
+		apply(gtx, topGrad, topSpec)
+		apply(gtx, leftGrad, leftSpec)
+		apply(gtx, rightGrad, rightSpec)
+		apply(gtx, bottomGrad, bottomSpec)
+	}()
+	finalDims := inset.Layout(gtx, func(gtx C) D {
+		defer op.Save(gtx.Ops).Load()
+		clip.UniformRRect(f32.Rectangle{Max: layout.FPt(dimsCopy.Size)}, float32(gtx.Px(c.Radius))).Add(gtx.Ops)
+		call.Add(gtx.Ops)
+		return dimsCopy
+	})
 	return finalDims
 }
 
