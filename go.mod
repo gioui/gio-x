@@ -9,4 +9,4 @@ require (
 	golang.org/x/text v0.3.4 // indirect
 )
 
-replace gioui.org => github.com/egonelbre/gio v0.0.0-20210307165140-2ae1967aeb09
+replace gioui.org => github.com/egonelbre/gio v0.0.0-20210308151912-f55bc5f728fc
