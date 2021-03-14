@@ -5,16 +5,15 @@ package main
 // A simple Gio program. See https://gioui.org for more information.
 
 import (
+	"image"
 	"image/color"
 	"log"
 	"os"
 
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -77,15 +76,8 @@ func loop(w *app.Window) error {
 			layout.N.Layout(gtx, func(gtx C) D {
 				return shadows.Layout(gtx, 30, func(gtx C, index int) D {
 					return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx C) D {
-						return component.Shadow(clip.UniformRRect(
-							f32.Rectangle{
-								Max: f32.Point{
-									X: float32(gtx.Px(unit.Dp(20))),
-									Y: float32(gtx.Px(unit.Dp(20))),
-								},
-							},
-							float32(gtx.Px(unit.Dp(4))),
-						), unit.Dp(float32(index))).Layout(gtx)
+						gtx.Constraints.Min = image.Point{X: gtx.Px(unit.Dp(30)), Y: gtx.Px(unit.Dp(30))}
+						return component.Shadow(unit.Dp(8), unit.Dp(float32(index))).Layout(gtx)
 					})
 				})
 			})

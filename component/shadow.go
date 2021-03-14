@@ -22,47 +22,49 @@ import (
 	"gioui.org/unit"
 )
 
-type SurfaceLayoutStyle struct {
-	DarkMode     bool
-	Background   color.NRGBA
+// ShadowStyle defines a shadow cast by a rounded rectangle.
+//
+// TODO(whereswaldon): make this support RRects that do not have
+// uniform corner radii.
+type ShadowStyle struct {
+	// The radius of the corners of the rectangle casting the surface.
+	// Non-rounded rectangles can just provide a zero.
 	CornerRadius unit.Value
-	Elevation    unit.Value
+	// Elevation is how high the surface casting the shadow is above
+	// the background, and therefore determines how diffuse and large
+	// the shadow is.
+	Elevation unit.Value
+	// The colors of various components of the shadow. The Shadow()
+	// constructor populates these with reasonable defaults.
+	AmbientColor, PenumbraColor, UmbraColor color.NRGBA
 }
 
-func (s *SurfaceLayoutStyle) Layout(gtx layout.Context) layout.Dimensions {
+// Shadow defines a shadow cast by a rounded rectangle with the given
+// corner radius and elevation. It sets reasonable defaults for the
+// shadow colors.
+func Shadow(radius, elevation unit.Value) ShadowStyle {
+	return ShadowStyle{
+		CornerRadius:  radius,
+		Elevation:     elevation,
+		AmbientColor:  color.NRGBA{A: 0x10},
+		PenumbraColor: color.NRGBA{A: 0x20},
+		UmbraColor:    color.NRGBA{A: 0x30},
+	}
+}
+
+// Layout renders the shadow into the gtx. The shadow's size will assume
+// that the rectangle casting the shadow is of size gtx.Constraints.Min.
+func (s ShadowStyle) Layout(gtx layout.Context) layout.Dimensions {
 	sz := gtx.Constraints.Min
 	rr := float32(gtx.Px(s.CornerRadius))
 
 	r := f32.Rect(0, 0, float32(sz.X), float32(sz.Y))
 	s.layoutShadow(gtx, r, rr)
-	clip.UniformRRect(r, rr).Add(gtx.Ops)
-
-	background := s.Background
-	if s.DarkMode {
-		// figure out dark mode blending and support after more important
-		// functionality is done.
-		// p := darkBlend(s.Elevation.V)
-		// background = f32color.LinearFromSRGB(background).Lighten(p).SRGB()
-	}
-	paint.Fill(gtx.Ops, background)
 
 	return layout.Dimensions{Size: sz}
 }
 
-func darkBlend(x float32) float32 {
-	if x <= 0 {
-		return 0
-	}
-	p := 15.77125 - 15.77125/float32(math.Pow(2, float64(x)/3.438155))
-	if p <= 0 {
-		return 0
-	} else if p > 16 {
-		return 16 * 0.01
-	}
-	return p * 0.01
-}
-
-func (s *SurfaceLayoutStyle) layoutShadow(gtx layout.Context, r f32.Rectangle, rr float32) {
+func (s ShadowStyle) layoutShadow(gtx layout.Context, r f32.Rectangle, rr float32) {
 	if s.Elevation.V <= 0 {
 		return
 	}
@@ -70,13 +72,13 @@ func (s *SurfaceLayoutStyle) layoutShadow(gtx layout.Context, r f32.Rectangle, r
 	offset := pxf(gtx.Metric, s.Elevation)
 
 	ambient := r
-	gradientBox(gtx.Ops, ambient, rr, offset/2, color.NRGBA{A: 0x10})
+	gradientBox(gtx.Ops, ambient, rr, offset/2, s.AmbientColor)
 
 	penumbra := r.Add(f32.Pt(0, offset/2))
-	gradientBox(gtx.Ops, penumbra, rr, offset, color.NRGBA{A: 0x20})
+	gradientBox(gtx.Ops, penumbra, rr, offset, s.PenumbraColor)
 
 	umbra := outset(penumbra, -offset/2)
-	gradientBox(gtx.Ops, umbra, rr/4, offset/2, color.NRGBA{A: 0x30})
+	gradientBox(gtx.Ops, umbra, rr/4, offset/2, s.UmbraColor)
 }
 
 func gradientBox(ops *op.Ops, r f32.Rectangle, rr, spread float32, col color.NRGBA) {
