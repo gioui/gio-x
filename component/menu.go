@@ -1,8 +1,6 @@
 package component
 
 import (
-	"image/color"
-
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -11,29 +9,27 @@ import (
 	"gioui.org/widget/material"
 )
 
-// CardStyle defines the visual aspects of a material design surface
+// SurfaceStyle defines the visual aspects of a material design surface
 // with (optionally) rounded corners and a drop shadow.
-type CardStyle struct {
+type SurfaceStyle struct {
 	*material.Theme
-	Radius    unit.Value
-	Elevation unit.Value
-	Shadow    color.NRGBA
+	// The CornerRadius and Elevation fields of the embedded shadow
+	// style also define the corner radius and elevation of the card.
+	ShadowStyle
 }
 
-func Card(th *material.Theme) CardStyle {
-	return CardStyle{
-		Theme:     th,
-		Radius:    unit.Dp(0),
-		Elevation: unit.Dp(8),
-		Shadow:    color.NRGBA{A: 155},
+func Card(th *material.Theme) SurfaceStyle {
+	return SurfaceStyle{
+		Theme:       th,
+		ShadowStyle: Shadow(unit.Dp(8), unit.Dp(8)),
 	}
 }
 
-func (c CardStyle) Layout(gtx C, w layout.Widget) D {
+func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
-			Shadow(c.Radius, c.Elevation).Layout(gtx)
-			surface := clip.UniformRRect(f32.Rectangle{Max: layout.FPt(gtx.Constraints.Min)}, float32(gtx.Px(c.Radius)))
+			c.ShadowStyle.Layout(gtx)
+			surface := clip.UniformRRect(f32.Rectangle{Max: layout.FPt(gtx.Constraints.Min)}, float32(gtx.Px(c.ShadowStyle.CornerRadius)))
 			paint.FillShape(gtx.Ops, c.Theme.Bg, surface.Op(gtx.Ops))
 			return D{Size: gtx.Constraints.Min}
 		}),
@@ -52,33 +48,25 @@ type MenuState struct {
 type MenuStyle struct {
 	*MenuState
 	*material.Theme
-	layout.Inset
-	CardStyle
+	SurfaceStyle
 }
 
+// Menu constructs a menu with the provided state and a default Surface behind
+// it.
 func Menu(th *material.Theme, state *MenuState) MenuStyle {
 	return MenuStyle{
-		Theme:     th,
-		MenuState: state,
-		CardStyle: Card(th),
+		Theme:        th,
+		MenuState:    state,
+		SurfaceStyle: Card(th),
 	}
 }
 
+// Layout renders the menu.
 func (m MenuStyle) Layout(gtx C) D {
 	m.OptionList.Axis = layout.Vertical
-	return m.CardStyle.Layout(gtx, func(gtx C) D {
-		return layout.Stack{}.Layout(gtx,
-			layout.Expanded(func(gtx C) D {
-				return Rect{
-					Color: m.Theme.Bg,
-					Size:  gtx.Constraints.Min,
-				}.Layout(gtx)
-			}),
-			layout.Stacked(func(gtx C) D {
-				return m.OptionList.Layout(gtx, len(m.Options), func(gtx C, index int) D {
-					return m.Options[index](gtx)
-				})
-			}),
-		)
+	return m.SurfaceStyle.Layout(gtx, func(gtx C) D {
+		return m.OptionList.Layout(gtx, len(m.Options), func(gtx C, index int) D {
+			return m.Options[index](gtx)
+		})
 	})
 }
