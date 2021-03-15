@@ -12,13 +12,13 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/f32"
+	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
 
@@ -124,32 +124,13 @@ func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var (
 		ops     op.Ops
-		a, b, c widget.Clickable
+		a, b, c gesture.Click
 	)
-	inset := layout.UniformInset(unit.Dp(8))
 	menu := component.MenuState{
 		Options: []func(gtx layout.Context) layout.Dimensions{
-			func(gtx layout.Context) layout.Dimensions {
-				return material.Clickable(gtx, &a, func(gtx C) D {
-					return inset.Layout(gtx, func(gtx C) D {
-						return material.Body1(th, "Foo").Layout(gtx)
-					})
-				})
-			},
-			func(gtx layout.Context) layout.Dimensions {
-				return material.Clickable(gtx, &b, func(gtx C) D {
-					return inset.Layout(gtx, func(gtx C) D {
-						return material.Body1(th, "Bar").Layout(gtx)
-					})
-				})
-			},
-			func(gtx layout.Context) layout.Dimensions {
-				return material.Clickable(gtx, &c, func(gtx C) D {
-					return inset.Layout(gtx, func(gtx C) D {
-						return material.Body1(th, "Baz").Layout(gtx)
-					})
-				})
-			},
+			component.MenuItem(th, &a, "Foobarbaz").Layout,
+			component.MenuItem(th, &b, "barbaz").Layout,
+			component.MenuItem(th, &c, "baz").Layout,
 		},
 	}
 	var shadows layout.List
@@ -163,13 +144,13 @@ func loop(w *app.Window) error {
 			gtx := layout.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, color.NRGBA{R: 200, G: 200, B: 200, A: 255})
 			gtx.Constraints = layout.Exact(gtx.Constraints.Max)
-			if a.Clicked() {
+			if a.Pressed() {
 				log.Println("A")
 			}
-			if b.Clicked() {
+			if b.Pressed() {
 				log.Println("B")
 			}
-			if c.Clicked() {
+			if c.Pressed() {
 				log.Println("C")
 			}
 			area.Layout(gtx, func(gtx C) D {
