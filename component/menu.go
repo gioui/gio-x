@@ -3,14 +3,15 @@ package component
 import (
 	"image"
 	"image/color"
+	"log"
 
 	"gioui.org/f32"
-	"gioui.org/gesture"
-	"gioui.org/io/pointer"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
 
@@ -43,13 +44,13 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 }
 
 type MenuItemStyle struct {
-	State      *gesture.Click
+	State      *widget.Clickable
 	HoverColor color.NRGBA
 	layout.Inset
 	material.LabelStyle
 }
 
-func MenuItem(th *material.Theme, state *gesture.Click, label string) MenuItemStyle {
+func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuItemStyle {
 	return MenuItemStyle{
 		State: state,
 		Inset: layout.Inset{
@@ -64,25 +65,26 @@ func MenuItem(th *material.Theme, state *gesture.Click, label string) MenuItemSt
 }
 
 func (m MenuItemStyle) Layout(gtx C) D {
-	return layout.Stack{}.Layout(gtx,
-		layout.Expanded(func(gtx C) D {
-			area := image.Rectangle{
-				Max: gtx.Constraints.Min,
-			}
-			pointer.Rect(area).Add(gtx.Ops)
-			m.State.Add(gtx.Ops)
-			m.State.Events(gtx)
-			if m.State.Hovered() {
-				paint.FillShape(gtx.Ops, m.HoverColor, clip.Rect(area).Op())
-			}
-			return D{Size: area.Max}
-		}),
-		layout.Stacked(func(gtx C) D {
-			return m.Inset.Layout(gtx, func(gtx C) D {
-				return m.LabelStyle.Layout(gtx)
-			})
-		}),
-	)
+	min := gtx.Constraints.Min.X
+	return material.Clickable(gtx, m.State, func(gtx C) D {
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx C) D {
+				area := image.Rectangle{
+					Max: gtx.Constraints.Min,
+				}
+				if m.State.Hovered() {
+					paint.FillShape(gtx.Ops, m.HoverColor, clip.Rect(area).Op())
+				}
+				return D{Size: area.Max}
+			}),
+			layout.Stacked(func(gtx C) D {
+				gtx.Constraints.Min.X = min
+				return m.Inset.Layout(gtx, func(gtx C) D {
+					return m.LabelStyle.Layout(gtx)
+				})
+			}),
+		)
+	})
 }
 
 // MenuState holds the state of a menu material design component
@@ -119,9 +121,23 @@ func Menu(th *material.Theme, state *MenuState) MenuStyle {
 
 // Layout renders the menu.
 func (m MenuStyle) Layout(gtx C) D {
+	var fakeOps op.Ops
+	originalOps := gtx.Ops
+	gtx.Ops = &fakeOps
+	maxWidth := 0
+	for _, w := range m.Options {
+		dims := w(gtx)
+		log.Println(dims)
+		if dims.Size.X > maxWidth {
+			maxWidth = dims.Size.X
+		}
+	}
+	gtx.Ops = originalOps
 	return m.SurfaceStyle.Layout(gtx, func(gtx C) D {
 		return m.Inset.Layout(gtx, func(gtx C) D {
 			return m.OptionList.Layout(gtx, len(m.Options), func(gtx C, index int) D {
+				gtx.Constraints.Min.X = maxWidth
+				log.Println(gtx.Constraints.Min)
 				return m.Options[index](gtx)
 			})
 		})

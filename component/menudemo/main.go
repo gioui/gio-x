@@ -12,13 +12,13 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/f32"
-	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
 
@@ -124,7 +124,7 @@ func loop(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 	var (
 		ops     op.Ops
-		a, b, c gesture.Click
+		a, b, c widget.Clickable
 	)
 	menu := component.MenuState{
 		Options: []func(gtx layout.Context) layout.Dimensions{
@@ -144,13 +144,13 @@ func loop(w *app.Window) error {
 			gtx := layout.NewContext(&ops, e)
 			paint.Fill(gtx.Ops, color.NRGBA{R: 200, G: 200, B: 200, A: 255})
 			gtx.Constraints = layout.Exact(gtx.Constraints.Max)
-			if a.Pressed() {
+			if a.Clicked() {
 				log.Println("A")
 			}
-			if b.Pressed() {
+			if b.Clicked() {
 				log.Println("B")
 			}
-			if c.Pressed() {
+			if c.Clicked() {
 				log.Println("C")
 			}
 			area.Layout(gtx, func(gtx C) D {
