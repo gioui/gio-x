@@ -3,7 +3,6 @@ package component
 import (
 	"image"
 	"image/color"
-	"log"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
@@ -46,26 +45,42 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 type MenuItemStyle struct {
 	State      *widget.Clickable
 	HoverColor color.NRGBA
-	layout.Inset
-	material.LabelStyle
+
+	LabelInset layout.Inset
+	Label      material.LabelStyle
+
+	*widget.Icon
+	IconSize  unit.Value
+	IconInset layout.Inset
+
+	Hint      material.LabelStyle
+	HintInset layout.Inset
 }
 
 func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuItemStyle {
 	return MenuItemStyle{
 		State: state,
-		Inset: layout.Inset{
+		LabelInset: layout.Inset{
 			Left:   unit.Dp(16),
 			Right:  unit.Dp(16),
-			Top:    unit.Dp(16),
-			Bottom: unit.Dp(16),
+			Top:    unit.Dp(8),
+			Bottom: unit.Dp(8),
 		},
-		LabelStyle: material.Body1(th, label),
+		IconSize: unit.Dp(24),
+		IconInset: layout.Inset{
+			Left: unit.Dp(16),
+		},
+		HintInset: layout.Inset{
+			Right: unit.Dp(16),
+		},
+		Label:      material.Body1(th, label),
 		HoverColor: WithAlpha(th.ContrastBg, 0x30),
 	}
 }
 
 func (m MenuItemStyle) Layout(gtx C) D {
 	min := gtx.Constraints.Min.X
+	compact := min == 0
 	return material.Clickable(gtx, m.State, func(gtx C) D {
 		return layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx C) D {
@@ -79,12 +94,46 @@ func (m MenuItemStyle) Layout(gtx C) D {
 			}),
 			layout.Stacked(func(gtx C) D {
 				gtx.Constraints.Min.X = min
-				return m.Inset.Layout(gtx, func(gtx C) D {
-					return m.LabelStyle.Layout(gtx)
-				})
+				return layout.Flex{
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx C) D {
+						if m.Icon == nil {
+							return D{}
+						}
+						return m.IconInset.Layout(gtx, func(gtx C) D {
+							return m.Icon.Layout(gtx, m.IconSize)
+						})
+					}),
+					layout.Rigid(func(gtx C) D {
+						return m.LabelInset.Layout(gtx, func(gtx C) D {
+							return m.Label.Layout(gtx)
+						})
+					}),
+					layout.Flexed(1, func(gtx C) D {
+						if compact {
+							return D{}
+						}
+						return D{Size: gtx.Constraints.Min}
+					}),
+					layout.Rigid(func(gtx C) D {
+						if empty := (material.LabelStyle{}); m.Hint == empty {
+							return D{}
+						}
+						return m.HintInset.Layout(gtx, func(gtx C) D {
+							return m.Hint.Layout(gtx)
+						})
+					}),
+				)
 			}),
 		)
 	})
+}
+
+func MenuHintText(th *material.Theme, label string) material.LabelStyle {
+	l := material.Body1(th, label)
+	l.Color = WithAlpha(l.Color, 0xaa)
+	return l
 }
 
 // MenuState holds the state of a menu material design component
@@ -127,7 +176,6 @@ func (m MenuStyle) Layout(gtx C) D {
 	maxWidth := 0
 	for _, w := range m.Options {
 		dims := w(gtx)
-		log.Println(dims)
 		if dims.Size.X > maxWidth {
 			maxWidth = dims.Size.X
 		}
@@ -137,7 +185,7 @@ func (m MenuStyle) Layout(gtx C) D {
 		return m.Inset.Layout(gtx, func(gtx C) D {
 			return m.OptionList.Layout(gtx, len(m.Options), func(gtx C, index int) D {
 				gtx.Constraints.Min.X = maxWidth
-				log.Println(gtx.Constraints.Min)
+				gtx.Constraints.Max.X = maxWidth
 				return m.Options[index](gtx)
 			})
 		})

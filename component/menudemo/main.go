@@ -21,9 +21,25 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
+	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"gioui.org/font/gofont"
 )
+
+var SettingsIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionSettings)
+	return icon
+}()
+
+var RotationIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.Action3DRotation)
+	return icon
+}()
+
+var SomethingIcon *widget.Icon = func() *widget.Icon {
+	icon, _ := widget.NewIcon(icons.ActionAccountBox)
+	return icon
+}()
 
 func main() {
 	go func() {
@@ -128,9 +144,24 @@ func loop(w *app.Window) error {
 	)
 	menu := component.MenuState{
 		Options: []func(gtx layout.Context) layout.Dimensions{
-			component.MenuItem(th, &a, "Foobarbaz").Layout,
-			component.MenuItem(th, &b, "barbaz").Layout,
-			component.MenuItem(th, &c, "baz").Layout,
+			func(gtx C) D {
+				m := component.MenuItem(th, &a, "Foobarbaz")
+				m.Icon = SettingsIcon
+				m.Hint = component.MenuHintText(th, "Hint")
+				return m.Layout(gtx)
+			},
+			func(gtx C) D {
+				m := component.MenuItem(th, &b, "Something")
+				m.Icon = SomethingIcon
+				m.Hint = component.MenuHintText(th, "Hin")
+				return m.Layout(gtx)
+			},
+			func(gtx C) D {
+				m := component.MenuItem(th, &c, "else")
+				m.Icon = RotationIcon
+				m.Hint = component.MenuHintText(th, "H")
+				return m.Layout(gtx)
+			},
 		},
 	}
 	var shadows layout.List
