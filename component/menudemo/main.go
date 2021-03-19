@@ -156,6 +156,7 @@ func loop(w *app.Window) error {
 				m.Hint = component.MenuHintText(th, "Hin")
 				return m.Layout(gtx)
 			},
+			component.SubheadingDivider(th, "subheading").Layout,
 			func(gtx C) D {
 				m := component.MenuItem(th, &c, "else")
 				m.Icon = RotationIcon

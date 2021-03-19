@@ -46,6 +46,70 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 	)
 }
 
+// DividerStyle defines the presentation of a material divider, as specified
+// here: https://material.io/components/dividers
+type DividerStyle struct {
+	Thickness unit.Value
+	Fill      color.NRGBA
+	layout.Inset
+
+	Subheading      material.LabelStyle
+	SubheadingInset layout.Inset
+}
+
+// Divider creates a simple full-bleed divider.
+func Divider(th *material.Theme) DividerStyle {
+	return DividerStyle{
+		Thickness: unit.Dp(1),
+		Fill:      WithAlpha(th.Fg, 0x60),
+		Inset: layout.Inset{
+			Top:    unit.Dp(8),
+			Bottom: unit.Dp(8),
+		},
+	}
+}
+
+// SubheadingDivider creates a full-bleed divider with a subheading.
+func SubheadingDivider(th *material.Theme, subheading string) DividerStyle {
+	return DividerStyle{
+		Thickness: unit.Dp(1),
+		Fill:      WithAlpha(th.Fg, 0x60),
+		Inset: layout.Inset{
+			Top:    unit.Dp(8),
+			Bottom: unit.Dp(4),
+		},
+		Subheading: DividerSubheadingText(th, subheading),
+		SubheadingInset: layout.Inset{
+			Left:   unit.Dp(8),
+			Bottom: unit.Dp(8),
+		},
+	}
+}
+
+// Layout renders the divider. If gtx.Constraints.Min.X is zero, it will
+// have zero size and render nothing.
+func (d DividerStyle) Layout(gtx C) D {
+	if gtx.Constraints.Min.X == 0 {
+		return D{}
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			return d.Inset.Layout(gtx, func(gtx C) D {
+				weight := gtx.Px(d.Thickness)
+				line := image.Rectangle{Max: image.Pt(gtx.Constraints.Min.X, weight)}
+				paint.FillShape(gtx.Ops, d.Fill, clip.Rect(line).Op())
+				return D{Size: line.Max}
+			})
+		}),
+		layout.Rigid(func(gtx C) D {
+			if d.Subheading == (material.LabelStyle{}) {
+				return D{}
+			}
+			return d.SubheadingInset.Layout(gtx, d.Subheading.Layout)
+		}),
+	)
+}
+
 // MenuItemStyle defines the presentation of a Menu element that has a label
 // and optionally an icon and a hint text.
 type MenuItemStyle struct {
@@ -143,6 +207,14 @@ func (m MenuItemStyle) Layout(gtx C) D {
 // MenuItemStyle.
 func MenuHintText(th *material.Theme, label string) material.LabelStyle {
 	l := material.Body1(th, label)
+	l.Color = WithAlpha(l.Color, 0xaa)
+	return l
+}
+
+// DividerSubheadingText returns a LabelStyle suitable for use as a subheading
+// in a divider.
+func DividerSubheadingText(th *material.Theme, label string) material.LabelStyle {
+	l := material.Body2(th, label)
 	l.Color = WithAlpha(l.Color, 0xaa)
 	return l
 }
