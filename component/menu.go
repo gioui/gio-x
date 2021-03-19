@@ -23,13 +23,17 @@ type SurfaceStyle struct {
 	ShadowStyle
 }
 
-func Card(th *material.Theme) SurfaceStyle {
+// Surface creates a Surface style for the provided theme with sensible default
+// elevation and rounded corners.
+func Surface(th *material.Theme) SurfaceStyle {
 	return SurfaceStyle{
 		Theme:       th,
 		ShadowStyle: Shadow(unit.Dp(4), unit.Dp(4)),
 	}
 }
 
+// Layout renders the SurfaceStyle, taking the dimensions of the surface from
+// gtx.Constraints.Min.
 func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
@@ -42,6 +46,8 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 	)
 }
 
+// MenuItemStyle defines the presentation of a Menu element that has a label
+// and optionally an icon and a hint text.
 type MenuItemStyle struct {
 	State      *widget.Clickable
 	HoverColor color.NRGBA
@@ -57,6 +63,7 @@ type MenuItemStyle struct {
 	HintInset layout.Inset
 }
 
+// MenuItem constructs a default MenuItemStyle based on the theme, state, and label.
 func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuItemStyle {
 	return MenuItemStyle{
 		State: state,
@@ -78,6 +85,8 @@ func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuIte
 	}
 }
 
+// Layout renders the MenuItemStyle. If gtx.Constraints.Min.X is zero, it will render
+// itself to be as compact as possible horizontally.
 func (m MenuItemStyle) Layout(gtx C) D {
 	min := gtx.Constraints.Min.X
 	compact := min == 0
@@ -130,6 +139,8 @@ func (m MenuItemStyle) Layout(gtx C) D {
 	})
 }
 
+// MenuHintText returns a LabelStyle suitable for use as hint text in a
+// MenuItemStyle.
 func MenuHintText(th *material.Theme, label string) material.LabelStyle {
 	l := material.Body1(th, label)
 	l.Color = WithAlpha(l.Color, 0xaa)
@@ -158,7 +169,7 @@ func Menu(th *material.Theme, state *MenuState) MenuStyle {
 	m := MenuStyle{
 		Theme:        th,
 		MenuState:    state,
-		SurfaceStyle: Card(th),
+		SurfaceStyle: Surface(th),
 		Inset: layout.Inset{
 			Top:    unit.Dp(8),
 			Bottom: unit.Dp(8),
