@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Unlicense OR MIT
+
 /*
 This file is derived from work by Egon Elbre in his gio experiments
 repository available here:
