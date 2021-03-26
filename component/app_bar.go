@@ -262,13 +262,11 @@ type AppBarAction struct {
 // SimpleIconAction configures an AppBarAction that functions as a simple
 // IconButton. To receive events from the button, use the standard methods
 // on the provided state parameter.
-func SimpleIconAction(th *material.Theme, state *widget.Clickable, icon *widget.Icon, overflow OverflowAction) AppBarAction {
+func SimpleIconAction(state *widget.Clickable, icon *widget.Icon, overflow OverflowAction) AppBarAction {
 	a := AppBarAction{
 		OverflowAction: overflow,
 		Layout: func(gtx C, bg, fg color.NRGBA) D {
-			btn := SimpleIconButton(th, state, icon)
-			btn.Background = bg
-			btn.Color = fg
+			btn := SimpleIconButton(bg, fg, state, icon)
 			return btn.Layout(gtx)
 		},
 	}
@@ -277,11 +275,15 @@ func SimpleIconAction(th *material.Theme, state *widget.Clickable, icon *widget.
 
 // SimpleIconButton creates an IconButtonStyle that is pre-configured to
 // be the right size for use as an AppBarAction
-func SimpleIconButton(th *material.Theme, state *widget.Clickable, icon *widget.Icon) material.IconButtonStyle {
-	btn := material.IconButton(th, state, icon)
-	btn.Size = unit.Dp(24)
-	btn.Inset = layout.UniformInset(unit.Dp(12))
-	return btn
+func SimpleIconButton(bg, fg color.NRGBA, state *widget.Clickable, icon *widget.Icon) material.IconButtonStyle {
+	return material.IconButtonStyle{
+		Background: bg,
+		Color:      fg,
+		Icon:       icon,
+		Size:       unit.Dp(24),
+		Inset:      layout.UniformInset(unit.Dp(12)),
+		Button:     state,
+	}
 }
 
 const (
