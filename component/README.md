@@ -22,7 +22,7 @@ The list of currently-Implemented components follows:
 The navigation drawer [specified here](https://material.io/components/navigation-drawer) is mostly implemented by the type
 `NavDrawer`, and the modal variant can be created with a `ModalNavDrawer`. The modal variant looks like this:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/modal-nav.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/modal-nav.png)
 
 Features:
 - Animated drawer open/close.
@@ -45,11 +45,11 @@ The App Bar [specified here](https://material.io/components/app-bars-top) is mos
 
 Normal state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/app-bar-top.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/app-bar-top.png)
 
 Contextual state:
 
-![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/app-bar-top-contextual.png)
+![modal navigation drawer example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/app-bar-top-contextual.png)
 
 Features:
  - Action buttons and overflow menu contents can be changed easily.
@@ -105,7 +105,7 @@ nonetheless.
 
 The `Menu` type defines contextual menus as described [here](https://material.io/components/menus).
 
-![first menu example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/menu1.png)
+![first menu example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/menu1.png)
 
 Known issues:
 - Does not support nested submenus (yet).
@@ -113,7 +113,7 @@ Known issues:
 The `MenuItem` type provides widgets suitable for use within the Menu, though
 any widget can be used. Here are some `MenuItem`s in action:
 
-![second menu example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/menu2.png)
+![second menu example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/menu2.png)
 
 ### ContextArea
 
