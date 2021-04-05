@@ -88,3 +88,41 @@ Features:
 
 Known Issues:
 - Icons, hint text, error text, prefix/suffix, and other features are not yet implemented.
+
+### Dividers
+
+The `Divider` type implements [material dividers](https://material.io/components/dividers). You can customize the insets
+embedded in the type to change which kind of divider it is. Use the constructor
+functions to create nice defaults.
+
+### Surfaces
+
+The `Surface` type is a rounded rectangle with a background color and a drop
+shadow. This isn't a material component per se, but is a useful building block
+nonetheless.
+
+### Menu
+
+The `Menu` type defines contextual menus as described [here](https://material.io/components/menus).
+
+![first menu example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/menu1.png)
+
+Known issues:
+- Does not support nested submenus (yet).
+
+The `MenuItem` type provides widgets suitable for use within the Menu, though
+any widget can be used. Here are some `MenuItem`s in action:
+
+![second menu example screenshot](https://git.sr.ht/~whereswaldon/component/blob/main/img/menu2.png)
+
+### ContextArea
+
+The `ContextArea` type is a helper type that defines an area that accepts
+right-clicks. This area will display a widget when clicked (anchored at the
+click position). The displayed widget is overlaid on other content, and is
+therefore useful in displaying contextual menus.
+
+Known issues:
+- the heuristic that ContextArea uses to attempt to avoid off-screen drawing of
+  its contextual content can fail or backfire. Suggestions for improving this
+  are welcome.
