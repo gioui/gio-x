@@ -14,6 +14,7 @@ This table describes the current status of each package in `gioui.org/x`:
 | haptic      | no                 | yes                    | unstable      |
 | notify      | no                 | yes                    | unstable      |
 | outlay      | yes                | no                     | unstable      |
+| pref        | no                 | yes                    | unstable      |
 | profiling   | uncertain          | no                     | unstable      |
 | scroll      | yes                | no                     | unstable      |
 
