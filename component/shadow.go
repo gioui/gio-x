@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
+package component
+
 /*
 This file is derived from work by Egon Elbre in his gio experiments
 repository available here:
@@ -9,7 +11,6 @@ https://github.com/egonelbre/expgio/tree/master/box-shadows
 He generously licensed it under the Unlicense, and thus is is
 reproduced here under the same terms.
 */
-package component
 
 import (
 	"image"
