@@ -19,7 +19,6 @@ import "C"
 
 import (
 	"gioui.org/app"
-	"log"
 )
 
 // Buzzer provides methods to trigger haptic feedback. On OSes other than android,
@@ -31,7 +30,6 @@ type Buzzer struct {
 // or not it was successful. If it returns false, it is safe to retry. On unsupported
 // platforms, it always returns true.
 func (b *Buzzer) Buzz() bool {
-	log.Println("buzzing")
 	C.buzz()
 	return true
 }
