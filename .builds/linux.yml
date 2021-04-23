@@ -26,6 +26,10 @@ packages:
  - unzip
 sources:
  - https://git.sr.ht/~whereswaldon/gio-x
+triggers:
+ - action: email
+   condition: failure
+   to: ~whereswaldon/public-inbox@lists.sr.ht
 environment:
  GOFLAGS: -mod=readonly
  PATH: /home/build/sdk/go/bin:/usr/bin:/home/build/go/bin
