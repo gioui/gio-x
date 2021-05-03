@@ -57,12 +57,16 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 	t.y = t.yList.Position.First
 
 	// Grab all scroll events for the lists.
-	pointer.Rect(image.Rectangle{
-		Max: gtx.Constraints.Max,
-	}).Add(gtx.Ops)
+	xMin, xMax := listScrollBounds(t.xList.Position, xn)
+	yMin, yMax := listScrollBounds(t.yList.Position, yn)
+	pointer.Rect(image.Rectangle{Max: csMax}).Add(gtx.Ops)
 	pointer.InputOp{
 		Tag:   t,
 		Types: pointer.Press | pointer.Drag | pointer.Release | pointer.Scroll,
+		ScrollBounds: image.Rectangle{
+			Min: image.Pt(xMin, yMin),
+			Max: image.Pt(xMax, yMax),
+		},
 	}.Add(gtx.Ops)
 
 	// Offset the start position for truncated last columns and rows.
@@ -103,3 +107,18 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 type queue []event.Event
 
 func (q queue) Events(_ event.Tag) []event.Event { return q }
+
+func listScrollBounds(pos layout.Position, n int) (min, max int) {
+	const inf = 1e10
+	if o := pos.Offset; o > 0 {
+		min = -o
+	} else if pos.First > 0 {
+		min = -inf
+	}
+	if o := pos.OffsetLast; o < 0 {
+		max = -o
+	} else if pos.First+pos.Count < n {
+		max = inf
+	}
+	return
+}
