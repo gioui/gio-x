@@ -33,19 +33,12 @@ func (rs *Resize) Layout(gtx layout.Context, w1, w2, handle layout.Widget) layou
 	return layout.Flex{
 		Axis: rs.Axis,
 	}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if rs.Axis == layout.Horizontal {
-				gtx.Constraints.Max.X = rs.float.Pos
-			} else {
-				gtx.Constraints.Max.Y = rs.float.Pos
-			}
-			return w1(gtx)
-		}),
+		layout.Flexed(rs.Ratio, w1),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			c.Add(gtx.Ops)
 			return dims
 		}),
-		layout.Flexed(1, w2),
+		layout.Flexed(1-rs.Ratio, w2),
 	)
 }
 
@@ -58,7 +51,6 @@ type float struct {
 func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) layout.Dimensions {
 	gtx.Constraints.Min = image.Point{}
 	dims := w(gtx)
-	width := axis.Convert(dims.Size).X
 
 	var de *pointer.Event
 	for _, e := range f.drag.Events(gtx.Metric, gtx, gesture.Axis(axis)) {
@@ -71,14 +63,14 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 		if axis == layout.Vertical {
 			xy = de.Position.Y
 		}
-		f.Pos += int(xy) - width
+		f.Pos += int(xy)
 	}
 
 	// Clamp the handle position, leaving it always visible.
 	if f.Pos < 0 {
 		f.Pos = 0
-	} else if f.Pos > f.Length-width {
-		f.Pos = f.Length - width
+	} else if f.Pos > f.Length {
+		f.Pos = f.Length
 	}
 
 	defer op.Save(gtx.Ops).Load()
