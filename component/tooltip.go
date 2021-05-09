@@ -3,6 +3,7 @@ package component
 import (
 	"image"
 	"image/color"
+	"log"
 	"time"
 
 	"gioui.org/f32"
@@ -109,6 +110,7 @@ const (
 // Layout renders the provided widget with the provided tooltip. The tooltip
 // will be summoned if the widget is hovered or long-pressed.
 func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
+	log.Println("Start: ", gtx.Now)
 	if !t.init {
 		t.init = true
 		t.VisibilityAnimation.State = Invisible
@@ -136,21 +138,24 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 			t.Hovering = false
 		}
 	}
-	if t.Hovering || t.Pressing || t.LongPressed {
-		op.InvalidateOp{}.Add(gtx.Ops)
-	}
-	if t.Hovering && gtx.Now.Sub(t.HoverStarted) > tipAreaHoverDelay {
+	if t.Hovering && gtx.Now.Sub(t.HoverStarted) >= tipAreaHoverDelay {
 		t.VisibilityAnimation.Appear(gtx.Now)
 		t.Appeared = gtx.Now
+	} else if t.Hovering {
+		op.InvalidateOp{At: t.HoverStarted.Add(tipAreaHoverDelay)}.Add(gtx.Ops)
 	}
-	if t.Pressing && gtx.Now.Sub(t.PressStarted) > longPressTheshold {
+	if t.Pressing && gtx.Now.Sub(t.PressStarted) >= longPressTheshold {
 		t.LongPressed = true
 		t.VisibilityAnimation.Appear(gtx.Now)
 		t.Appeared = gtx.Now
+	} else if t.Pressing {
+		op.InvalidateOp{At: t.PressStarted.Add(longPressTheshold)}.Add(gtx.Ops)
 	}
-	if t.LongPressed && gtx.Now.Sub(t.Appeared) > tipAreaLongPressDuration {
+	if t.LongPressed && gtx.Now.Sub(t.Appeared) >= tipAreaLongPressDuration {
 		t.VisibilityAnimation.Disappear(gtx.Now)
 		t.LongPressed = false
+	} else if t.LongPressed {
+		op.InvalidateOp{At: t.Appeared.Add(tipAreaLongPressDuration)}.Add(gtx.Ops)
 	}
 	return layout.Stack{}.Layout(gtx,
 		layout.Stacked(w),
