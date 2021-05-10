@@ -13,6 +13,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
 
@@ -187,4 +188,22 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 			return D{}
 		}),
 	)
+}
+
+type TipIconButtonStyle struct {
+	Tooltip
+	material.IconButtonStyle
+	State *TipArea
+}
+
+func TipIconButton(th *material.Theme, area *TipArea, button *widget.Clickable, label string, icon *widget.Icon) TipIconButtonStyle {
+	return TipIconButtonStyle{
+		IconButtonStyle: material.IconButton(th, button, icon),
+		State:           area,
+		Tooltip:         PlatformTooltip(th, label),
+	}
+}
+
+func (t TipIconButtonStyle) Layout(gtx C) D {
+	return t.State.Layout(gtx, t.Tooltip, t.IconButtonStyle.Layout)
 }
