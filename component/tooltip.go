@@ -3,7 +3,6 @@ package component
 import (
 	"image"
 	"image/color"
-	"log"
 	"time"
 
 	"gioui.org/f32"
@@ -89,16 +88,64 @@ func (t Tooltip) Layout(gtx C) D {
 	)
 }
 
-// TipArea holds the state information for displaying a tooltip.
+// InvaliateDeadline helps to ensure that a frame is generated at a specific
+// point in time in the future. It does this by always requesting a future
+// invalidation at its target time until it reaches its target time. This
+// makes animating delays much cleaner.
+type InvaliateDeadline struct {
+	// The time at which a frame needs to be drawn.
+	Target time.Time
+	// Whether the deadline is active.
+	Active bool
+}
+
+// SetTarget configures a specific time in the future at which a frame should
+// be rendered.
+func (i *InvaliateDeadline) SetTarget(t time.Time) {
+	i.Active = true
+	i.Target = t
+}
+
+// Process checks the current frame time and either requests a future invalidation
+// or does nothing. It returns whether the current frame is the frame requested
+// by the last call to SetTarget.
+func (i *InvaliateDeadline) Process(gtx C) bool {
+	if !i.Active {
+		return false
+	}
+	if gtx.Now.Before(i.Target) {
+		op.InvalidateOp{At: i.Target}.Add(gtx.Ops)
+		return false
+	}
+	i.Active = false
+	return true
+}
+
+// ClearTarget cancels a request to invalidate in the future.
+func (i *InvaliateDeadline) ClearTarget() {
+	i.Active = false
+}
+
+// TipArea holds the state information for displaying a tooltip. The zero
+// value will choose sensible defaults for all fields.
 type TipArea struct {
 	VisibilityAnimation
-	Appeared     time.Time
-	HoverStarted time.Time
-	Hovering     bool
-	PressStarted time.Time
-	Pressing     bool
-	LongPressed  bool
-	init         bool
+	Hover     InvaliateDeadline
+	Press     InvaliateDeadline
+	LongPress InvaliateDeadline
+	init      bool
+	// HoverDelay is the delay between the cursor entering the tip area
+	// and the tooltip appearing.
+	HoverDelay time.Duration
+	// LongPressDelay is the required duration of a press in the area for
+	// it to count as a long press.
+	LongPressDelay time.Duration
+	// LongPressDuration is the amount of time the tooltip should be displayed
+	// after being triggered by a long press.
+	LongPressDuration time.Duration
+	// FadeDuration is the amount of time it takes the tooltip to fade in
+	// and out.
+	FadeDuration time.Duration
 }
 
 const (
@@ -111,11 +158,22 @@ const (
 // Layout renders the provided widget with the provided tooltip. The tooltip
 // will be summoned if the widget is hovered or long-pressed.
 func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
-	log.Println("Start: ", gtx.Now)
 	if !t.init {
 		t.init = true
 		t.VisibilityAnimation.State = Invisible
-		t.VisibilityAnimation.Duration = tipAreaFadeDuration
+		if t.HoverDelay == time.Duration(0) {
+			t.HoverDelay = tipAreaHoverDelay
+		}
+		if t.LongPressDelay == time.Duration(0) {
+			t.LongPressDelay = longPressTheshold
+		}
+		if t.LongPressDuration == time.Duration(0) {
+			t.LongPressDuration = tipAreaLongPressDuration
+		}
+		if t.FadeDuration == time.Duration(0) {
+			t.FadeDuration = tipAreaFadeDuration
+		}
+		t.VisibilityAnimation.Duration = t.FadeDuration
 	}
 	for _, e := range gtx.Events(t) {
 		e, ok := e.(pointer.Event)
@@ -124,39 +182,28 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 		}
 		switch e.Type {
 		case pointer.Enter:
-			t.Hovering = true
-			t.HoverStarted = gtx.Now
+			t.Hover.SetTarget(gtx.Now.Add(t.HoverDelay))
 		case pointer.Leave:
 			t.VisibilityAnimation.Disappear(gtx.Now)
-			t.Hovering = false
+			t.Hover.ClearTarget()
 		case pointer.Press:
-			t.Pressing = true
-			t.PressStarted = gtx.Now
+			t.Press.SetTarget(gtx.Now.Add(t.LongPressDelay))
 		case pointer.Release:
-			t.Pressing = false
+			t.Press.ClearTarget()
 		case pointer.Cancel:
-			t.Pressing = false
-			t.Hovering = false
+			t.Hover.ClearTarget()
+			t.Press.ClearTarget()
 		}
 	}
-	if t.Hovering && gtx.Now.Sub(t.HoverStarted) >= tipAreaHoverDelay {
+	if t.Hover.Process(gtx) {
 		t.VisibilityAnimation.Appear(gtx.Now)
-		t.Appeared = gtx.Now
-	} else if t.Hovering {
-		op.InvalidateOp{At: t.HoverStarted.Add(tipAreaHoverDelay)}.Add(gtx.Ops)
 	}
-	if t.Pressing && gtx.Now.Sub(t.PressStarted) >= longPressTheshold {
-		t.LongPressed = true
+	if t.Press.Process(gtx) {
 		t.VisibilityAnimation.Appear(gtx.Now)
-		t.Appeared = gtx.Now
-	} else if t.Pressing {
-		op.InvalidateOp{At: t.PressStarted.Add(longPressTheshold)}.Add(gtx.Ops)
+		t.LongPress.SetTarget(gtx.Now.Add(t.LongPressDuration))
 	}
-	if t.LongPressed && gtx.Now.Sub(t.Appeared) >= tipAreaLongPressDuration {
+	if t.LongPress.Process(gtx) {
 		t.VisibilityAnimation.Disappear(gtx.Now)
-		t.LongPressed = false
-	} else if t.LongPressed {
-		op.InvalidateOp{At: t.Appeared.Add(tipAreaLongPressDuration)}.Add(gtx.Ops)
 	}
 	return layout.Stack{}.Layout(gtx,
 		layout.Stacked(w),
@@ -190,12 +237,14 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 	)
 }
 
+// TipIconButtonStyle lays out an IconButton with a tooltip configured.
 type TipIconButtonStyle struct {
 	Tooltip
 	material.IconButtonStyle
 	State *TipArea
 }
 
+// TipIconButton creates a TipIconButtonStyle.
 func TipIconButton(th *material.Theme, area *TipArea, button *widget.Clickable, label string, icon *widget.Icon) TipIconButtonStyle {
 	return TipIconButtonStyle{
 		IconButtonStyle: material.IconButton(th, button, icon),
@@ -204,6 +253,7 @@ func TipIconButton(th *material.Theme, area *TipArea, button *widget.Clickable, 
 	}
 }
 
+// Layout renders the TipIconButton.
 func (t TipIconButtonStyle) Layout(gtx C) D {
 	return t.State.Layout(gtx, t.Tooltip, t.IconButtonStyle.Layout)
 }
