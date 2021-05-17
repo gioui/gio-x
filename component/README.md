@@ -126,3 +126,9 @@ Known issues:
 - the heuristic that ContextArea uses to attempt to avoid off-screen drawing of
   its contextual content can fail or backfire. Suggestions for improving this
   are welcome.
+
+### Tooltips
+
+The `Tooltip`, `TipArea`, and `TipIconButtonStyle` types define a tooltip, a contextual area for displaying tooltips (on hover and long-press), and a wrapper around `material.IconButtonStyle` that provides a tooltip for the button.
+
+![tooltip example screenshot](https://git.sr.ht/~whereswaldon/gio-x/blob/main/component/img/tooltip.png)
