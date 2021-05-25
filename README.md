@@ -21,11 +21,11 @@ This table describes the current status of each package in `gioui.org/x`:
 
 ## Contributing
 
-Report bugs on the [gio issue tracker]() with the prefix `gio-x:` in your issue title.
+Report bugs on the [gio issue tracker](https://todo.sr.ht/~eliasnaur/gio) with the prefix `gio-x:` in your issue title.
 
-Ask questions on the [gio discussion mailing list]().
+Ask questions on the [gio discussion mailing list](https://lists.sr.ht/~eliasnaur/gio).
 
-Send patches on the [gio patches mailing list]() with the subject line prefix `[PATCH gio-x]`
+Send patches on the [gio patches mailing list](https://lists.sr.ht/~eliasnaur/gio-patches) with the subject line prefix `[PATCH gio-x]`
 
 All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-x/tree/main/LICENSE) of this repo.
 
