@@ -6,17 +6,18 @@ This repository hosts `gioui.org/x`. Two kinds of package exist in this namespac
 
 This table describes the current status of each package in `gioui.org/x`:
 
-| Name        | Purpose                                | Intended for core? | Non-core dependencies? | API Stability |
-| ---         | ---                                    | ---                | ---                    | ---           |
-| colorpicker | Widgets for choosing colors            | uncertain          | no                     | unstable      |
-| component   | Material.io components                 | uncertain          | no                     | unstable      |
-| eventx      | Event management tools                 | yes                | no                     | unstable      |
-| haptic      | Haptic feedback for mobile devices     | no                 | yes                    | unstable      |
-| notify      | Background notifications               | no                 | yes                    | unstable      |
-| outlay      | Extra layouts                          | yes                | no                     | unstable      |
-| pref        | Query user/device preferences          | no                 | yes                    | unstable      |
-| profiling   | Gio render performance recording tools | uncertain          | no                     | unstable      |
-| scroll      | Scrollbar widget for Gio               | yes                | no                     | unstable      |
+| Name        | Purpose                                     | Intended for core? | Non-core dependencies? | API Stability |
+| ----------- | ------------------------------------------- | ------------------ | ---------------------- | ------------- |
+| colorpicker | Widgets for choosing colors                 | uncertain          | no                     | unstable      |
+| component   | Material.io components                      | uncertain          | no                     | unstable      |
+| eventx      | Event management tools                      | yes                | no                     | unstable      |
+| haptic      | Haptic feedback for mobile devices          | no                 | yes                    | unstable      |
+| notify      | Background notifications                    | no                 | yes                    | unstable      |
+| outlay      | Extra layouts                               | yes                | no                     | unstable      |
+| pref        | Query user/device preferences               | no                 | yes                    | unstable      |
+| profiling   | Gio render performance recording tools      | uncertain          | no                     | unstable      |
+| scroll      | Scrollbar widget for Gio                    | yes                | no                     | unstable      |
+| richtext    | Printing text objects with different styles | uncertain          | no                     | unstable      |
 
 ## Contributing
 
