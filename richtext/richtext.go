@@ -80,6 +80,15 @@ func (to *TextObject) GetMetadata(key string) string {
 	return to.metadata[key]
 }
 
+func (to *TextObject) DeepCopy() *TextObject {
+	t := *to
+	t.metadata = make(map[string]string)
+	for k, v := range to.metadata {
+		t.metadata[k] = v
+	}
+	return &t
+}
+
 //Layout prints out the rich text widget
 func (tos TextObjects) Layout(gtx layout.Context, s text.Shaper) layout.Dimensions {
 	var tosDims layout.Dimensions
