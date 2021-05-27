@@ -88,11 +88,11 @@ func (t Tooltip) Layout(gtx C) D {
 	)
 }
 
-// InvaliateDeadline helps to ensure that a frame is generated at a specific
+// InvalidateDeadline helps to ensure that a frame is generated at a specific
 // point in time in the future. It does this by always requesting a future
 // invalidation at its target time until it reaches its target time. This
 // makes animating delays much cleaner.
-type InvaliateDeadline struct {
+type InvalidateDeadline struct {
 	// The time at which a frame needs to be drawn.
 	Target time.Time
 	// Whether the deadline is active.
@@ -101,7 +101,7 @@ type InvaliateDeadline struct {
 
 // SetTarget configures a specific time in the future at which a frame should
 // be rendered.
-func (i *InvaliateDeadline) SetTarget(t time.Time) {
+func (i *InvalidateDeadline) SetTarget(t time.Time) {
 	i.Active = true
 	i.Target = t
 }
@@ -109,7 +109,7 @@ func (i *InvaliateDeadline) SetTarget(t time.Time) {
 // Process checks the current frame time and either requests a future invalidation
 // or does nothing. It returns whether the current frame is the frame requested
 // by the last call to SetTarget.
-func (i *InvaliateDeadline) Process(gtx C) bool {
+func (i *InvalidateDeadline) Process(gtx C) bool {
 	if !i.Active {
 		return false
 	}
@@ -122,7 +122,7 @@ func (i *InvaliateDeadline) Process(gtx C) bool {
 }
 
 // ClearTarget cancels a request to invalidate in the future.
-func (i *InvaliateDeadline) ClearTarget() {
+func (i *InvalidateDeadline) ClearTarget() {
 	i.Active = false
 }
 
@@ -130,9 +130,9 @@ func (i *InvaliateDeadline) ClearTarget() {
 // value will choose sensible defaults for all fields.
 type TipArea struct {
 	VisibilityAnimation
-	Hover     InvaliateDeadline
-	Press     InvaliateDeadline
-	LongPress InvaliateDeadline
+	Hover     InvalidateDeadline
+	Press     InvalidateDeadline
+	LongPress InvalidateDeadline
 	init      bool
 	// HoverDelay is the delay between the cursor entering the tip area
 	// and the tooltip appearing.
