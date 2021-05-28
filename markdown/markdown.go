@@ -8,6 +8,7 @@ package markdown
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"gioui.org/text"
 	"gioui.org/widget/material"
@@ -50,6 +51,21 @@ func (g *gioNodeRenderer) AppendNewline() {
 	g.TextObjects[len(g.TextObjects)-1].Content += "\n"
 }
 
+func (g *gioNodeRenderer) EnsureSeparationFromPrevious() {
+	if len(g.TextObjects) < 1 {
+		return
+	}
+	last := g.TextObjects[len(g.TextObjects)-1]
+	if !strings.HasSuffix(last.Content, "\n\n") {
+		if strings.HasSuffix(last.Content, "\n") {
+			g.Current.Content = "\n"
+		} else {
+			g.Current.Content = "\n\n"
+		}
+		g.CommitCurrent()
+	}
+}
+
 func (g *gioNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	// blocks
 	//
@@ -84,6 +100,7 @@ func (g *gioNodeRenderer) renderDocument(w util.BufWriter, source []byte, node a
 func (g *gioNodeRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Heading)
 	if entering {
+		g.EnsureSeparationFromPrevious()
 		var l material.LabelStyle
 		switch n.Level {
 		case 1:
@@ -103,7 +120,6 @@ func (g *gioNodeRenderer) renderHeading(w util.BufWriter, source []byte, node as
 	} else {
 		l := material.Body1(g.Theme, "")
 		g.UpdateCurrent(l)
-		g.AppendNewline()
 	}
 	return ast.WalkContinue, nil
 }
@@ -114,6 +130,7 @@ func (g *gioNodeRenderer) renderBlockquote(w util.BufWriter, source []byte, node
 
 func (g *gioNodeRenderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
+		g.EnsureSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 	} else {
 		g.Current.Font.Variant = ""
@@ -124,6 +141,7 @@ func (g *gioNodeRenderer) renderCodeBlock(w util.BufWriter, source []byte, node 
 func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
 	if entering {
+		g.EnsureSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 		lines := n.Lines()
 		for i := 0; i < lines.Len(); i++ {
@@ -133,13 +151,13 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 		}
 	} else {
 		g.Current.Font.Variant = ""
-		g.AppendNewline()
 	}
 	return ast.WalkContinue, nil
 }
 
 func (g *gioNodeRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
+		g.EnsureSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 	} else {
 		g.Current.Font.Variant = ""
@@ -150,10 +168,10 @@ func (g *gioNodeRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node 
 func (g *gioNodeRenderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.List)
 	if entering {
+		g.EnsureSeparationFromPrevious()
 		g.OrderedList = n.IsOrdered()
 		g.OrderedIndex = 1
 	} else {
-		g.AppendNewline()
 	}
 	return ast.WalkContinue, nil
 }
@@ -174,9 +192,8 @@ func (g *gioNodeRenderer) renderListItem(w util.BufWriter, source []byte, node a
 	return ast.WalkContinue, nil
 }
 func (g *gioNodeRenderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if !entering {
-		g.AppendNewline()
-		g.AppendNewline()
+	if entering {
+		g.EnsureSeparationFromPrevious()
 	}
 	return ast.WalkContinue, nil
 }
