@@ -29,13 +29,8 @@ type gioNodeRenderer struct {
 	OrderedIndex int
 }
 
-func newNodeRenderer(theme *material.Theme) *gioNodeRenderer {
-	l := material.Body1(theme, "")
-	g := &gioNodeRenderer{
-		Theme: theme,
-	}
-	g.UpdateCurrent(l)
-	return g
+func newNodeRenderer() *gioNodeRenderer {
+	return &gioNodeRenderer{}
 }
 
 func (g *gioNodeRenderer) CommitCurrent() {
@@ -286,7 +281,7 @@ type Renderer struct {
 
 // NewRenderer creates a ready-to-use markdown renderer.
 func NewRenderer() *Renderer {
-	nr := newNodeRenderer(nil)
+	nr := newNodeRenderer()
 	md := goldmark.New(
 		goldmark.WithRenderer(
 			renderer.NewRenderer(
@@ -302,7 +297,9 @@ func NewRenderer() *Renderer {
 // Render transforms the provided src markdown into gio richtext using the
 // fonts and styles defined by the given theme.
 func (r *Renderer) Render(th *material.Theme, src []byte) (richtext.TextObjects, error) {
+	l := material.Body1(th, "")
 	r.nr.Theme = th
+	r.nr.UpdateCurrent(l)
 	if err := r.md.Convert(src, ioutil.Discard); err != nil {
 		return nil, err
 	}
