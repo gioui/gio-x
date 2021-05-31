@@ -97,7 +97,13 @@ func (v *VisibilityAnimation) ToggleVisibility(now time.Time) {
 }
 
 func (v *VisibilityAnimation) String(gtx layout.Context) string {
-	return fmt.Sprintf("State: %v, Revealed: %f, Duration: %v, Started: %v", v.State, v.Revealed(gtx), v.Duration, v.Started.Local())
+	return fmt.Sprintf(
+		"State: %v, Revealed: %f, Duration: %v, Started: %v",
+		v.State,
+		v.Revealed(gtx),
+		v.Duration,
+		v.Started.Local(),
+	)
 }
 
 // VisibilityAnimationState represents possible states that a VisibilityAnimation can
