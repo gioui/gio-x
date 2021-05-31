@@ -170,6 +170,14 @@ func (p Progress) Progress() float32 {
 	return p.progress
 }
 
+// Absolute reports the absolute progress, ignoring direction.
+func (p Progress) Absolute() float32 {
+	if p.direction == Forward {
+		return p.Progress()
+	}
+	return 1 - p.Progress()
+}
+
 // Direction reports the current direction.
 func (p Progress) Direction() ProgressDirection {
 	return p.direction
