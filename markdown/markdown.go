@@ -6,8 +6,10 @@ Package markdown transforms markdown text into gio richtext.
 package markdown
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"gioui.org/text"
@@ -311,9 +313,14 @@ func NewRenderer() *Renderer {
 	return &Renderer{md: md, nr: nr}
 }
 
+var urlExp = regexp.MustCompile(`(^|\s)([^[\s]\S*://\S+)`)
+
 // Render transforms the provided src markdown into gio richtext using the
 // fonts and styles defined by the given theme.
 func (r *Renderer) Render(th *material.Theme, src []byte) (richtext.TextObjects, error) {
+	if bytes.Contains(src, []byte("://")) {
+		src = urlExp.ReplaceAll(src, []byte("$1[$2]($2)"))
+	}
 	l := material.Body1(th, "")
 	r.nr.Theme = th
 	r.nr.UpdateCurrent(l)
