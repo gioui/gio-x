@@ -34,8 +34,14 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 	i.click.Add(gtx.Ops)
 	if i.click.Pressed() && !i.pressing {
 		i.pressStarted = gtx.Now
+		i.pressing = true
 	} else if i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
 		i.longPressed = true
+	} else if !i.click.Pressed() {
+		i.pressing = false
+	}
+	if i.pressing {
+		op.InvalidateOp{}.Add(gtx.Ops)
 	}
 	return layout.Dimensions{}
 }
@@ -146,31 +152,39 @@ type spanShape struct {
 
 // Set configures a metadata key-value pair on the span that can be
 // retrieved if the span is interacted with.
-func (ss SpanStyle) Set(key, value string) {
-	if ss.metadata == nil {
+func (ss *SpanStyle) Set(key, value string) {
+	if ss.metadata == nil && value != "" {
 		ss.metadata = make(map[string]string)
+	} else if ss.metadata != nil && value == "" {
+		delete(ss.metadata, key)
+		if len(ss.metadata) == 0 {
+			ss.metadata = nil
+		}
+		return
 	}
 	ss.metadata[key] = value
 }
 
 // Layout renders the span using the provided text shaping.
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
-	stack := op.Save(gtx.Ops)
+	defer op.Save(gtx.Ops).Load()
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
 	s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
-	stack.Load()
 	return layout.Dimensions{Size: shape.size}
 }
 
+// DeepCopy returns an identical SpanStyle with its own copy of its metadata.
 func (ss SpanStyle) DeepCopy() SpanStyle {
-	md := make(map[string]string)
-	for k, v := range ss.metadata {
-		md[k] = v
-	}
 	out := ss
-	out.metadata = md
+	if len(ss.metadata) > 0 {
+		md := make(map[string]string)
+		for k, v := range ss.metadata {
+			md[k] = v
+		}
+		out.metadata = md
+	}
 	return out
 }
 
@@ -245,6 +259,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 				span.Layout(gtx, shaper, shape)
 
 				if !span.Interactive {
+					state = nil
 					continue
 				}
 				// grab an interactive state and lay it out atop the text.
@@ -256,11 +271,18 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 					state.metadata = span.metadata
 				}
 				stack := op.Save(gtx.Ops)
+				// set this offset to the upper corner of the text, not the lower
+				shape.offset.Y -= lineDims.Y
 				op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
 				pointer.Rect(image.Rectangle{Max: shape.size}).Add(gtx.Ops)
 				state.Layout(gtx)
 				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
 				stack.Load()
+				// ensure that we request new state for each interactive text
+				// that isn't breaking across a line.
+				if i < len(lineShapes)-1 {
+					state = nil
+				}
 			}
 			// reset line shaping data and update overall vertical dimensions
 			lineShapes = lineShapes[:0]
@@ -273,6 +295,12 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 			lineStartIndex = i + 1
 			lineDims = image.Point{}
 
+			// if this span isn't interactive, don't use the same interaction
+			//state on the next line.
+			if !span.Interactive {
+				state = nil
+			}
+
 			// ensure the spans slice has room for another span
 			spans = append(spans, SpanStyle{})
 			// shift existing spans further
@@ -282,10 +310,6 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 			// synthesize and insert a new span
 			span.Content = span.Content[len(firstLine.Layout.Text):]
 			spans[i+1] = span
-		} else {
-			// indicate that the next span is not a continuation of the current
-			// one.
-			state = nil
 		}
 	}
 	return layout.Dimensions{Size: overallSize}
