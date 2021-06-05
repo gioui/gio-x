@@ -30,6 +30,7 @@ type TextObject struct {
 	xOffset    int
 	size       image.Point
 	clicked    int
+	hovered    bool
 }
 
 //Layout prints out the text at specified offset
@@ -51,6 +52,10 @@ func (to *TextObject) Clicked() bool {
 	return true
 }
 
+func (to *TextObject) Hovered() bool {
+	return to.hovered
+}
+
 func (to *TextObject) updateClicks(gtx layout.Context) {
 	if !to.Clickable {
 		return
@@ -61,6 +66,10 @@ func (to *TextObject) updateClicks(gtx layout.Context) {
 			switch p.Type {
 			case pointer.Release:
 				to.clicked++
+			case pointer.Enter:
+				to.hovered = true
+			case pointer.Leave, pointer.Cancel:
+				to.hovered = false
 			}
 		}
 	}
@@ -139,7 +148,10 @@ func (tos TextObjects) Layout(gtx layout.Context, s text.Shaper) layout.Dimensio
 				clickableOffset := image.Point{X: obj.xOffset, Y: tosDims.Size.Y}
 				op.Offset(layout.FPt(clickableOffset)).Add(gtx.Ops)
 				pointer.Rect(image.Rectangle{Max: obj.size}).Add(gtx.Ops)
-				pointer.InputOp{Tag: origin(obj), Types: pointer.Release}.Add(gtx.Ops)
+				pointer.InputOp{
+					Tag:   origin(obj),
+					Types: pointer.Release | pointer.Enter | pointer.Leave,
+				}.Add(gtx.Ops)
 				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
 				stack.Load()
 			}
@@ -190,6 +202,15 @@ func (oi *objectIterator) Empty() bool {
 func (tos TextObjects) Clicked() *TextObject {
 	for _, to := range tos {
 		if to.Clicked() {
+			return to
+		}
+	}
+	return nil
+}
+
+func (tos TextObjects) Hovered() *TextObject {
+	for _, to := range tos {
+		if to.Hovered() {
 			return to
 		}
 	}
