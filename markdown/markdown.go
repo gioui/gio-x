@@ -209,12 +209,12 @@ func (g *gioNodeRenderer) renderAutoLink(w util.BufWriter, source []byte, node a
 	n := node.(*ast.AutoLink)
 	if entering {
 		url := string(n.URL(source))
-		g.Current.Set(urlMetadataKey, url)
+		g.Current.Set(MetadataURL, url)
 		g.Current.Color = g.Theme.ContrastBg
 		g.Current.Content = url
 		g.CommitCurrent()
 	} else {
-		g.Current.Set(urlMetadataKey, "")
+		g.Current.Set(MetadataURL, "")
 		g.Current.Color = g.Theme.Fg
 	}
 	return ast.WalkContinue, nil
@@ -246,18 +246,18 @@ func (g *gioNodeRenderer) renderImage(w util.BufWriter, source []byte, node ast.
 	return ast.WalkContinue, nil
 }
 
-const urlMetadataKey = "url"
+const MetadataURL = "url"
 
 func (g *gioNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
 		g.Current.Color = g.Theme.ContrastBg
 		g.Current.Interactive = true
-		g.Current.Set("url", string(n.Destination))
+		g.Current.Set(MetadataURL, string(n.Destination))
 	} else {
 		g.Current.Color = g.Theme.Fg
 		g.Current.Interactive = false
-		g.Current.Set("url", "")
+		g.Current.Set(MetadataURL, "")
 	}
 	return ast.WalkContinue, nil
 }
