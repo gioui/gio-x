@@ -24,9 +24,9 @@ import (
 
 // gioNodeRenderer transforms AST nodes into gio's richtext types
 type gioNodeRenderer struct {
-	richtext.TextObjects
+	TextObjects []richtext.SpanStyle
 
-	Current      richtext.TextObject
+	Current      richtext.SpanStyle
 	Theme        *material.Theme
 	OrderedList  bool
 	OrderedIndex int
@@ -209,12 +209,12 @@ func (g *gioNodeRenderer) renderAutoLink(w util.BufWriter, source []byte, node a
 	n := node.(*ast.AutoLink)
 	if entering {
 		url := string(n.URL(source))
-		g.Current.SetMetadata(urlMetadataKey, url)
+		g.Current.Set(urlMetadataKey, url)
 		g.Current.Color = g.Theme.ContrastBg
 		g.Current.Content = url
 		g.CommitCurrent()
 	} else {
-		g.Current.SetMetadata(urlMetadataKey, "")
+		g.Current.Set(urlMetadataKey, "")
 		g.Current.Color = g.Theme.Fg
 	}
 	return ast.WalkContinue, nil
@@ -252,12 +252,12 @@ func (g *gioNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.N
 	n := node.(*ast.Link)
 	if entering {
 		g.Current.Color = g.Theme.ContrastBg
-		g.Current.Clickable = true
-		g.Current.SetMetadata("url", string(n.Destination))
+		g.Current.Interactive = true
+		g.Current.Set("url", string(n.Destination))
 	} else {
 		g.Current.Color = g.Theme.Fg
-		g.Current.Clickable = false
-		g.Current.SetMetadata("url", "")
+		g.Current.Interactive = false
+		g.Current.Set("url", "")
 	}
 	return ast.WalkContinue, nil
 }
@@ -286,7 +286,7 @@ func (g *gioNodeRenderer) renderString(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
-func (g *gioNodeRenderer) Result() richtext.TextObjects {
+func (g *gioNodeRenderer) Result() []richtext.SpanStyle {
 	o := g.TextObjects
 	g.TextObjects = nil
 	return o
@@ -317,7 +317,7 @@ var urlExp = regexp.MustCompile(`(^|\s)([^[\s]\S*://\S+)`)
 
 // Render transforms the provided src markdown into gio richtext using the
 // fonts and styles defined by the given theme.
-func (r *Renderer) Render(th *material.Theme, src []byte) (richtext.TextObjects, error) {
+func (r *Renderer) Render(th *material.Theme, src []byte) ([]richtext.SpanStyle, error) {
 	if bytes.Contains(src, []byte("://")) {
 		src = urlExp.ReplaceAll(src, []byte("$1[$2]($2)"))
 	}
