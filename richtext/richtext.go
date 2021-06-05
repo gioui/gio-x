@@ -3,7 +3,10 @@ package richtext
 import (
 	"image"
 	"image/color"
+	"time"
 
+	"gioui.org/gesture"
+	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -12,6 +15,281 @@ import (
 	"gioui.org/unit"
 	"golang.org/x/image/math/fixed"
 )
+
+// InteractiveSpan holds the persistent state of rich text that can
+// be interacted with by the user. It can report clicks, hovers, and
+// long-presses on the text.
+type InteractiveSpan struct {
+	click        gesture.Click
+	pressing     bool
+	longPressed  bool
+	pressStarted time.Time
+	content      string
+	metadata     map[string]string
+}
+
+// Layout adds the pointer input op for this interactive span and updates its
+// state. It uses the most recent pointer.AreaOp as its input area.
+func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
+	i.click.Add(gtx.Ops)
+	if i.click.Pressed() && !i.pressing {
+		i.pressStarted = gtx.Now
+	} else if i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
+		i.longPressed = true
+	}
+	return layout.Dimensions{}
+}
+
+// Hovered returns whether this span is hovered.
+func (i *InteractiveSpan) Hovered() bool {
+	return i.click.Hovered()
+}
+
+// Events returns click event information for this span.
+func (i *InteractiveSpan) Events(q event.Queue) []gesture.ClickEvent {
+	return i.click.Events(q)
+}
+
+// LongPressed returns whether this span has been long-pressed.
+func (i *InteractiveSpan) LongPressed() bool {
+	out := i.longPressed
+	i.longPressed = false
+	return out
+}
+
+// Content returns the text content of the interactive span as well as the
+// metadata associated with it.
+func (i *InteractiveSpan) Content() (string, map[string]string) {
+	return i.content, i.metadata
+}
+
+// Get looks up a metadata property on the interactive span.
+func (i *InteractiveSpan) Get(key string) string {
+	return i.metadata[key]
+}
+
+// InteractiveText holds persistent state for a block of text containing
+// spans that may be interactive.
+type InteractiveText struct {
+	Spans   []InteractiveSpan
+	current int
+}
+
+// next returns an InteractiveSpan that hasn't been used since the last
+// call to reset().
+func (i *InteractiveText) next() *InteractiveSpan {
+	if i.current >= len(i.Spans) {
+		i.Spans = append(i.Spans, InteractiveSpan{})
+	}
+	span := &i.Spans[i.current]
+	i.current++
+	return span
+}
+
+// reset moves the internal iteration cursor back the start of the spans,
+// allowing them to be reused. This should be called at the start of every
+// layout.
+func (i *InteractiveText) reset() {
+	i.current = 0
+}
+
+// Hovered returns the first hovered span in the interactive text.
+func (i *InteractiveText) Hovered() *InteractiveSpan {
+	for k := range i.Spans {
+		span := &i.Spans[k]
+		if span.Hovered() {
+			return span
+		}
+	}
+	return nil
+}
+
+// LongPressed returns the first long-pressed span in the interactive text.
+func (i *InteractiveText) LongPressed() *InteractiveSpan {
+	for k := range i.Spans {
+		span := &i.Spans[k]
+		if span.LongPressed() {
+			return span
+		}
+	}
+	return nil
+}
+
+// Events returns the first span with unprocessed events and the events that
+// need processing for it.
+func (i *InteractiveText) Events(q event.Queue) (*InteractiveSpan, []gesture.ClickEvent) {
+	for k := range i.Spans {
+		span := &i.Spans[k]
+		if events := span.Events(q); len(events) > 0 {
+			return span, events
+		}
+	}
+	return nil, nil
+}
+
+// SpanStyle describes the appearance of a span of styled text.
+type SpanStyle struct {
+	Font        text.Font
+	Size        unit.Value
+	Color       color.NRGBA
+	Content     string
+	Interactive bool
+	metadata    map[string]string
+}
+
+// spanShape describes the text shaping of a single span.
+type spanShape struct {
+	offset image.Point
+	layout text.Layout
+	size   image.Point
+}
+
+// Set configures a metadata key-value pair on the span that can be
+// retrieved if the span is interacted with.
+func (ss SpanStyle) Set(key, value string) {
+	if ss.metadata == nil {
+		ss.metadata = make(map[string]string)
+	}
+	ss.metadata[key] = value
+}
+
+// Layout renders the span using the provided text shaping.
+func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
+	stack := op.Save(gtx.Ops)
+	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
+	op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
+	s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+	stack.Load()
+	return layout.Dimensions{Size: shape.size}
+}
+
+func (ss SpanStyle) DeepCopy() SpanStyle {
+	md := make(map[string]string)
+	for k, v := range ss.metadata {
+		md[k] = v
+	}
+	out := ss
+	out.metadata = md
+	return out
+}
+
+// TextStyle presents rich text.
+type TextStyle struct {
+	State  *InteractiveText
+	Styles []SpanStyle
+}
+
+// Text constructs a TextStyle.
+func Text(state *InteractiveText, styles ...SpanStyle) TextStyle {
+	return TextStyle{
+		State:  state,
+		Styles: styles,
+	}
+}
+
+// Layout renders the TextStyle using the provided text shaper.
+func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensions {
+	spans := make([]SpanStyle, len(t.Styles))
+	copy(spans, t.Styles)
+	t.State.reset()
+
+	var (
+		lineDims       image.Point
+		overallSize    image.Point
+		lineShapes     []spanShape
+		lineStartIndex int
+		state          *InteractiveSpan
+	)
+
+	for i := 0; i < len(spans); i++ {
+		// grab the next span
+		span := spans[i]
+
+		// constrain the width of the line to the remaining space
+		maxWidth := gtx.Constraints.Max.X - lineDims.X
+
+		// shape the text of the current span
+		lines := shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, span.Content)
+
+		// grab the first line of the result and compute its dimensions
+		firstLine := lines[0]
+		spanWidth := firstLine.Width.Ceil()
+		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
+
+		// store the text shaping results for the line
+		lineShapes = append(lineShapes, spanShape{
+			offset: image.Point{X: lineDims.X},
+			size:   image.Point{X: spanWidth, Y: spanHeight},
+			layout: firstLine.Layout,
+		})
+
+		// update the dimensions of the current line
+		lineDims.X += spanWidth
+		if lineDims.Y < spanHeight {
+			lineDims.Y = spanHeight
+		}
+
+		// update the width of the overall text
+		if overallSize.X < lineDims.X {
+			overallSize.X = lineDims.X
+		}
+
+		// if we are breaking the current span across lines or we are on the
+		// last span, lay out all of the spans for the line.
+		if len(lines) > 1 || i == len(spans)-1 {
+			for i, shape := range lineShapes {
+				// lay out this span
+				span = spans[i+lineStartIndex]
+				shape.offset.Y = overallSize.Y + lineDims.Y
+				span.Layout(gtx, shaper, shape)
+
+				if !span.Interactive {
+					continue
+				}
+				// grab an interactive state and lay it out atop the text.
+				// If we still have a state, this line is a continuation of
+				// the previous span and we should use the same state.
+				if state == nil {
+					state = t.State.next()
+					state.content = span.Content
+					state.metadata = span.metadata
+				}
+				stack := op.Save(gtx.Ops)
+				op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
+				pointer.Rect(image.Rectangle{Max: shape.size}).Add(gtx.Ops)
+				state.Layout(gtx)
+				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
+				stack.Load()
+			}
+			// reset line shaping data and update overall vertical dimensions
+			lineShapes = lineShapes[:0]
+			overallSize.Y += lineDims.Y
+		}
+
+		// if the current span breaks across lines
+		if len(lines) > 1 {
+			// mark where the next line to be laid out starts
+			lineStartIndex = i + 1
+			lineDims = image.Point{}
+
+			// ensure the spans slice has room for another span
+			spans = append(spans, SpanStyle{})
+			// shift existing spans further
+			for k := len(spans) - 1; k > i+1; k-- {
+				spans[k] = spans[k-1]
+			}
+			// synthesize and insert a new span
+			span.Content = span.Content[len(firstLine.Layout.Text):]
+			spans[i+1] = span
+		} else {
+			// indicate that the next span is not a continuation of the current
+			// one.
+			state = nil
+		}
+	}
+	return layout.Dimensions{Size: overallSize}
+}
 
 //TextObjects represents the whole richtext widget
 type TextObjects []*TextObject
