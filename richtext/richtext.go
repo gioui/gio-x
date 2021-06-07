@@ -151,16 +151,20 @@ type spanShape struct {
 }
 
 // Set configures a metadata key-value pair on the span that can be
-// retrieved if the span is interacted with.
+// retrieved if the span is interacted with. If the provided value
+// is empty, the key will be deleted from the metadata.
 func (ss *SpanStyle) Set(key, value string) {
-	if ss.metadata == nil && value != "" {
-		ss.metadata = make(map[string]string)
-	} else if ss.metadata != nil && value == "" {
-		delete(ss.metadata, key)
-		if len(ss.metadata) == 0 {
-			ss.metadata = nil
+	if value == "" {
+		if ss.metadata != nil {
+			delete(ss.metadata, key)
+			if len(ss.metadata) == 0 {
+				ss.metadata = nil
+			}
 		}
 		return
+	}
+	if ss.metadata == nil {
+		ss.metadata = make(map[string]string)
 	}
 	ss.metadata[key] = value
 }
