@@ -35,7 +35,7 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 	if i.click.Pressed() && !i.pressing {
 		i.pressStarted = gtx.Now
 		i.pressing = true
-	} else if i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
+	} else if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
 		i.longPressed = true
 	} else if !i.click.Pressed() {
 		i.pressing = false
