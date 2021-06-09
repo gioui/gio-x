@@ -15,6 +15,10 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+// LongPressDuration is the default duration of a long press gesture.
+// Override this variable to change the detection threshold.
+var LongPressDuration time.Duration = 100 * time.Millisecond
+
 // EventType describes a kind of iteraction with rich text.
 type EventType uint8
 
@@ -69,7 +73,7 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 		i.events = append(i.events, Event{Type: Hover})
 	}
 
-	if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
+	if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > LongPressDuration {
 		i.events = append(i.events, Event{Type: LongPress})
 		i.longPressed = true
 	}
