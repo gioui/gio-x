@@ -313,7 +313,13 @@ func NewRenderer() *Renderer {
 	return &Renderer{md: md, nr: nr}
 }
 
-var urlExp = regexp.MustCompile(`(^|\s)([^[\s]\S*://\S+)`)
+const NonParenBracketAndSpace = `[^([\s]`
+
+// this regex matches a :// with one or more character that isn't whitespace
+// a square bracket, or a parentheses on either side. It seems to reliably
+// detect content that should be hyperlinked without actually matching
+// markdown link syntax.
+var urlExp = regexp.MustCompile(`(^|\s)([^([\s]+://[^)\]\s]+)`)
 
 // Render transforms the provided src markdown into gio richtext using the
 // fonts and styles defined by the given theme.
