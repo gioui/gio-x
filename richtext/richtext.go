@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"gioui.org/gesture"
-	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -16,6 +15,22 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+// EventType describes a kind of iteraction with rich text.
+type EventType uint8
+
+const (
+	Hover EventType = iota
+	LongPress
+	Click
+)
+
+// Event describes an interaction with rich text.
+type Event struct {
+	Type EventType
+	// ClickData is only populated if Type == Clicked
+	ClickData gesture.ClickEvent
+}
+
 // InteractiveSpan holds the persistent state of rich text that can
 // be interacted with by the user. It can report clicks, hovers, and
 // long-presses on the text.
@@ -24,49 +39,58 @@ type InteractiveSpan struct {
 	pressing     bool
 	longPressed  bool
 	pressStarted time.Time
-	content      string
+	contents     string
 	metadata     map[string]string
+	events       []Event
 }
 
 // Layout adds the pointer input op for this interactive span and updates its
 // state. It uses the most recent pointer.AreaOp as its input area.
 func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 	i.click.Add(gtx.Ops)
-	if i.click.Pressed() && !i.pressing {
-		i.pressStarted = gtx.Now
-		i.pressing = true
-	} else if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
-		i.longPressed = true
-	} else if !i.click.Pressed() {
-		i.pressing = false
+	for _, e := range i.click.Events(gtx) {
+		switch e.Type {
+		case gesture.TypeClick:
+			if i.longPressed {
+				i.longPressed = false
+			} else {
+				i.events = append(i.events, Event{Type: Click, ClickData: e})
+			}
+			i.pressing = false
+		case gesture.TypePress:
+			i.pressStarted = gtx.Now
+			i.pressing = true
+		case gesture.TypeCancel:
+			i.pressing = false
+			i.longPressed = false
+		}
 	}
-	if i.pressing {
+	if i.click.Hovered() {
+		i.events = append(i.events, Event{Type: Hover})
+	}
+
+	if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > time.Millisecond*250 {
+		i.events = append(i.events, Event{Type: LongPress})
+		i.longPressed = true
+	}
+
+	if i.pressing && !i.longPressed {
 		op.InvalidateOp{}.Add(gtx.Ops)
 	}
 	return layout.Dimensions{}
 }
 
-// Hovered returns whether this span is hovered.
-func (i *InteractiveSpan) Hovered() bool {
-	return i.click.Hovered()
-}
-
 // Events returns click event information for this span.
-func (i *InteractiveSpan) Events(q event.Queue) []gesture.ClickEvent {
-	return i.click.Events(q)
-}
-
-// LongPressed returns whether this span has been long-pressed.
-func (i *InteractiveSpan) LongPressed() bool {
-	out := i.longPressed
-	i.longPressed = false
+func (i *InteractiveSpan) Events() []Event {
+	out := i.events
+	i.events = i.events[:0]
 	return out
 }
 
 // Content returns the text content of the interactive span as well as the
 // metadata associated with it.
 func (i *InteractiveSpan) Content() (string, map[string]string) {
-	return i.content, i.metadata
+	return i.contents, i.metadata
 }
 
 // Get looks up a metadata property on the interactive span.
@@ -99,34 +123,12 @@ func (i *InteractiveText) reset() {
 	i.current = 0
 }
 
-// Hovered returns the first hovered span in the interactive text.
-func (i *InteractiveText) Hovered() *InteractiveSpan {
-	for k := range i.Spans {
-		span := &i.Spans[k]
-		if span.Hovered() {
-			return span
-		}
-	}
-	return nil
-}
-
-// LongPressed returns the first long-pressed span in the interactive text.
-func (i *InteractiveText) LongPressed() *InteractiveSpan {
-	for k := range i.Spans {
-		span := &i.Spans[k]
-		if span.LongPressed() {
-			return span
-		}
-	}
-	return nil
-}
-
 // Events returns the first span with unprocessed events and the events that
 // need processing for it.
-func (i *InteractiveText) Events(q event.Queue) (*InteractiveSpan, []gesture.ClickEvent) {
+func (i *InteractiveText) Events() (*InteractiveSpan, []Event) {
 	for k := range i.Spans {
 		span := &i.Spans[k]
-		if events := span.Events(q); len(events) > 0 {
+		if events := span.Events(); len(events) > 0 {
 			return span, events
 		}
 	}
@@ -271,7 +273,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 				// the previous span and we should use the same state.
 				if state == nil {
 					state = t.State.next()
-					state.content = span.Content
+					state.contents = span.Content
 					state.metadata = span.metadata
 				}
 				stack := op.Save(gtx.Ops)
