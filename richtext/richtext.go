@@ -220,6 +220,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 
 	var (
 		lineDims       image.Point
+		lineAscent     int
 		overallSize    image.Point
 		lineShapes     []spanShape
 		lineStartIndex int
@@ -240,6 +241,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 		firstLine := lines[0]
 		spanWidth := firstLine.Width.Ceil()
 		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
+		spanAscent := firstLine.Ascent.Ceil()
 
 		// store the text shaping results for the line
 		lineShapes = append(lineShapes, spanShape{
@@ -253,6 +255,9 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 		if lineDims.Y < spanHeight {
 			lineDims.Y = spanHeight
 		}
+		if lineAscent < spanAscent {
+			lineAscent = spanAscent
+		}
 
 		// update the width of the overall text
 		if overallSize.X < lineDims.X {
@@ -265,7 +270,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 			for i, shape := range lineShapes {
 				// lay out this span
 				span = spans[i+lineStartIndex]
-				shape.offset.Y = overallSize.Y + lineDims.Y
+				shape.offset.Y = overallSize.Y + lineAscent
 				span.Layout(gtx, shaper, shape)
 
 				if !span.Interactive {
@@ -304,6 +309,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
 			lineDims = image.Point{}
+			lineAscent = 0
 
 			// if this span isn't interactive, don't use the same interaction
 			//state on the next line.
