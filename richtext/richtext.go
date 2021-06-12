@@ -17,7 +17,7 @@ import (
 
 // LongPressDuration is the default duration of a long press gesture.
 // Override this variable to change the detection threshold.
-var LongPressDuration time.Duration = 100 * time.Millisecond
+var LongPressDuration time.Duration = 250 * time.Millisecond
 
 // EventType describes a kind of iteraction with rich text.
 type EventType uint8
