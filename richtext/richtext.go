@@ -202,18 +202,20 @@ func (ss SpanStyle) DeepCopy() SpanStyle {
 type TextStyle struct {
 	State  *InteractiveText
 	Styles []SpanStyle
+	text.Shaper
 }
 
 // Text constructs a TextStyle.
-func Text(state *InteractiveText, styles ...SpanStyle) TextStyle {
+func Text(state *InteractiveText, shaper text.Shaper, styles ...SpanStyle) TextStyle {
 	return TextStyle{
 		State:  state,
 		Styles: styles,
+		Shaper: shaper,
 	}
 }
 
-// Layout renders the TextStyle using the provided text shaper.
-func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensions {
+// Layout renders the TextStyle.
+func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 	spans := make([]SpanStyle, len(t.Styles))
 	copy(spans, t.Styles)
 	t.State.reset()
@@ -235,7 +237,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
 		// shape the text of the current span
-		lines := shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, span.Content)
+		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, span.Content)
 
 		// grab the first line of the result and compute its dimensions
 		firstLine := lines[0]
@@ -271,7 +273,7 @@ func (t TextStyle) Layout(gtx layout.Context, shaper text.Shaper) layout.Dimensi
 				// lay out this span
 				span = spans[i+lineStartIndex]
 				shape.offset.Y = overallSize.Y + lineAscent
-				span.Layout(gtx, shaper, shape)
+				span.Layout(gtx, t.Shaper, shape)
 
 				if !span.Interactive {
 					state = nil
