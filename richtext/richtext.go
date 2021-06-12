@@ -1,3 +1,6 @@
+/*
+Package richtext provides rendering of text containing multiple fonts, styles, and levels of interactivity.
+*/
 package richtext
 
 import (
