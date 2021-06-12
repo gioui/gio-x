@@ -1,4 +1,4 @@
-package richtext
+package richtext_test
 
 import (
 	"image/color"
