@@ -12,7 +12,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
+	"gioui.org/widget/material"
 )
 
 type (
@@ -20,254 +20,144 @@ type (
 	D = layout.Dimensions
 )
 
-// Scrollable holds state of a scrolling widget. The Scrolled() method is
-// used to tell both whether a scroll operation occurred during the last frame
-// as well as the progress through the scrollable region at the end of the
-// scroll operation.
-type Scrollable struct {
-	// Track clicks.
-	clickable widget.Clickable
-	// Track drag events.
-	drag gesture.Drag
-	// Has the bar scrolled since the previous frame?
-	scrolled bool
-	// Cached length of scroll region after layout has been computed. This can be
-	// off if the screen is being resized, but we have no better way to acquire
-	// this data.
-	length int
-	// progress is how far along we are as a fraction between 0 and 1.
-	progress float32
+// ScrollbarState holds the persistent state for an area that can
+// display a scrollbar.
+type ScrollbarState struct {
+	track, indicator gesture.Click
+	drag             gesture.Drag
 }
 
-// Bar represents a scrolling indicator for a layout.List
-type Bar struct {
-	*Scrollable
-	// Color of the scroll indicator.
-	Color color.NRGBA
-	// Progress tells the bar where to render the indicator as a fraction [0, 1].
-	Progress float32
-	// Scale tells the bar what fraction of the available axis space it should
-	// occupy as a fraction between [0, 1].
-	Scale float32
-	// Axis along which the bar is oriented.
-	Axis Axis
-	// Axis independent size.
-	Thickness unit.Value
-	// MinLength is the minimum length of the scroll indicator. Regardless of
-	// the scale of the bar, it will not be displayed shorter than this. If
-	// the scale parameter isn't provided, the indicator will always have
-	// this length.
-	MinLength unit.Value
+// ScrollTrackStyle configures the presentation of a track for a scroll area.
+type ScrollTrackStyle struct {
+	// Padding along the major and minor axis of the scrollbar's
+	// track. This is used to keep the scrollbar from touching the
+	// edges of the content area.
+	MajorPadding, MinorPadding unit.Value
 }
 
-// Axis specifies the scroll bar orientation.
-// Default to `Vertical`.
-type Axis int
+// ScrollIndicatorStyle configures the presentation of a scroll indicator.
+type ScrollIndicatorStyle struct {
+	// The smallest that the scroll indicator is allowed to be along
+	// the major axis.
+	MajorMinLen unit.Value
+	// The width of the scroll indicator across the minor axis.
+	MinorWidth unit.Value
+	// The normal and hovered colors of the scroll indicator.
+	Color, HoverColor color.NRGBA
+	// The corner radius of the rectangular indicator. 0 will produce
+	// square corners. 0.5*MinorWidth will produce perfectly round
+	// corners.
+	CornerRadius unit.Value
+}
 
-const (
-	Vertical   = 0
-	Horizontal = 1
-)
+// ScrollPosition describes the position of a scrollable viewport atop
+// a finite scrollable region.
+type ScrollPosition struct {
+	// VisibleStart is the start position of the viewport within the
+	// scrollabe region represented as a fraction. It should be in the
+	// range [0,1]
+	VisibleStart float32
+	// VisibleEnd is the end position of the viewport within the scrollable
+	// region represented as a fraction. It should be in the range [0,1]
+	VisibleEnd float32
+}
 
-// DefaultBar returns a bar with a translucent gray background. The progress
-// parameter tells the bar how far through its range of motion to draw itself.
-// The scale parameter tells the bar what fraction of the scrollable space is
-// visible. Scale may be left as zero to use a minimum-length scroll indicator
-// that does not respond to changes in the length of the scrollable region.
-func DefaultBar(state *Scrollable, progress, scale float32) Bar {
-	return Bar{
-		Scrollable: state,
-		Progress:   progress,
-		Scale:      scale,
-		Color:      color.NRGBA{A: 200},
-		Thickness:  unit.Dp(8),
-		MinLength:  unit.Dp(16),
+// ScrollbarStyle configures the presentation of a scrollbar.
+type ScrollbarStyle struct {
+	Axis      layout.Axis
+	State     *ScrollbarState
+	Track     ScrollTrackStyle
+	Indicator ScrollIndicatorStyle
+	Position  ScrollPosition
+}
+
+// Scrollbar configures the presentation of a scrollbar using the provided
+// theme, state, and positional information.
+func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) ScrollbarStyle {
+	return ScrollbarStyle{
+		State: state,
+		Track: ScrollTrackStyle{
+			MajorPadding: unit.Dp(2),
+			MinorPadding: unit.Dp(2),
+		},
+		Indicator: ScrollIndicatorStyle{
+			MajorMinLen:  unit.Dp(8),
+			MinorWidth:   unit.Dp(6),
+			CornerRadius: unit.Dp(3),
+			Color:        th.Palette.Fg,
+			HoverColor:   th.Palette.ContrastBg,
+		},
+		Position: pos,
 	}
 }
 
-// Update the internal state of the bar.
-func (sb *Scrollable) Update(gtx C, axis Axis) {
-	sb.scrolled = false
-	// Restrict progress to [0, 1].
-	defer func() {
-		if sb.progress > 1 {
-			sb.progress = 1
-		} else if sb.progress < 0 {
-			sb.progress = 0
+func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
+	anchoring := func() layout.Direction {
+		if s.Axis == layout.Horizontal {
+			return layout.S
 		}
+		return layout.E
 	}()
-	pickAxis := func(pt f32.Point) (v float32) {
-		switch axis {
-		case Vertical:
-			v = pt.Y
-		case Horizontal:
-			v = pt.X
-		}
-		return v
-	}
-	if sb.clickable.Clicked() {
-		if presses := sb.clickable.History(); len(presses) > 0 {
-			press := presses[len(presses)-1]
-			sb.progress = float32(pickAxis(press.Position)) / float32(sb.length)
-			sb.scrolled = true
-		}
-	}
-	if drags := sb.drag.Events(gtx.Metric, gtx, axis.ToGesture()); len(drags) > 0 {
-		delta := pickAxis(drags[len(drags)-1].Position)
-		sb.progress = (sb.progress*float32(sb.length) + (delta / 2)) / float32(sb.length)
-		sb.scrolled = true
-	}
-}
-
-// Scrolled returns true if the scroll position changed within the last frame.
-func (sb Scrollable) Scrolled() (didScroll bool, progress float32) {
-	return sb.scrolled, sb.progress
-}
-
-// Layout renders the bar into the provided context.
-func (sb Bar) Layout(gtx C) D {
-	sb.Scrollable.progress = sb.Progress
-	sb.Update(gtx, sb.Axis)
-	if scrolled, _ := sb.Scrolled(); scrolled {
-		op.InvalidateOp{}.Add(gtx.Ops)
-	}
-	scaledLength := float32(0)
-	switch sb.Axis {
-	case Horizontal:
-		scaledLength = (sb.Scale * float32(gtx.Constraints.Max.X))
-	case Vertical:
-		scaledLength = (sb.Scale * float32(gtx.Constraints.Max.Y))
-	}
-	if int(scaledLength) > gtx.Px(sb.MinLength) {
-		sb.MinLength = unit.Dp(scaledLength / gtx.Metric.PxPerDp)
-	}
-	return sb.Axis.Layout(gtx, func(gtx C) D {
-		if sb.MinLength == (unit.Value{}) {
-			sb.MinLength = unit.Dp(16)
-		}
-		if sb.Thickness == (unit.Value{}) {
-			sb.Thickness = unit.Dp(8)
-		}
-		var (
-			total float32
-			size  f32.Point
-			top   = unit.Dp(2)
-			left  = unit.Dp(2)
-		)
-		switch sb.Axis {
-		case Horizontal:
-			sb.length = gtx.Constraints.Max.X
-			size = f32.Point{
-				X: float32(gtx.Px(sb.MinLength)),
-				Y: float32(gtx.Px(sb.Thickness)),
-			}
-			total = float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
-			left = unit.Dp(total * sb.Progress)
-			if left.V+sb.MinLength.V > total {
-				left = unit.Dp(total - sb.MinLength.V)
-			}
-		case Vertical:
-			sb.length = gtx.Constraints.Max.Y
-			size = f32.Point{
-				X: float32(gtx.Px(sb.Thickness)),
-				Y: float32(gtx.Px(sb.MinLength)),
-			}
-			total = float32(gtx.Constraints.Max.Y) / gtx.Metric.PxPerDp
-			top = unit.Dp(total * sb.Progress)
-			if top.V+sb.MinLength.V > total {
-				top = unit.Dp(total - sb.MinLength.V)
-			}
-		}
-		return clickBox(gtx, &sb.clickable, func(gtx C) D {
-			barAreaDims := layout.Inset{
-				Top:    top,
-				Right:  unit.Dp(2),
-				Left:   left,
-				Bottom: unit.Dp(2),
-			}.Layout(gtx, func(gtx C) D {
-				pointer.Rect(image.Rectangle{
-					Max: image.Point{
-						X: int(size.X),
-						Y: int(size.Y),
-					},
-				}).Add(gtx.Ops)
-				sb.drag.Add(gtx.Ops)
-				return rect{
-					Color: sb.Color,
-					Size:  size,
-					Radii: float32(gtx.Px(unit.Dp(4))),
-				}.Layout(gtx)
-			})
-			switch sb.Axis {
-			case Vertical:
-				barAreaDims.Size.Y = gtx.Constraints.Max.Y
-			case Horizontal:
-				barAreaDims.Size.X = gtx.Constraints.Max.X
-			}
-			return barAreaDims
-		})
+	return anchoring.Layout(gtx, func(gtx C) D {
+		gtx.Constraints.Max = s.Axis.Convert(gtx.Constraints.Max)
+		gtx.Constraints.Min = s.Axis.Convert(gtx.Constraints.Min)
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
+		gtx.Constraints.Min.Y = gtx.Px(unit.Add(gtx.Metric, s.Indicator.MinorWidth, s.Track.MinorPadding))
+		return s.layout(gtx)
 	})
 }
 
-func (axis Axis) Layout(gtx C, widget layout.Widget) D {
-	if axis == Vertical {
-		return layout.NE.Layout(gtx, widget)
+// layout lays out the scroll track and indicator under the assumption
+// that the current gtx is already positioned (and rotated) correctly
+// for the current scroll axis.
+func (s ScrollbarStyle) layout(gtx C) D {
+	inset := layout.Inset{
+		Top:    s.Track.MajorPadding,
+		Bottom: s.Track.MajorPadding,
+		Left:   s.Track.MinorPadding,
+		Right:  s.Track.MinorPadding,
 	}
-	if axis == Horizontal {
-		return layout.SW.Layout(gtx, widget)
-	}
-	return layout.Dimensions{}
-}
 
-func (axis Axis) ToGesture() (g gesture.Axis) {
-	switch axis {
-	case Vertical:
-		g = gesture.Vertical
-	case Horizontal:
-		g = gesture.Horizontal
-	}
-	return g
-}
+	return inset.Layout(gtx, func(gtx C) D {
+		// Lay out the clickable track underneath the scroll indicator.
+		area := s.Axis.Convert(gtx.Constraints.Min)
+		pointer.Rect(image.Rectangle{
+			Max: area,
+		}).Add(gtx.Ops)
+		s.State.track.Add(gtx.Ops)
 
-// rect creates a rectangle of the provided background color with
-// Dimensions specified by size and a corner radius (on all corners)
-// specified by radii.
-type rect struct {
-	Color color.NRGBA
-	Size  f32.Point
-	Radii float32
-}
+		// Compute the pixel size and position of the scroll indicator within
+		// the track.
+		trackLen := float32(gtx.Constraints.Min.X)
+		viewStart := s.Position.VisibleStart * trackLen
+		viewEnd := s.Position.VisibleEnd * trackLen
+		indicatorLen := unit.Max(gtx.Metric, unit.Px(viewEnd-viewStart), s.Indicator.MajorMinLen)
+		indicatorDims := s.Axis.Convert(image.Point{
+			X: gtx.Px(indicatorLen),
+			Y: gtx.Px(s.Indicator.MinorWidth),
+		})
+		indicatorDimsF := layout.FPt(indicatorDims)
+		radius := float32(gtx.Px(s.Indicator.CornerRadius))
 
-// Layout renders the Rect into the provided context
-func (r rect) Layout(gtx C) D {
-	return drawRect(gtx, r.Color, r.Size, r.Radii)
-}
+		// Lay out the indicator.
+		offset := s.Axis.Convert(image.Pt(int(viewStart), 0))
+		defer op.Save(gtx.Ops).Load()
+		op.Offset(layout.FPt(offset)).Add(gtx.Ops)
+		paint.FillShape(gtx.Ops, s.Indicator.Color, clip.RRect{
+			Rect: f32.Rectangle{
+				Max: indicatorDimsF,
+			},
+			SW: radius,
+			NW: radius,
+			NE: radius,
+			SE: radius,
+		}.Op(gtx.Ops))
 
-// drawRect creates a rectangle of the provided background color with
-// Dimensions specified by size and a corner radius (on all corners)
-// specified by radii.
-func drawRect(gtx C, background color.NRGBA, size f32.Point, radii float32) D {
-	bounds := f32.Rectangle{
-		Max: size,
-	}
-	paint.FillShape(gtx.Ops, background, clip.UniformRRect(bounds, radii).Op(gtx.Ops))
-	return layout.Dimensions{Size: image.Pt(int(size.X), int(size.Y))}
-}
+		// Add the indicator pointer hit areas.
+		pointer.Rect(image.Rectangle{Max: indicatorDims}).Add(gtx.Ops)
+		s.State.drag.Add(gtx.Ops)
+		s.State.indicator.Add(gtx.Ops)
 
-// clickBox lays out a rectangular clickable widget without further
-// decoration.
-func clickBox(gtx layout.Context, button *widget.Clickable, w layout.Widget) layout.Dimensions {
-	return layout.Stack{}.Layout(gtx,
-		layout.Expanded(button.Layout),
-		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-			clip.RRect{
-				Rect: f32.Rectangle{Max: f32.Point{
-					X: float32(gtx.Constraints.Min.X),
-					Y: float32(gtx.Constraints.Min.Y),
-				}},
-			}.Add(gtx.Ops)
-			return layout.Dimensions{Size: gtx.Constraints.Min}
-		}),
-		layout.Stacked(w),
-	)
+		return D{Size: area}
+	})
 }
