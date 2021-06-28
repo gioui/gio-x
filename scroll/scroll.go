@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/gesture"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -25,6 +26,7 @@ type (
 type ScrollbarState struct {
 	track, indicator gesture.Click
 	drag             gesture.Drag
+	ScrollPosition
 }
 
 // ScrollTrackStyle configures the presentation of a track for a scroll area.
@@ -68,12 +70,12 @@ type ScrollbarStyle struct {
 	State     *ScrollbarState
 	Track     ScrollTrackStyle
 	Indicator ScrollIndicatorStyle
-	Position  ScrollPosition
 }
 
 // Scrollbar configures the presentation of a scrollbar using the provided
 // theme, state, and positional information.
 func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) ScrollbarStyle {
+	state.ScrollPosition = pos
 	return ScrollbarStyle{
 		State: state,
 		Track: ScrollTrackStyle{
@@ -87,10 +89,11 @@ func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) Sc
 			Color:        th.Palette.Fg,
 			HoverColor:   th.Palette.ContrastBg,
 		},
-		Position: pos,
 	}
 }
 
+// Layout renders the scrollbar anchored to the appropriate edge of the
+// provided context.
 func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 	anchoring := func() layout.Direction {
 		if s.Axis == layout.Horizontal {
@@ -99,10 +102,31 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 		return layout.E
 	}()
 	return anchoring.Layout(gtx, func(gtx C) D {
+		// Convert constraints to an axis-independent form.
 		gtx.Constraints.Max = s.Axis.Convert(gtx.Constraints.Max)
 		gtx.Constraints.Min = s.Axis.Convert(gtx.Constraints.Min)
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		gtx.Constraints.Min.Y = gtx.Px(unit.Add(gtx.Metric, s.Indicator.MinorWidth, s.Track.MinorPadding))
+
+		// Now that we know the dimensions for the scrollbar track, process events
+		// that may have modified the indicator position.
+		for _, event := range s.State.track.Events(gtx) {
+			if event.Type != gesture.TypeClick ||
+				event.Modifiers != key.Modifiers(0) ||
+				event.NumClicks > 1 {
+				continue
+			}
+			pos := s.Axis.Convert(image.Point{
+				X: int(event.Position.X),
+				Y: int(event.Position.Y),
+			})
+			normalizedPos := float32(pos.X) / float32(gtx.Constraints.Max.X)
+			delta := normalizedPos - s.State.VisibleStart
+			s.State.VisibleStart += delta
+			s.State.VisibleEnd += delta
+			op.InvalidateOp{}.Add(gtx.Ops)
+		}
+
 		return s.layout(gtx)
 	})
 }
@@ -129,8 +153,8 @@ func (s ScrollbarStyle) layout(gtx C) D {
 		// Compute the pixel size and position of the scroll indicator within
 		// the track.
 		trackLen := float32(gtx.Constraints.Min.X)
-		viewStart := s.Position.VisibleStart * trackLen
-		viewEnd := s.Position.VisibleEnd * trackLen
+		viewStart := s.State.VisibleStart * trackLen
+		viewEnd := s.State.VisibleEnd * trackLen
 		indicatorLen := unit.Max(gtx.Metric, unit.Px(viewEnd-viewStart), s.Indicator.MajorMinLen)
 		indicatorDims := s.Axis.Convert(image.Point{
 			X: gtx.Px(indicatorLen),
