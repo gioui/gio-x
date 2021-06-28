@@ -151,7 +151,7 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 		}
 
 		// Actually shift the list in response to drags or clicks.
-		if delta > 0 {
+		if delta != 0 {
 			s.State.VisibleStart += delta
 			s.State.VisibleEnd += delta
 			op.InvalidateOp{}.Add(gtx.Ops)
