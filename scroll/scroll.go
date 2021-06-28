@@ -225,3 +225,76 @@ func (s ScrollbarStyle) layout(gtx C) D {
 		return D{Size: area}
 	})
 }
+
+// ListState holds the persistent state for a layout.List that has a
+// scrollbar attached.
+type ListState struct {
+	ScrollbarState
+	layout.List
+}
+
+// ListStyle configures the presentation of a layout.List with a scrollbar.
+type ListStyle struct {
+	state *ListState
+	ScrollbarStyle
+}
+
+// List constructs a ListStyle using the provided theme and state.
+func List(th *material.Theme, state *ListState) ListStyle {
+	return ListStyle{
+		state:          state,
+		ScrollbarStyle: Scrollbar(th, &state.ScrollbarState, state.ScrollPosition),
+	}
+}
+
+// Layout renders the list and its scrollbar.
+func (l ListStyle) Layout(gtx layout.Context, length int, w func(gtx layout.Context, index int) layout.Dimensions) layout.Dimensions {
+	// Ensure that the scrolling axis is synchronized, using the layout.List
+	// as the source of truth.
+	l.ScrollbarStyle.Axis = l.state.List.Axis
+
+	longAxisSum := 0
+	var meanElementHeight float32
+
+	// Lay out the list elements and track their dimensions.
+	listDims := l.state.List.Layout(gtx, length, func(gtx C, index int) D {
+		elementDims := w(gtx, index)
+		longAxisSum += l.Axis.Convert(elementDims.Size).X
+		return elementDims
+	})
+
+	listOffsetF := float32(l.state.List.Position.Offset)
+
+	// Approximate the size of the scrollable content.
+	visibleCount := float32(l.state.List.Position.Count)
+	meanElementHeight = float32(longAxisSum) / visibleCount
+
+	// Determine how much of the content is visible.
+	lengthPx := meanElementHeight * float32(length)
+	visiblePx := visibleCount*meanElementHeight - listOffsetF + float32(l.state.List.Position.OffsetLast)
+	visibleFraction := visiblePx / lengthPx
+
+	// Compute the location of the beginning of the viewport.
+	viewportStart := (float32(l.state.List.Position.First)*meanElementHeight + listOffsetF) / lengthPx
+	l.state.ScrollPosition.VisibleStart = viewportStart
+	l.state.ScrollPosition.VisibleEnd = viewportStart + visibleFraction
+
+	// Render the scrollbar.
+	defer op.Save(gtx.Ops).Load()
+	l.ScrollbarStyle.Layout(gtx)
+
+	// Handle any changes to the scroll position as a result of user interaction.
+	scrollPos := l.state.ScrollPosition
+	totalPx := meanElementHeight * float32(length)
+	offsetPx := (totalPx * scrollPos.VisibleStart)
+	var offset float32
+	if meanElementHeight > 0 {
+		offset = offsetPx / meanElementHeight
+	} else {
+		offset = 0
+	}
+	l.state.List.Position.First = int(offset)
+	l.state.List.Position.Offset = int((offset - float32(int(offset))) * meanElementHeight)
+
+	return listDims
+}
