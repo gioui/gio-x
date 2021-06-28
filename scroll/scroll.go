@@ -76,6 +76,11 @@ type ScrollbarStyle struct {
 // theme, state, and positional information.
 func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) ScrollbarStyle {
 	state.ScrollPosition = pos
+	lightFg := th.Palette.Fg
+	lightFg.A = 150
+	darkFg := lightFg
+	darkFg.A = 200
+
 	return ScrollbarStyle{
 		State: state,
 		Track: ScrollTrackStyle{
@@ -86,8 +91,8 @@ func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) Sc
 			MajorMinLen:  unit.Dp(8),
 			MinorWidth:   unit.Dp(6),
 			CornerRadius: unit.Dp(3),
-			Color:        th.Palette.Fg,
-			HoverColor:   th.Palette.ContrastBg,
+			Color:        lightFg,
+			HoverColor:   darkFg,
 		},
 	}
 }
@@ -108,8 +113,13 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		gtx.Constraints.Min.Y = gtx.Px(unit.Add(gtx.Metric, s.Indicator.MinorWidth, s.Track.MinorPadding))
 
+		trackHeight := float32(gtx.Constraints.Max.X)
+		delta := float32(0)
+
 		// Now that we know the dimensions for the scrollbar track, process events
 		// that may have modified the indicator position.
+
+		// Jump to a click in the track.
 		for _, event := range s.State.track.Events(gtx) {
 			if event.Type != gesture.TypeClick ||
 				event.Modifiers != key.Modifiers(0) ||
@@ -120,8 +130,28 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 				X: int(event.Position.X),
 				Y: int(event.Position.Y),
 			})
-			normalizedPos := float32(pos.X) / float32(gtx.Constraints.Max.X)
-			delta := normalizedPos - s.State.VisibleStart
+			normalizedPos := float32(pos.X) / trackHeight
+			delta += normalizedPos - s.State.VisibleStart
+		}
+
+		// Offset to account for any drags
+		for _, event := range s.State.drag.Events(gtx.Metric, gtx, gesture.Axis(s.Axis)) {
+			if event.Type != pointer.Drag {
+				continue
+			}
+			dragOffset := FConvert(s.Axis, event.Position).X
+			normalizedDragOffset := (dragOffset / trackHeight)
+			delta += (normalizedDragOffset - s.State.VisibleStart) * .5
+
+		}
+
+		// Darken indicator if hovered.
+		if _ = s.State.indicator.Events(gtx); s.State.indicator.Hovered() {
+			s.Indicator.Color = s.Indicator.HoverColor
+		}
+
+		// Actually shift the list in response to drags or clicks.
+		if delta > 0 {
 			s.State.VisibleStart += delta
 			s.State.VisibleEnd += delta
 			op.InvalidateOp{}.Add(gtx.Ops)
@@ -131,9 +161,19 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 	})
 }
 
+// FConvert a point in (x, y) coordinates to (main, cross) coordinates,
+// or vice versa. Specifically, FConvert((x, y)) returns (x, y) unchanged
+// for the horizontal axis, or (y, x) for the vertical axis.
+func FConvert(a layout.Axis, pt f32.Point) f32.Point {
+	if a == layout.Horizontal {
+		return pt
+	}
+	return f32.Pt(pt.Y, pt.X)
+}
+
 // layout lays out the scroll track and indicator under the assumption
-// that the current gtx is already positioned (and rotated) correctly
-// for the current scroll axis.
+// that the current gtx is converted to (main,cross) coordinates for
+// the scrollbar's axis.
 func (s ScrollbarStyle) layout(gtx C) D {
 	inset := layout.Inset{
 		Top:    s.Track.MajorPadding,
