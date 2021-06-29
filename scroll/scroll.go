@@ -155,10 +155,25 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 			s.State.VisibleStart += delta
 			s.State.VisibleEnd += delta
 			op.InvalidateOp{}.Add(gtx.Ops)
+			s.State.VisibleStart = clamp(s.State.VisibleStart)
+			s.State.VisibleEnd = clamp(s.State.VisibleEnd)
 		}
 
 		return s.layout(gtx)
 	})
+}
+
+// clamp ensures that the input value is within the range [0,1], and
+// returns either the input value or the end of the range that the
+// input is closest to.
+func clamp(in float32) float32 {
+	if in < 0 {
+		return 0
+	}
+	if in > 1 {
+		return 1
+	}
+	return in
 }
 
 // FConvert a point in (x, y) coordinates to (main, cross) coordinates,
