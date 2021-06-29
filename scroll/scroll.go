@@ -139,7 +139,7 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 			if event.Type != pointer.Drag {
 				continue
 			}
-			dragOffset := FConvert(s.Axis, event.Position).X
+			dragOffset := s.Axis.FConvert(event.Position).X
 			normalizedDragOffset := (dragOffset / trackHeight)
 			delta += (normalizedDragOffset - s.State.VisibleStart) * .5
 
@@ -184,16 +184,6 @@ func clamp(in float32) float32 {
 		return 1
 	}
 	return in
-}
-
-// FConvert a point in (x, y) coordinates to (main, cross) coordinates,
-// or vice versa. Specifically, FConvert((x, y)) returns (x, y) unchanged
-// for the horizontal axis, or (y, x) for the vertical axis.
-func FConvert(a layout.Axis, pt f32.Point) f32.Point {
-	if a == layout.Horizontal {
-		return pt
-	}
-	return f32.Pt(pt.Y, pt.X)
 }
 
 // layout lays out the scroll track and indicator under the assumption
