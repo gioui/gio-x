@@ -35,6 +35,8 @@ type ScrollTrackStyle struct {
 	// track. This is used to keep the scrollbar from touching the
 	// edges of the content area.
 	MajorPadding, MinorPadding unit.Value
+	// The track background color. Defaults to transparent.
+	BgColor color.NRGBA
 }
 
 // ScrollIndicatorStyle configures the presentation of a scroll indicator.
@@ -128,13 +130,16 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 		return layout.E
 	}()
 	return anchoring.Layout(gtx, func(gtx C) D {
-		// Convert constraints to an axis-independent form.
-		gtx.Constraints.Max = s.Axis.Convert(gtx.Constraints.Max)
-		gtx.Constraints.Min = s.Axis.Convert(gtx.Constraints.Min)
-		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		gtx.Constraints.Min.Y = gtx.Px(unit.Add(gtx.Metric, s.Indicator.MinorWidth, s.Track.MinorPadding))
+		// Set minimum constraints in an axis-independent way, then convert to
+		// the correct representation for the current axis.
+		convert := s.Axis.Convert
+		maxMajorAxis := convert(gtx.Constraints.Max).X
+		gtx.Constraints.Min.X = maxMajorAxis
+		gtx.Constraints.Min.Y = gtx.Px(unit.Add(gtx.Metric, s.Indicator.MinorWidth, s.Track.MinorPadding, s.Track.MinorPadding))
+		gtx.Constraints.Min = convert(gtx.Constraints.Min)
+		gtx.Constraints.Max = gtx.Constraints.Min
 
-		trackHeight := float32(gtx.Constraints.Max.X)
+		trackHeight := float32(maxMajorAxis)
 		delta := float32(0)
 
 		// Now that we know the dimensions for the scrollbar track, process events
@@ -163,7 +168,6 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 			dragOffset := s.Axis.FConvert(event.Position).X
 			normalizedDragOffset := (dragOffset / trackHeight)
 			delta += (normalizedDragOffset - s.State.VisibleStart) * .5
-
 		}
 
 		// Darken indicator if hovered.
@@ -194,9 +198,7 @@ func clamp(in float32) float32 {
 	return in
 }
 
-// layout lays out the scroll track and indicator under the assumption
-// that the current gtx is converted to (main,cross) coordinates for
-// the scrollbar's axis.
+// layout lays out the scroll track and indicator.
 func (s ScrollbarStyle) layout(gtx C) D {
 	inset := layout.Inset{
 		Top:    s.Track.MajorPadding,
@@ -204,49 +206,75 @@ func (s ScrollbarStyle) layout(gtx C) D {
 		Left:   s.Track.MinorPadding,
 		Right:  s.Track.MinorPadding,
 	}
+	// Capture the outer constraints because layout.Stack will reset
+	// the minimum to zero.
+	outerConstraints := gtx.Constraints
 
-	return inset.Layout(gtx, func(gtx C) D {
-		// Lay out the clickable track underneath the scroll indicator.
-		area := s.Axis.Convert(gtx.Constraints.Min)
-		pointer.Rect(image.Rectangle{
-			Max: area,
-		}).Add(gtx.Ops)
-		s.State.track.Add(gtx.Ops)
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx C) D {
+			// Lay out the draggable track underneath the scroll indicator.
+			area := image.Rectangle{
+				Max: gtx.Constraints.Min,
+			}
+			pointerArea := pointer.Rect(area)
+			pointerArea.Add(gtx.Ops)
+			s.State.drag.Add(gtx.Ops)
 
-		// Compute the pixel size and position of the scroll indicator within
-		// the track.
-		trackLen := float32(gtx.Constraints.Min.X)
-		viewStart := s.State.VisibleStart * trackLen
-		viewEnd := s.State.VisibleEnd * trackLen
-		indicatorLen := unit.Max(gtx.Metric, unit.Px(viewEnd-viewStart), s.Indicator.MajorMinLen)
-		indicatorDims := s.Axis.Convert(image.Point{
-			X: gtx.Px(indicatorLen),
-			Y: gtx.Px(s.Indicator.MinorWidth),
-		})
-		indicatorDimsF := layout.FPt(indicatorDims)
-		radius := float32(gtx.Px(s.Indicator.CornerRadius))
+			// Stack a normal clickable area on top of the draggable area
+			// to capture non-dragging clicks.
+			func() {
+				defer op.Save(gtx.Ops).Load()
+				pointer.PassOp{Pass: true}.Add(gtx.Ops)
+				pointerArea.Add(gtx.Ops)
+				s.State.track.Add(gtx.Ops)
+			}()
 
-		// Lay out the indicator.
-		offset := s.Axis.Convert(image.Pt(int(viewStart), 0))
-		defer op.Save(gtx.Ops).Load()
-		op.Offset(layout.FPt(offset)).Add(gtx.Ops)
-		paint.FillShape(gtx.Ops, s.Indicator.Color, clip.RRect{
-			Rect: f32.Rectangle{
-				Max: indicatorDimsF,
-			},
-			SW: radius,
-			NW: radius,
-			NE: radius,
-			SE: radius,
-		}.Op(gtx.Ops))
+			paint.FillShape(gtx.Ops, s.Track.BgColor, clip.Rect(area).Op())
+			return D{}
+		}),
+		layout.Stacked(func(gtx C) D {
+			gtx.Constraints = outerConstraints
+			return inset.Layout(gtx, func(gtx C) D {
+				// Use axis-independent constraints.
+				gtx.Constraints.Min = s.Axis.Convert(gtx.Constraints.Min)
+				gtx.Constraints.Max = s.Axis.Convert(gtx.Constraints.Max)
 
-		// Add the indicator pointer hit areas.
-		pointer.Rect(image.Rectangle{Max: indicatorDims}).Add(gtx.Ops)
-		s.State.drag.Add(gtx.Ops)
-		s.State.indicator.Add(gtx.Ops)
+				// Compute the pixel size and position of the scroll indicator within
+				// the track.
+				trackLen := float32(gtx.Constraints.Min.X)
+				viewStart := s.State.VisibleStart * trackLen
+				viewEnd := s.State.VisibleEnd * trackLen
+				indicatorLen := unit.Max(gtx.Metric, unit.Px(viewEnd-viewStart), s.Indicator.MajorMinLen)
+				indicatorDims := s.Axis.Convert(image.Point{
+					X: gtx.Px(indicatorLen),
+					Y: gtx.Px(s.Indicator.MinorWidth),
+				})
+				indicatorDimsF := layout.FPt(indicatorDims)
+				radius := float32(gtx.Px(s.Indicator.CornerRadius))
 
-		return D{Size: area}
-	})
+				// Lay out the indicator.
+				offset := s.Axis.Convert(image.Pt(int(viewStart), 0))
+				defer op.Save(gtx.Ops).Load()
+				op.Offset(layout.FPt(offset)).Add(gtx.Ops)
+				paint.FillShape(gtx.Ops, s.Indicator.Color, clip.RRect{
+					Rect: f32.Rectangle{
+						Max: indicatorDimsF,
+					},
+					SW: radius,
+					NW: radius,
+					NE: radius,
+					SE: radius,
+				}.Op(gtx.Ops))
+
+				// Add the indicator pointer hit areas.
+				pointer.PassOp{Pass: true}.Add(gtx.Ops)
+				pointer.Rect(image.Rectangle{Max: indicatorDims}).Add(gtx.Ops)
+				s.State.indicator.Add(gtx.Ops)
+
+				return D{Size: s.Axis.Convert(gtx.Constraints.Min)}
+			})
+		}),
+	)
 }
 
 // ListState holds the persistent state for a layout.List that has a
