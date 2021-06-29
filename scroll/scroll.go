@@ -64,6 +64,27 @@ type ScrollPosition struct {
 	VisibleEnd float32
 }
 
+// Shift moves the scroll position by up to the delta value, keeping the
+// range described by VisibleStart and VisibleEnd within the range [0,1]
+// and preserving the distance between VisibleStart and VisibleEnd.
+func (s ScrollPosition) Shift(delta float32) ScrollPosition {
+	interval := s.VisibleEnd - s.VisibleStart
+	s.VisibleStart += delta
+	s.VisibleEnd += delta
+
+	// Keep the scrollbar within the track and prevent it from
+	// distorting against the ends of the track.
+	s.VisibleStart = clamp(s.VisibleStart)
+	if s.VisibleStart == 0 {
+		s.VisibleEnd = interval
+	}
+	s.VisibleEnd = clamp(s.VisibleEnd)
+	if s.VisibleEnd == 1 {
+		s.VisibleStart = 1 - interval
+	}
+	return s
+}
+
 // ScrollbarStyle configures the presentation of a scrollbar.
 type ScrollbarStyle struct {
 	Axis      layout.Axis
@@ -152,21 +173,8 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 		// Actually shift the list in response to drags or clicks.
 		if delta != 0 {
-			interval := s.State.VisibleEnd - s.State.VisibleStart
-			s.State.VisibleStart += delta
-			s.State.VisibleEnd += delta
+			s.State.ScrollPosition = s.State.ScrollPosition.Shift(delta)
 			op.InvalidateOp{}.Add(gtx.Ops)
-
-			// Keep the scrollbar within the track and prevent it from
-			// distorting against the ends of the track.
-			s.State.VisibleStart = clamp(s.State.VisibleStart)
-			if s.State.VisibleStart == 0 {
-				s.State.VisibleEnd = interval
-			}
-			s.State.VisibleEnd = clamp(s.State.VisibleEnd)
-			if s.State.VisibleEnd == 1 {
-				s.State.VisibleStart = 1 - interval
-			}
 		}
 
 		return s.layout(gtx)
