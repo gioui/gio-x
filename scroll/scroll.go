@@ -87,6 +87,12 @@ func (s ScrollPosition) Shift(delta float32) ScrollPosition {
 	return s
 }
 
+// Scrollable returns whether the viewport described by the ScrollPosition
+// is smaller than the underlying content (such that it can be scrolled).
+func (s ScrollPosition) Scrollable() bool {
+	return s.VisibleEnd-s.VisibleStart < 1
+}
+
 // ScrollbarStyle configures the presentation of a scrollbar.
 type ScrollbarStyle struct {
 	Axis      layout.Axis
@@ -123,6 +129,9 @@ func Scrollbar(th *material.Theme, state *ScrollbarState, pos ScrollPosition) Sc
 // Layout renders the scrollbar anchored to the appropriate edge of the
 // provided context.
 func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
+	if !s.State.ScrollPosition.Scrollable() {
+		return D{}
+	}
 	anchoring := func() layout.Direction {
 		if s.Axis == layout.Horizontal {
 			return layout.S
