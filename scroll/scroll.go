@@ -134,7 +134,7 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 			delta += normalizedPos - s.State.VisibleStart
 		}
 
-		// Offset to account for any drags
+		// Offset to account for any drags.
 		for _, event := range s.State.drag.Events(gtx.Metric, gtx, gesture.Axis(s.Axis)) {
 			if event.Type != pointer.Drag {
 				continue
