@@ -152,11 +152,21 @@ func (s ScrollbarStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 		// Actually shift the list in response to drags or clicks.
 		if delta != 0 {
+			interval := s.State.VisibleEnd - s.State.VisibleStart
 			s.State.VisibleStart += delta
 			s.State.VisibleEnd += delta
 			op.InvalidateOp{}.Add(gtx.Ops)
+
+			// Keep the scrollbar within the track and prevent it from
+			// distorting against the ends of the track.
 			s.State.VisibleStart = clamp(s.State.VisibleStart)
+			if s.State.VisibleStart == 0 {
+				s.State.VisibleEnd = interval
+			}
 			s.State.VisibleEnd = clamp(s.State.VisibleEnd)
+			if s.State.VisibleEnd == 1 {
+				s.State.VisibleStart = 1 - interval
+			}
 		}
 
 		return s.layout(gtx)
