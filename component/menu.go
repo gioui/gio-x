@@ -177,7 +177,9 @@ func (m MenuItemStyle) Layout(gtx C) D {
 							return D{}
 						}
 						return m.IconInset.Layout(gtx, func(gtx C) D {
-							return m.Icon.Layout(gtx, m.IconSize)
+							iconSize := gtx.Px(m.IconSize)
+							gtx.Constraints = layout.Exact(image.Point{X: iconSize, Y: iconSize})
+							return m.Icon.Layout(gtx)
 						})
 					}),
 					layout.Rigid(func(gtx C) D {
