@@ -1,6 +1,8 @@
 package component
 
 import (
+	"image/color"
+
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget"
@@ -35,4 +37,46 @@ func (s *Scrim) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityA
 	paintRect(gtx, gtx.Constraints.Max, fill)
 	s.Clickable.Layout(gtx)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
+}
+
+// ScrimState defines persistent state for a scrim.
+type ScrimState struct {
+	widget.Clickable
+	VisibilityAnimation
+}
+
+// ScrimStyle defines how to layout a scrim.
+type ScrimStyle struct {
+	*ScrimState
+	Color      color.NRGBA
+	FinalAlpha uint8
+}
+
+// NewScrim allocates a ScrimStyle.
+// Alpha is the final alpha of a fully "appeared" scrim.
+func NewScrim(th *material.Theme, scrim *ScrimState, alpha uint8) ScrimStyle {
+	return ScrimStyle{
+		ScrimState: scrim,
+		Color:      th.Fg,
+		FinalAlpha: alpha,
+	}
+}
+
+func (scrim ScrimStyle) Layout(gtx C) D {
+	if !scrim.Visible() {
+		return D{}
+	}
+	defer op.Save(gtx.Ops).Load()
+	gtx.Constraints.Min = gtx.Constraints.Max
+	var (
+		alpha = scrim.FinalAlpha
+	)
+	if scrim.Animating() {
+		alpha = uint8(float32(scrim.FinalAlpha) * scrim.Revealed(gtx))
+	}
+	defer scrim.Clickable.Layout(gtx)
+	return Rect{
+		Color: WithAlpha(scrim.Color, alpha),
+		Size:  gtx.Constraints.Max,
+	}.Layout(gtx)
 }
