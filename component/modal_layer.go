@@ -47,7 +47,7 @@ func (m *ModalLayer) Layout(gtx layout.Context, th *material.Theme) layout.Dimen
 // ModalState defines persistent state for a modal.
 type ModalState struct {
 	ScrimState
-	// content is the content widget to layout centered on a scrim.
+	// content is the content widget to layout atop a scrim.
 	// This is specified as a field because where the content is defined
 	// is not where it is invoked.
 	// Thus, the content widget becomes the state of the modal.
@@ -70,6 +70,9 @@ func Modal(th *material.Theme, modal *ModalState) ModalStyle {
 	}
 }
 
+// Layout the scrim and content. The content is only laid out once
+// the scrim is fully animated in, and is hidden on the first frame
+// of the scrim's fade-out animation.
 func (m ModalStyle) Layout(gtx C) D {
 	if m.content == nil || !m.Visible() {
 		return D{}
@@ -83,7 +86,10 @@ func (m ModalStyle) Layout(gtx C) D {
 			return m.Scrim.Layout(gtx)
 		}),
 		layout.Expanded(func(gtx C) D {
-			return m.content(gtx)
+			if m.Scrim.Visible() && !m.Scrim.Animating() {
+				return m.content(gtx)
+			}
+			return D{}
 		}),
 	)
 }
