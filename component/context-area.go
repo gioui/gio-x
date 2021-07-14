@@ -129,8 +129,8 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 	}
 
 	// Capture pointer events in the contextual area.
-	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 	pointer.PassOp{Pass: true}.Add(gtx.Ops)
+	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
 	pointer.InputOp{
 		Tag:   r,
 		Grab:  false,
