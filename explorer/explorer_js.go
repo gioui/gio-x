@@ -17,6 +17,9 @@ type File struct {
 	isClosed               bool
 	name                   string
 	index                  uint32
+
+	callbackChan             chan js.Value
+	successFunc, failureFunc js.Func
 }
 
 func (f *File) Read(b []byte) (n int, err error) {
@@ -24,7 +27,25 @@ func (f *File) Read(b []byte) (n int, err error) {
 		return 0, io.ErrClosedPipe
 	}
 
-	n32 := fileRead(f.index, f.buffer, b)
+	if cap(f.callbackChan) == 0 {
+		f.callbackChan = make(chan js.Value, 1)
+
+		f.successFunc = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			f.callbackChan <- args[0]
+			return nil
+		})
+		f.failureFunc = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			f.callbackChan <- js.Undefined()
+			return nil
+		})
+	}
+
+	go func() {
+		fileSlice(f.index, f.index+uint32(len(b)), f.buffer, f.successFunc, f.failureFunc)
+	}()
+
+	buffer := <-f.callbackChan
+	n32 := fileRead(buffer, b)
 	if n32 == 0 {
 		return 0, io.EOF
 	}
@@ -41,17 +62,15 @@ func (f *File) Write(b []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	n = fileWrite(f.buffer, b)
-	if n == -1 {
-		return 0, io.EOF
-	}
-	return n, err
+	fileWrite(f.buffer, b)
+	return len(b), err
 }
 
 // fileRead and fileWrite calls the JS function directly (without syscall/js to avoid double copying).
 // The function is defined into explorer_js.s, which calls explorer_js.js.
-func fileRead(index uint32, value js.Value, b []byte) uint32
-func fileWrite(value js.Value, b []byte) int
+func fileRead(value js.Value, b []byte) uint32
+func fileWrite(value js.Value, b []byte)
+func fileSlice(start, end uint32, value js.Value, success, failure js.Func)
 
 func (f *File) Close() error {
 	if f == nil || f.isClosed {
@@ -60,6 +79,8 @@ func (f *File) Close() error {
 	f.isClosed = true
 
 	if f.isReadable {
+		f.failureFunc.Release()
+		f.successFunc.Release()
 		return nil
 	}
 	return f.saveFile()
@@ -124,14 +145,7 @@ func openCallback(c chan *File) js.Func {
 			c <- nil
 			return nil
 		}
-
-		fileReader := js.Global().Get("FileReader").New()
-		fileReader.Set("onload", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			c <- &File{buffer: fileReader.Get("result"), isReadable: true}
-			return nil
-		}))
-		fileReader.Call("readAsArrayBuffer", files.Index(0))
-
+		c <- &File{buffer: files.Index(0), isReadable: true}
 		return nil
 	})
 }
