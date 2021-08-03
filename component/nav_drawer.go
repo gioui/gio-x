@@ -107,10 +107,9 @@ func (n *renderNavItem) layoutContent(gtx layout.Context, th *material.Theme) la
 				}
 				return layout.Inset{Right: unit.Dp(40)}.Layout(gtx,
 					func(gtx C) D {
-						n.NavItem.Icon.Color = contentColor
 						iconSize := gtx.Px(unit.Dp(24))
 						gtx.Constraints = layout.Exact(image.Pt(iconSize, iconSize))
-						return n.NavItem.Icon.Layout(gtx)
+						return n.NavItem.Icon.Layout(gtx, contentColor)
 					})
 			}),
 			layout.Rigid(func(gtx C) D {

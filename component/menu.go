@@ -124,6 +124,7 @@ type MenuItemStyle struct {
 	*widget.Icon
 	IconSize  unit.Value
 	IconInset layout.Inset
+	IconColor color.NRGBA
 
 	Hint      material.LabelStyle
 	HintInset layout.Inset
@@ -143,6 +144,7 @@ func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuIte
 		IconInset: layout.Inset{
 			Left: unit.Dp(16),
 		},
+		IconColor: th.Fg,
 		HintInset: layout.Inset{
 			Right: unit.Dp(16),
 		},
@@ -179,7 +181,7 @@ func (m MenuItemStyle) Layout(gtx C) D {
 						return m.IconInset.Layout(gtx, func(gtx C) D {
 							iconSize := gtx.Px(m.IconSize)
 							gtx.Constraints = layout.Exact(image.Point{X: iconSize, Y: iconSize})
-							return m.Icon.Layout(gtx)
+							return m.Icon.Layout(gtx, m.IconColor)
 						})
 					}),
 					layout.Rigid(func(gtx C) D {
