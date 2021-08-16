@@ -9,34 +9,34 @@ import (
 	dbus "github.com/godbus/dbus/v5"
 )
 
-type linux struct {
+type dbusNotifier struct {
 	notify.Notifier
 }
 
-var _ Notifier = (*linux)(nil)
+var _ Notifier = (*dbusNotifier)(nil)
 
 func newNotifier() (Notifier, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
-		return Manager{}, fmt.Errorf("failed connecting to dbus: %w", err)
+		return nil, fmt.Errorf("failed connecting to dbus: %w", err)
 	}
 	notifier, err := notify.New(conn)
 	if err != nil {
-		return Manager{}, fmt.Errorf("failed creating notifier: %w", err)
+		return nil, fmt.Errorf("failed creating notifier: %w", err)
 	}
-	return &linux{
+	return &dbusNotifier{
 		Notifier: notifier,
 	}, nil
 }
 
-type linuxNotification struct {
+type dbusNotification struct {
 	id uint32
-	*linux
+	*dbusNotifier
 }
 
-var _ notificationInterface = linuxNotification{}
+var _ Notification = &dbusNotification{}
 
-func (l *linux) CreateNotification(title, text string) (Notification, error) {
+func (l *dbusNotifier) CreateNotification(title, text string) (Notification, error) {
 	id, err := l.Notifier.SendNotification(notify.Notification{
 		Summary: title,
 		Body:    text,
@@ -44,17 +44,13 @@ func (l *linux) CreateNotification(title, text string) (Notification, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &linuxNotification{
+	return &dbusNotification{
 		id:    id,
-		linux: l,
+		dbusNotifier: l,
 	}, nil
 }
 
-func (l linuxNotification) Cancel() error {
-	_, err := l.linux.CloseNotification(l.id)
+func (l dbusNotification) Cancel() error {
+	_, err := l.dbusNotifier.CloseNotification(l.id)
 	return err
-}
-
-func init() {
-	impl, _ = newNotifier()
 }

@@ -13,6 +13,10 @@ package notify
 // implementation.
 var impl Notifier
 
+func init() {
+	impl, _ = newNotifier()
+}
+
 // Notifier provides methods for creating and managing notifications.
 type Notifier interface {
 	CreateNotification(title, text string) (Notification, error)
