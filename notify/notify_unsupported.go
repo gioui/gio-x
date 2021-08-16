@@ -1,4 +1,4 @@
-//+build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd,!darwin
+//+build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd,!darwin,!windows
 
 package notify
 

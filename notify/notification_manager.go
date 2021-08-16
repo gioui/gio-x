@@ -54,3 +54,11 @@ type Notification struct {
 func (n *Notification) Cancel() error {
 	return n.impl.Cancel()
 }
+
+// Icon configures an icon to use for notifications, specified as a filepath.
+// May be a no-op on any platform that doesn't support icons notifications.
+func (m Manager) Icon(path string) {
+	if iconer, ok := m.impl.(interface{ Icon(string) }); ok {
+		iconer.Icon(path)
+	}
+}
