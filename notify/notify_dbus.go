@@ -9,13 +9,13 @@ import (
 	dbus "github.com/godbus/dbus/v5"
 )
 
-type linuxManager struct {
+type linux struct {
 	notify.Notifier
 }
 
-var _ Manager = &linuxManager{}
+var _ Notifier = (*linux)(nil)
 
-func newManager() (Manager, error) {
+func newNotifier() (Notifier, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		return Manager{}, fmt.Errorf("failed connecting to dbus: %w", err)
@@ -24,19 +24,19 @@ func newManager() (Manager, error) {
 	if err != nil {
 		return Manager{}, fmt.Errorf("failed creating notifier: %w", err)
 	}
-	return &linuxManager{
+	return &linux{
 		Notifier: notifier,
 	}, nil
 }
 
 type linuxNotification struct {
 	id uint32
-	*linuxManager
+	*linux
 }
 
 var _ notificationInterface = linuxNotification{}
 
-func (l *linuxManager) CreateNotification(title, text string) (Notification, error) {
+func (l *linux) CreateNotification(title, text string) (Notification, error) {
 	id, err := l.Notifier.SendNotification(notify.Notification{
 		Summary: title,
 		Body:    text,
@@ -45,12 +45,12 @@ func (l *linuxManager) CreateNotification(title, text string) (Notification, err
 		return nil, err
 	}
 	return &linuxNotification{
-		id:           id,
-		linuxManager: l,
+		id:    id,
+		linux: l,
 	}, nil
 }
 
 func (l linuxNotification) Cancel() error {
-	_, err := l.linuxManager.CloseNotification(l.id)
+	_, err := l.linux.CloseNotification(l.id)
 	return err
 }

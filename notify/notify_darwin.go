@@ -6,17 +6,19 @@ import (
 	"gioui.org/x/notify/macos"
 )
 
-type macosManager struct {
+type macos struct {
 	channel macos.NotificationChannel
 }
 
-func newManager() (Manager, error) {
+var Notifier _ = (*macos)(nil)
+
+func newNotifier() (Notifier, error) {
 	c := macos.NewNotificationChannel("Gio App")
 
-	return &macosManager{channel: c}, nil
+	return &macos{channel: c}, nil
 }
 
-func (a *macosManager) CreateNotification(title, text string) (Notification, error) {
+func (a *macos) CreateNotification(title, text string) (Notification, error) {
 	notification, err := a.channel.Send(title, text)
 	if err != nil {
 		return nil, err

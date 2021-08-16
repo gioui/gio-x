@@ -2,12 +2,12 @@
 
 package notify
 
-type unsupportedManager struct{}
+type unsupported struct{}
 
-func newManager() (Manager, error) {
-	return unsupportedManager{}, nil
+func newNotifier() (Notifier, error) {
+	return unsupported{}, nil
 }
 
-func (u unsupportedManager) CreateNotification(title, text string) (Notification, error) {
+func (unsupported) CreateNotification(title, text string) (Notification, error) {
 	return &noop{}, nil
 }

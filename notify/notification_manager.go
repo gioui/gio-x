@@ -4,19 +4,25 @@
 //
 // Sending a notification is easy:
 //
-//     manager, _ := NewManager()
-//     notification, _ := manager.CreateNotification("hello!", "I was sent from Gio!")
+//     notifier, _ := NewNotifier()
+//     notification, _ := notifier.CreateNotification("hello!", "I was sent from Gio!")
 //     notification.Cancel()
 package notify
 
-// Manager provides methods for creating and managing notifications.
-type Manager interface {
+// Notifier provides methods for creating and managing notifications.
+type Notifier interface {
 	CreateNotification(title, text string) (Notification, error)
 }
 
-// NewManager creates a new Manager tailored to the current operating system.
-func NewManager() (Manager, error) {
-	return newManager()
+// IconNotifier is a notifier that can display an icon notification.
+type IconNotifier interface {
+	Notifier
+	UseIcon(path string)
+}
+
+// NewNotifier creates a new Manager tailored to the current operating system.
+func NewNotifier() (Notifier, error) {
+	return newNotifier()
 }
 
 // Notification handle that can used to manipulate a platform notification,
