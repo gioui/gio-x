@@ -9,13 +9,13 @@
 //     notification.Cancel()
 package notify
 
+import "sync"
+
 // impl is a package global notifier initialized to the current platform
 // implementation.
 var impl Notifier
-
-func init() {
-	impl, _ = newNotifier()
-}
+var implErr error
+var implLock sync.Mutex
 
 // Notifier provides methods for creating and managing notifications.
 type Notifier interface {
@@ -49,5 +49,13 @@ func (noop) Cancel() error {
 
 // Push a notification to the OS.
 func Push(title, text string) (Notification, error) {
+    implLock.Lock()
+    defer implLock.Unlock()
+    if impl == nil && implErr == nil {
+            impl, implErr = newNotifier()
+    }
+    if implErr != nil {
+        return nil, implErr
+    }
 	return impl.CreateNotification(title, text)
 }
