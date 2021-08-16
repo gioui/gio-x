@@ -1,25 +1,17 @@
-/*
-Package niotify provides cross-platform notifications for Gio applications. https://gioui.org
-
-It aims to eventually support all Gio target platforms, but currently only supports
-android and linux.
-
-Sending a notification is easy:
-
-    // NOTE: error handling omitted
-    // construct a manager
-    manager, _ := NewManager()
-    // send notification
-    notification, _ := manager.CreateNotification("hello!", "I was sent from Gio!")
-
-    // you can also cancel notifications
-    notification.Cancel()
-*/
+// Package notify provides cross-platform notifications for Gio applications.
+//
+// 	   https://gioui.org
+//
+// Sending a notification is easy:
+//
+//     manager, _ := NewManager()
+//     notification, _ := manager.CreateNotification("hello!", "I was sent from Gio!")
+//     notification.Cancel()
 package notify
 
 // Manager provides methods for creating and managing notifications.
-type Manager struct {
-	impl managerInterface
+type Manager interface {
+	CreateNotification(title, text string) (Notification, error)
 }
 
 // NewManager creates a new Manager tailored to the current operating system.
@@ -27,38 +19,16 @@ func NewManager() (Manager, error) {
 	return newManager()
 }
 
-// CreateNotification creates and sends a notification on the current platform.
-// NOTE: it currently only supports Android and Linux. All other platforms are a
-// no-op.
-func (m Manager) CreateNotification(title, text string) (*Notification, error) {
-	return m.impl.CreateNotification(title, text)
-}
-
-// managerInterface is the set of methods required for a cross-platform notification manager.
-type managerInterface interface {
-	CreateNotification(title, text string) (*Notification, error)
-}
-
-// notificationInterface is the set of methods required for a cross-platform notification.
-type notificationInterface interface {
+// Notification handle that can used to manipulate a platform notification,
+// such as by cancelling it.
+type Notification interface {
+	// Cancel a notification.
 	Cancel() error
 }
 
-// Notification provides a cross-platform set of methods to manage a sent Notification.
-type Notification struct {
-	impl notificationInterface
-}
+// noop notification for convenience.
+type noop struct{}
 
-// Cancel attempts to remove a previously-created notification from view on the current
-// platform.
-func (n *Notification) Cancel() error {
-	return n.impl.Cancel()
-}
-
-// Icon configures an icon to use for notifications, specified as a filepath.
-// May be a no-op on any platform that doesn't support icons notifications.
-func (m Manager) Icon(path string) {
-	if iconer, ok := m.impl.(interface{ Icon(string) }); ok {
-		iconer.Icon(path)
-	}
+func (noop) Cancel() error {
+	return nil
 }

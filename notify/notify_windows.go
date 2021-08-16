@@ -12,18 +12,16 @@ type windowsManager struct {
 	icon string
 }
 
-var _ managerInterface = &windowsManager{}
+var _ Manager = &windowsManager{}
 
 func newManager() (Manager, error) {
-	return Manager{
-		impl: &windowsManager{},
-	}, nil
+	return &windowsManager{}, nil
 }
 
 // CreateNotification pushes a notification to windows.
 // Note; cancellation is not implemented.
-func (m *windowsManager) CreateNotification(title, text string) (*Notification, error) {
-	return &Notification{uncancellable{}}, (&toast.Notification{
+func (m *windowsManager) CreateNotification(title, text string) (Notification, error) {
+	return noop{}, (&toast.Notification{
 		AppID:   title,
 		Title:   title,
 		Message: text,
@@ -36,7 +34,3 @@ func (m *windowsManager) CreateNotification(title, text string) (*Notification, 
 func (m *windowsManager) Icon(path string) {
 	m.icon = path
 }
-
-type uncancellable struct{}
-
-func (uncancellable) Cancel() error { return nil }

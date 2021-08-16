@@ -5,15 +5,9 @@ package notify
 type unsupportedManager struct{}
 
 func newManager() (Manager, error) {
-	return Manager{unsupportedManager{}}, nil
+	return unsupportedManager{}, nil
 }
 
-func (u unsupportedManager) CreateNotification(title, text string) (*Notification, error) {
-	return &Notification{unsupportedNotification{}}, nil
-}
-
-type unsupportedNotification struct{}
-
-func (u unsupportedNotification) Cancel() error {
-	return nil
+func (u unsupportedManager) CreateNotification(title, text string) (Notification, error) {
+	return &noop{}, nil
 }

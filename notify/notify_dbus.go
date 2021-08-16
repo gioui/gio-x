@@ -13,7 +13,7 @@ type linuxManager struct {
 	notify.Notifier
 }
 
-var _ managerInterface = &linuxManager{}
+var _ Manager = &linuxManager{}
 
 func newManager() (Manager, error) {
 	conn, err := dbus.SessionBus()
@@ -24,10 +24,8 @@ func newManager() (Manager, error) {
 	if err != nil {
 		return Manager{}, fmt.Errorf("failed creating notifier: %w", err)
 	}
-	return Manager{
-		impl: &linuxManager{
-			Notifier: notifier,
-		},
+	return &linuxManager{
+		Notifier: notifier,
 	}, nil
 }
 
@@ -38,7 +36,7 @@ type linuxNotification struct {
 
 var _ notificationInterface = linuxNotification{}
 
-func (l *linuxManager) CreateNotification(title, text string) (*Notification, error) {
+func (l *linuxManager) CreateNotification(title, text string) (Notification, error) {
 	id, err := l.Notifier.SendNotification(notify.Notification{
 		Summary: title,
 		Body:    text,
@@ -46,11 +44,9 @@ func (l *linuxManager) CreateNotification(title, text string) (*Notification, er
 	if err != nil {
 		return nil, err
 	}
-	return &Notification{
-		linuxNotification{
-			id:           id,
-			linuxManager: l,
-		},
+	return &linuxNotification{
+		id:           id,
+		linuxManager: l,
 	}, nil
 }
 
