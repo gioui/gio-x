@@ -54,3 +54,7 @@ func (l linuxNotification) Cancel() error {
 	_, err := l.linux.CloseNotification(l.id)
 	return err
 }
+
+func init() {
+	impl, _ = newNotifier()
+}

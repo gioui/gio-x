@@ -11,3 +11,7 @@ func newNotifier() (Notifier, error) {
 func (unsupported) CreateNotification(title, text string) (Notification, error) {
 	return &noop{}, nil
 }
+
+func init() {
+	impl, _ = newNotifier()
+}

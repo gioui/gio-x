@@ -25,3 +25,7 @@ func (a *macos) CreateNotification(title, text string) (Notification, error) {
 	}
 	return &notification, nil
 }
+
+func init() {
+	impl, _ = newNotifier()
+}

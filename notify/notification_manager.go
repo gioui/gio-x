@@ -9,6 +9,10 @@
 //     notification.Cancel()
 package notify
 
+// impl is a package global notifier initialized to the current platform
+// implementation.
+var impl Notifier
+
 // Notifier provides methods for creating and managing notifications.
 type Notifier interface {
 	CreateNotification(title, text string) (Notification, error)
@@ -37,4 +41,9 @@ type noop struct{}
 
 func (noop) Cancel() error {
 	return nil
+}
+
+// Push a notification to the OS.
+func Push(title, text string) (Notification, error) {
+	return impl.CreateNotification(title, text)
 }

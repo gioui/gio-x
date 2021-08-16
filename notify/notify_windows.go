@@ -34,3 +34,7 @@ func (m *windows) CreateNotification(title, text string) (Notification, error) {
 func (m *windows) UseIcon(path string) {
 	m.icon = path
 }
+
+func init() {
+	impl, _ = newNotifier()
+}
