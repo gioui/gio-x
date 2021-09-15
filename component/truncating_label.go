@@ -1,8 +1,11 @@
 package component
 
 import (
+	"image"
+
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/widget/material"
 )
 
@@ -28,12 +31,31 @@ func (t TruncatingLabelStyle) Layout(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Max.X = originalMaxX
 	truncationIndicator := asLabel
 	truncationIndicator.Text = "…"
-	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-		layout.Flexed(1, func(gtx C) D {
-			return asLabel.Layout(gtx)
+	macro = op.Record(gtx.Ops)
+	gtx.Constraints.Min.X = 0
+	indDims := truncationIndicator.Layout(gtx)
+	indOp := macro.Stop()
+	maxX := gtx.Constraints.Max.X - indDims.Size.X
+	return layout.Flex{
+		Alignment: layout.Baseline,
+		Spacing:   layout.SpaceEnd,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			defer op.Save(gtx.Ops).Load()
+			clip.Rect(image.Rectangle{
+				Max: image.Point{
+					Y: dimensions.Size.Y,
+					X: maxX,
+				},
+			}).Add(gtx.Ops)
+			labelOp.Add(gtx.Ops)
+			dims := dimensions
+			dims.Size.X = maxX
+			return dims
 		}),
 		layout.Rigid(func(gtx C) D {
-			return truncationIndicator.Layout(gtx)
+			indOp.Add(gtx.Ops)
+			return indDims
 		}),
 	)
 }
