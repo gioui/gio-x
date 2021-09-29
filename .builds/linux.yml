@@ -37,9 +37,12 @@ environment:
 secrets:
  - 4d571621-ab6e-457e-a8d9-a4fab24a9794
 tasks:
- - install_go1_14: |
+ - install_go: |
      mkdir -p /home/build/sdk
-     curl https://dl.google.com/go/go1.14.linux-amd64.tar.gz | tar -C /home/build/sdk -xzf -
+     cd /home/build/sdk
+     curl -Lso go.tar.gz https://golang.org/dl/go1.17.1.linux-amd64.tar.gz
+     echo "dab7d9c34361dc21ec237d584590d72500652e7c909bf082758fb63064fca0ef go.tar.gz" | sha256sum -c -
+     tar xzf go.tar.gz
  - test_gio: |
      cd gio-x
      go test -race ./...
