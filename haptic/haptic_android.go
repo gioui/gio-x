@@ -1,4 +1,6 @@
-//+build !linux
+//go:build !linux
+// +build !linux
+
 /*
 Package haptic provides access to haptic feedback methods on Android to gio
 applications.

@@ -1,4 +1,5 @@
-//+build linux,!android openbsd freebsd netbsd
+//go:build (linux && !android) || openbsd || freebsd || netbsd
+// +build linux,!android openbsd freebsd netbsd
 
 package notify
 
@@ -45,7 +46,7 @@ func (l *dbusNotifier) CreateNotification(title, text string) (Notification, err
 		return nil, err
 	}
 	return &dbusNotification{
-		id:    id,
+		id:           id,
 		dbusNotifier: l,
 	}, nil
 }

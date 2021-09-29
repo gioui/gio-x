@@ -1,4 +1,5 @@
-//+build ios,cgo
+//go:build ios && cgo
+// +build ios,cgo
 
 package haptic
 

@@ -49,13 +49,13 @@ func (noop) Cancel() error {
 
 // Push a notification to the OS.
 func Push(title, text string) (Notification, error) {
-    implLock.Lock()
-    defer implLock.Unlock()
-    if impl == nil && implErr == nil {
-            impl, implErr = newNotifier()
-    }
-    if implErr != nil {
-        return nil, implErr
-    }
+	implLock.Lock()
+	defer implLock.Unlock()
+	if impl == nil && implErr == nil {
+		impl, implErr = newNotifier()
+	}
+	if implErr != nil {
+		return nil, implErr
+	}
 	return impl.CreateNotification(title, text)
 }

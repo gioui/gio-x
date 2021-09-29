@@ -1,4 +1,5 @@
-//+build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd,!darwin,!windows
+//go:build !linux && !android && !openbsd && !freebsd && !dragonfly && !netbsd && !darwin && !windows
+// +build !linux,!android,!openbsd,!freebsd,!dragonfly,!netbsd,!darwin,!windows
 
 package notify
 
