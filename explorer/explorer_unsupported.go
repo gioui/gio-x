@@ -16,6 +16,6 @@ func openFile(extensions ...string) (io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
-func createFile(content []byte, name string) (io.WriteCloser, error) {
+func createFile(name string) (io.WriteCloser, error) {
 	return nil, ErrNotAvailable
 }
