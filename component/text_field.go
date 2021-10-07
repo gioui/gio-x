@@ -114,7 +114,7 @@ func (in *TextField) TextTooLong() bool {
 }
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
-	var disabled = gtx.Queue == nil
+	disabled := gtx.Queue == nil
 	for in.Hoverable.Clicked() {
 		in.Editor.Focus()
 	}
@@ -202,9 +202,8 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 
 func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 	in.Update(gtx, th, hint)
-	defer op.Save(gtx.Ops).Load()
 	// Offset accounts for label height, which sticks above the border dimensions.
-	op.Offset(f32.Pt(0, float32(in.label.Smallest.Size.Y)/2)).Add(gtx.Ops)
+	defer op.Offset(f32.Pt(0, float32(in.label.Smallest.Size.Y)/2)).Push(gtx.Ops).Pop()
 	in.label.Inset.Layout(
 		gtx,
 		func(gtx C) D {
@@ -225,7 +224,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 			return layout.Stack{}.Layout(
 				gtx,
 				layout.Expanded(func(gtx C) D {
-					var cornerRadius = unit.Dp(4)
+					cornerRadius := unit.Dp(4)
 					macro := op.Record(gtx.Ops)
 					dims := widget.Border{
 						Color:        in.border.Color,
@@ -243,9 +242,9 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 					border := macro.Stop()
 					if in.Editor.Focused() || in.Editor.Len() > 0 {
 						// Clip a concave shape which ignores the label area.
-						clips := []func(gtx C){
-							func(gtx C) {
-								clip.RRect{
+						clips := []func(gtx C) clip.Stack{
+							func(gtx C) clip.Stack {
+								return clip.RRect{
 									Rect: layout.FRect(image.Rectangle{
 										Max: image.Point{
 											X: gtx.Px(in.label.Inset.Left),
@@ -254,10 +253,10 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 									}),
 									NW: float32(gtx.Px(cornerRadius)),
 									SW: float32(gtx.Px(cornerRadius)),
-								}.Add(gtx.Ops)
+								}.Push(gtx.Ops)
 							},
-							func(gtx C) {
-								clip.Rect{
+							func(gtx C) clip.Stack {
+								return clip.Rect{
 									Min: image.Point{
 										X: gtx.Px(in.label.Inset.Left),
 										Y: in.label.Smallest.Size.Y / 2,
@@ -266,10 +265,10 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 										X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
 										Y: gtx.Constraints.Min.Y,
 									},
-								}.Add(gtx.Ops)
+								}.Push(gtx.Ops)
 							},
-							func(gtx C) {
-								clip.RRect{
+							func(gtx C) clip.Stack {
+								return clip.RRect{
 									Rect: layout.FRect(image.Rectangle{
 										Min: image.Point{
 											X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
@@ -281,14 +280,13 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 									}),
 									NE: float32(gtx.Px(cornerRadius)),
 									SE: float32(gtx.Px(cornerRadius)),
-								}.Add(gtx.Ops)
+								}.Push(gtx.Ops)
 							},
 						}
 						for _, c := range clips {
-							stack := op.Save(gtx.Ops)
-							c(gtx)
+							stack := c(gtx)
 							border.Add(gtx.Ops)
-							stack.Load()
+							stack.Pop()
 						}
 					} else {
 						border.Add(gtx.Ops)
@@ -418,25 +416,24 @@ func (h *Hoverable) Hovered() bool {
 // Layout Hoverable according to min constraints.
 func (h *Hoverable) Layout(gtx C) D {
 	{
-		stack := op.Save(gtx.Ops)
-		pointer.PassOp{Pass: true}.Add(gtx.Ops)
-		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
+		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
+		pr.PassThrough = true
+		stack := pr.Push(gtx.Ops)
 		h.Clickable.Layout(gtx)
-		stack.Load()
+		stack.Pop()
 	}
 	h.update(gtx)
 	{
-		stack := op.Save(gtx.Ops)
-		pointer.PassOp{Pass: true}.Add(gtx.Ops)
-		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
+		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
+		pr.PassThrough = true
+		stack := pr.Push(gtx.Ops)
 		pointer.InputOp{
 			Tag:   h,
 			Types: pointer.Enter | pointer.Leave | pointer.Cancel,
 		}.Add(gtx.Ops)
-		stack.Load()
+		stack.Pop()
 	}
 	return D{Size: gtx.Constraints.Min}
-
 }
 
 func (h *Hoverable) update(gtx C) {

@@ -77,7 +77,6 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		// within the contextual content get to update their state in reponse
 		// to the event that dismissed the contextual widget.
 		contextual = func() op.CallOp {
-			defer op.Save(gtx.Ops).Load()
 			macro := op.Record(gtx.Ops)
 			r.dims = w(gtx)
 			return macro.Stop()
@@ -94,15 +93,15 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		// Lay out a transparent scrim to block input to things beneath the
 		// contextual widget.
 		suppressionScrim := func() op.CallOp {
-			defer op.Save(gtx.Ops).Load()
 			macro2 := op.Record(gtx.Ops)
-			pointer.PassOp{Pass: false}.Add(gtx.Ops)
-			pointer.Rect(image.Rectangle{Min: image.Point{-1e6, -1e6}, Max: image.Point{1e6, 1e6}}).Add(gtx.Ops)
+			pr := pointer.Rect(image.Rectangle{Min: image.Point{-1e6, -1e6}, Max: image.Point{1e6, 1e6}})
+			stack := pr.Push(gtx.Ops)
 			pointer.InputOp{
 				Tag:   suppressionTag,
 				Grab:  false,
 				Types: pointer.Press,
 			}.Add(gtx.Ops)
+			stack.Pop()
 			return macro2.Stop()
 		}()
 		op.Defer(gtx.Ops, suppressionScrim)
@@ -114,23 +113,24 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 
 		// Lay out a scrim on top of the contextual widget to detect
 		// completed interactions with it (that should dismiss it).
-		saved := op.Save(gtx.Ops)
-		pointer.PassOp{Pass: true}.Add(gtx.Ops)
-		pointer.Rect(image.Rectangle{Max: r.dims.Size}).Add(gtx.Ops)
+		pr := pointer.Rect(image.Rectangle{Max: r.dims.Size})
+		pr.PassThrough = true
+		stack := pr.Push(gtx.Ops)
 		pointer.InputOp{
 			Tag:   dismissTag,
 			Grab:  false,
 			Types: pointer.Release,
 		}.Add(gtx.Ops)
 
-		saved.Load()
+		stack.Pop()
 		contextual = macro.Stop()
 		op.Defer(gtx.Ops, contextual)
 	}
 
 	// Capture pointer events in the contextual area.
-	pointer.PassOp{Pass: true}.Add(gtx.Ops)
-	pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Add(gtx.Ops)
+	pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
+	pr.PassThrough = true
+	defer pr.Push(gtx.Ops).Pop()
 	pointer.InputOp{
 		Tag:   r,
 		Grab:  false,

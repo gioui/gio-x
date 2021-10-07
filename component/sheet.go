@@ -25,12 +25,10 @@ func NewSheet() Sheet {
 // Layout renders the provided widget on a background. The background will use
 // the maximum space available.
 func (s Sheet) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-
 	revealed := -1 + anim.Revealed(gtx)
 	finalOffset := revealed * (float32(gtx.Constraints.Max.X))
 	revealedWidth := finalOffset + float32(gtx.Constraints.Max.X)
-	op.Offset(f32.Point{X: finalOffset}).Add(gtx.Ops)
+	defer op.Offset(f32.Point{X: finalOffset}).Push(gtx.Ops).Pop()
 	// lay out background
 	paintRect(gtx, gtx.Constraints.Max, th.Bg)
 
@@ -119,8 +117,9 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 				s.dragging = false
 			}
 		}
+		// Ensure any transformation is undone on return.
+		defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 		if s.dragOffset != 0 || anim.Animating() {
-			defer op.Save(gtx.Ops).Load()
 			s.drawerTransform(gtx, anim).Add(gtx.Ops)
 			op.InvalidateOp{}.Add(gtx.Ops)
 		}
@@ -128,8 +127,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 
 		// Beneath sheet content, listen for tap events. This prevents taps in the
 		// empty sheet area from passing downward to the scrim underneath it.
-		pointer.PassOp{Pass: false}.Add(gtx.Ops)
-		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
+		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max})
+		defer pr.Push(gtx.Ops).Pop()
 		pointer.InputOp{
 			Tag:   s,
 			Types: pointer.Press | pointer.Release,
@@ -141,8 +140,9 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		})
 
 		// On top of sheet content, listen for drag events to close the sheet.
-		pointer.PassOp{Pass: true}.Add(gtx.Ops)
-		pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Add(gtx.Ops)
+		pr = pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max})
+		pr.PassThrough = true
+		defer pr.Push(gtx.Ops).Pop()
 		s.drag.Add(gtx.Ops)
 
 		return dims

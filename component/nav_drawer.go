@@ -8,7 +8,6 @@ import (
 	"gioui.org/f32"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
-	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -66,11 +65,11 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 			}
 		}
 	}
-	defer op.Save(gtx.Ops).Load()
-	pointer.PassOp{Pass: true}.Add(gtx.Ops)
-	pointer.Rect(image.Rectangle{
+	pr := pointer.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,
-	}).Add(gtx.Ops)
+	})
+	pr.PassThrough = true
+	defer pr.Push(gtx.Ops).Pop()
 	pointer.InputOp{
 		Tag:   n,
 		Types: pointer.Enter | pointer.Leave,
@@ -132,9 +131,8 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context, th *material.Theme)
 	} else if n.selected {
 		fill = WithAlpha(th.Palette.ContrastBg, n.AlphaPalette.Selected)
 	}
-	defer op.Save(gtx.Ops).Load()
 	rr := float32(gtx.Px(unit.Dp(4)))
-	clip.RRect{
+	defer clip.RRect{
 		Rect: f32.Rectangle{
 			Max: layout.FPt(gtx.Constraints.Max),
 		},
@@ -142,7 +140,7 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context, th *material.Theme)
 		SE: rr,
 		NW: rr,
 		SW: rr,
-	}.Add(gtx.Ops)
+	}.Push(gtx.Ops).Pop()
 	paintRect(gtx, gtx.Constraints.Max, fill)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }

@@ -41,13 +41,12 @@ func (t TruncatingLabelStyle) Layout(gtx layout.Context) layout.Dimensions {
 		Spacing:   layout.SpaceEnd,
 	}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
-			defer op.Save(gtx.Ops).Load()
-			clip.Rect(image.Rectangle{
+			defer clip.Rect(image.Rectangle{
 				Max: image.Point{
 					Y: dimensions.Size.Y,
 					X: maxX,
 				},
-			}).Add(gtx.Ops)
+			}).Push(gtx.Ops).Pop()
 			labelOp.Add(gtx.Ops)
 			dims := dimensions
 			dims.Size.X = maxX

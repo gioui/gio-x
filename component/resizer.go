@@ -73,9 +73,8 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 		f.Pos = f.Length
 	}
 
-	defer op.Save(gtx.Ops).Load()
 	rect := image.Rectangle{Max: dims.Size}
-	pointer.Rect(rect).Add(gtx.Ops)
+	defer pointer.Rect(rect).Push(gtx.Ops).Pop()
 	f.drag.Add(gtx.Ops)
 	cursor := pointer.CursorRowResize
 	if axis == layout.Horizontal {

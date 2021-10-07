@@ -163,7 +163,6 @@ func (o overflowMenu) actionForIndex(index int, actions *actionGroup) OverflowAc
 // configureOverflow sets the overflowMenu's ModalLayer to display a overflow menu.
 func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos VerticalAnchorPosition, actions *actionGroup) {
 	o.ModalLayer.Widget = func(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
-		defer op.Save(gtx.Ops).Load()
 		width := gtx.Constraints.Max.X / 2
 		gtx.Constraints.Min.X = width
 		menuMacro := op.Record(gtx.Ops)
@@ -225,8 +224,8 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 				},
 			}
 		}
-		op.Offset(offset).Add(gtx.Ops)
-		rect.Add(gtx.Ops)
+		defer op.Offset(offset).Push(gtx.Ops).Pop()
+		defer rect.Push(gtx.Ops).Pop()
 		menuOp.Add(gtx.Ops)
 		return dims
 	}
@@ -314,12 +313,11 @@ func (a AppBarAction) layout(bg, fg color.NRGBA, anim *VisibilityAnimation, gtx 
 	btnOp := macro.Stop()
 	progress := anim.Revealed(gtx)
 	dims.Size.X = int(progress * float32(dims.Size.X))
-	// ensure this clip transformation stays local to this function
-	defer op.Save(gtx.Ops).Load()
 
-	clip.Rect{
+	// ensure this clip transformation stays local to this function
+	defer clip.Rect{
 		Max: dims.Size,
-	}.Add(gtx.Ops)
+	}.Push(gtx.Ops).Pop()
 	btnOp.Add(gtx.Ops)
 	return dims
 }

@@ -112,10 +112,9 @@ func (d DiscloserStyle) Layout(gtx C, control, summary, detail layout.Widget) D 
 			call := macro.Stop()
 			height := int(math.Round(float64(float32(dims.Size.Y) * progress)))
 			dims.Size.Y = height
-			defer op.Save(gtx.Ops).Load()
-			clip.Rect(image.Rectangle{
+			defer clip.Rect(image.Rectangle{
 				Max: dims.Size,
-			}).Add(gtx.Ops)
+			}).Push(gtx.Ops).Pop()
 			call.Add(gtx.Ops)
 			return dims
 		}),
@@ -195,8 +194,7 @@ func (d DiscloserArrowStyle) Layout(gtx C) D {
 				Y: 1,
 			}).Offset(f32.Pt(size, 0))
 		}
-		defer op.Save(gtx.Ops).Load()
-		op.Affine(affine).Add(gtx.Ops)
+		defer op.Affine(affine).Push(gtx.Ops).Pop()
 		paint.FillShape(gtx.Ops, d.Color, outline.Op())
 		return D{
 			Size: image.Pt(int(size), int(size)),

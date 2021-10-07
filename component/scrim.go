@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"gioui.org/layout"
-	"gioui.org/op"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
@@ -24,7 +23,6 @@ func (s *Scrim) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityA
 	if !anim.Visible() {
 		return layout.Dimensions{}
 	}
-	defer op.Save(gtx.Ops).Load()
 	gtx.Constraints.Min = gtx.Constraints.Max
 	currentAlpha := s.FinalAlpha
 	if anim.Animating() {
@@ -66,11 +64,8 @@ func (scrim ScrimStyle) Layout(gtx C) D {
 	if !scrim.Visible() {
 		return D{}
 	}
-	defer op.Save(gtx.Ops).Load()
 	gtx.Constraints.Min = gtx.Constraints.Max
-	var (
-		alpha = scrim.FinalAlpha
-	)
+	alpha := scrim.FinalAlpha
 	if scrim.Animating() {
 		alpha = uint8(float32(scrim.FinalAlpha) * scrim.Revealed(gtx))
 	}
