@@ -268,7 +268,7 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	layoutLeft.Add(gtx.Ops)
 
 	// offset downwards and lay out the color sample
-	var stack op.StateOp
+	var stack op.SaveStack
 	stack = op.Save(gtx.Ops)
 	op.Offset(f32.Pt(float32(margin), float32(leftSideDims.Size.Y))).Add(gtx.Ops)
 	rectAbs(gtx, sampleWidth-(2*margin), sampleHeight-(2*margin), p.State.Color())

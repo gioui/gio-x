@@ -59,7 +59,7 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 	// Grab all scroll events for the lists.
 	xMin, xMax := listScrollBounds(t.xList.Position, xn)
 	yMin, yMax := listScrollBounds(t.yList.Position, yn)
-	pointer.Rect(image.Rectangle{Max: csMax}).Add(gtx.Ops)
+	pr := pointer.Rect(image.Rectangle{Max: csMax}).Push(gtx.Ops)
 	pointer.InputOp{
 		Tag:   t,
 		Types: pointer.Press | pointer.Drag | pointer.Release | pointer.Scroll,
@@ -68,6 +68,7 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 			Max: image.Pt(xMax, yMax),
 		},
 	}.Add(gtx.Ops)
+	pr.Pop()
 
 	// Offset the start position for truncated last columns and rows.
 	clip.Rect(image.Rectangle{Max: csMax}).Add(gtx.Ops)

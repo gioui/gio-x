@@ -3,7 +3,8 @@ module gioui.org/x/haptic
 go 1.14
 
 require (
-	gioui.org v0.0.0-20210116085804-99bfa6a33cdf
-	git.wow.st/gmp/jni v0.0.0-20200827154156-014cd5c7c4c0
-	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
+	gioui.org v0.0.0-20211008152156-391725b9d081
+	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
+	github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1 // indirect
+	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
 )

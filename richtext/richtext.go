@@ -294,9 +294,10 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				// set this offset to the upper corner of the text, not the lower
 				shape.offset.Y -= lineDims.Y
 				op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
-				pointer.Rect(image.Rectangle{Max: shape.size}).Add(gtx.Ops)
+				pr := pointer.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
 				state.Layout(gtx)
 				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
+				pr.Pop()
 				stack.Load()
 				// ensure that we request new state for each interactive text
 				// that isn't breaking across a line.
@@ -317,7 +318,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 			lineAscent = 0
 
 			// if this span isn't interactive, don't use the same interaction
-			//state on the next line.
+			// state on the next line.
 			if !span.Interactive {
 				state = nil
 			}
