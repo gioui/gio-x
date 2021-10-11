@@ -10,7 +10,6 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/op"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 )
 
@@ -125,27 +124,34 @@ func TestStrokedPathFlatMiterInf(t *testing.T) {
 func TestStrokedPathZeroWidth(t *testing.T) {
 	run(t, func(o *op.Ops) {
 		{
-			p := new(clip.Path)
-			p.Begin(o)
-			p.Move(f32.Pt(10, 50))
-			p.Line(f32.Pt(50, 0))
-			cl := clip.Stroke{
-				Path:  p.End(),
+			p := Path{
+				Segments: []Segment{
+					MoveTo(f32.Pt(10, 50)),
+					LineTo(f32.Pt(60, 50)),
+				},
+			}
+			cl := Stroke{
+				Path:  p,
+				Cap:   FlatCap,
+				Join:  BevelJoin,
 				Width: 2,
-			}.Op().Push(o)
+			}.Op(o).Push(o)
 
 			paint.Fill(o, black)
 			cl.Pop()
 		}
 
 		{
-			p := new(clip.Path)
-			p.Begin(o)
-			p.Move(f32.Pt(10, 50))
-			p.Line(f32.Pt(30, 0))
-			cl := clip.Stroke{
-				Path: p.End(),
-			}.Op().Push(o) // width=0, disable stroke
+			p := Path{
+				Segments: []Segment{
+					MoveTo(f32.Pt(10, 50)),
+					LineTo(f32.Pt(40, 50)),
+					LineTo(f32.Pt(10, 50)),
+				},
+			}
+			cl := Stroke{
+				Path: p,
+			}.Op(o).Push(o) // width=0, disable stroke
 
 			paint.Fill(o, red)
 			cl.Pop()
