@@ -85,7 +85,6 @@ func TestStrokedPathFlatMiter(t *testing.T) {
 			paint.Fill(o, black)
 			cl.Pop()
 		}
-
 	}, func(r result) {
 		r.expect(0, 0, transparent)
 		r.expect(40, 10, colornames.Black)
@@ -131,12 +130,8 @@ func TestStrokedPathZeroWidth(t *testing.T) {
 			p.Move(f32.Pt(10, 50))
 			p.Line(f32.Pt(50, 0))
 			cl := clip.Stroke{
-				Path: p.End(),
-				Style: clip.StrokeStyle{
-					Width: 2,
-					Cap:   clip.FlatCap,
-					Join:  clip.BevelJoin,
-				},
+				Path:  p.End(),
+				Width: 2,
 			}.Op().Push(o)
 
 			paint.Fill(o, black)
@@ -155,7 +150,6 @@ func TestStrokedPathZeroWidth(t *testing.T) {
 			paint.Fill(o, red)
 			cl.Pop()
 		}
-
 	}, func(r result) {
 		r.expect(0, 0, transparent)
 		r.expect(10, 50, colornames.Black)
@@ -196,7 +190,6 @@ func TestDashedPathFlatCapEllipse(t *testing.T) {
 			)
 			cl.Pop()
 		}
-
 	}, func(r result) {
 		r.expect(0, 0, transparent)
 		r.expect(0, 62, colornames.Red)
