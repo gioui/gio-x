@@ -416,22 +416,22 @@ func (h *Hoverable) Hovered() bool {
 // Layout Hoverable according to min constraints.
 func (h *Hoverable) Layout(gtx C) D {
 	{
-		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
-		pr.PassThrough = true
-		stack := pr.Push(gtx.Ops)
+		pt := pointer.PassOp{}.Push(gtx.Ops)
+		stack := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops)
 		h.Clickable.Layout(gtx)
 		stack.Pop()
+		pt.Pop()
 	}
 	h.update(gtx)
 	{
-		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
-		pr.PassThrough = true
-		stack := pr.Push(gtx.Ops)
+		pt := pointer.PassOp{}.Push(gtx.Ops)
+		stack := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops)
 		pointer.InputOp{
 			Tag:   h,
 			Types: pointer.Enter | pointer.Leave | pointer.Cancel,
 		}.Add(gtx.Ops)
 		stack.Pop()
+		pt.Pop()
 	}
 	return D{Size: gtx.Constraints.Min}
 }

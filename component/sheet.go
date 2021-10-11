@@ -140,9 +140,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		})
 
 		// On top of sheet content, listen for drag events to close the sheet.
-		pr = pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max})
-		pr.PassThrough = true
-		defer pr.Push(gtx.Ops).Pop()
+		defer pointer.PassOp{}.Push(gtx.Ops).Pop()
+		defer pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Push(gtx.Ops).Pop()
 		s.drag.Add(gtx.Ops)
 
 		return dims

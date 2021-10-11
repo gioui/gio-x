@@ -208,9 +208,8 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Stacked(w),
 		layout.Expanded(func(gtx C) D {
-			pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min})
-			pr.PassThrough = true
-			defer pr.Push(gtx.Ops).Pop()
+			defer pointer.PassOp{}.Push(gtx.Ops).Pop()
+			defer pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 			pointer.InputOp{
 				Tag:   t,
 				Types: pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,

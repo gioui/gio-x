@@ -65,11 +65,10 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 			}
 		}
 	}
-	pr := pointer.Rect(image.Rectangle{
+	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
+	defer pointer.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,
-	})
-	pr.PassThrough = true
-	defer pr.Push(gtx.Ops).Pop()
+	}).Push(gtx.Ops).Pop()
 	pointer.InputOp{
 		Tag:   n,
 		Types: pointer.Enter | pointer.Leave,
