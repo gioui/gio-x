@@ -183,7 +183,7 @@ func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) l
 	defer op.Save(gtx.Ops).Load()
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
-	s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Add(gtx.Ops)
+	defer s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }

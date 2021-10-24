@@ -71,7 +71,7 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 	pr.Pop()
 
 	// Offset the start position for truncated last columns and rows.
-	clip.Rect(image.Rectangle{Max: csMax}).Add(gtx.Ops)
+	defer clip.Rect(image.Rectangle{Max: csMax}).Push(gtx.Ops).Pop()
 	p := image.Point{
 		X: -t.xList.Position.Offset,
 		Y: -t.yList.Position.Offset,
