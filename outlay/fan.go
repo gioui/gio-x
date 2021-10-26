@@ -74,11 +74,10 @@ func (f *Fan) offsetRadians() float32 {
 }
 
 func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-	op.Offset(f32.Point{
+	defer op.Offset(f32.Point{
 		X: float32(gtx.Constraints.Max.X / 2),
 		Y: float32(gtx.Constraints.Max.Y / 2),
-	}).Add(gtx.Ops)
+	}).Push(gtx.Ops).Pop()
 	f.itemsCache = f.itemsCache[:0]
 	maxWidth := 0
 	for i := range items {
@@ -155,7 +154,6 @@ func min(a, b int) int {
 }
 
 func (f *Fan) layoutItem(gtx layout.Context, index int, params fanParams) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
 	arc := params.arc
 	radius := params.radius
 	arc = arc*float32(index) + f.offsetRadians()
@@ -163,7 +161,7 @@ func (f *Fan) layoutItem(gtx layout.Context, index int, params fanParams) layout
 	transform = transform.Rotate(f32.Point{}, -math.Pi/2).
 		Offset(f32.Pt(-radius, float32(f.itemsCache[index].Dimensions.Size.X/2))).
 		Rotate(f32.Point{}, arc)
-	op.Affine(transform).Add(gtx.Ops)
+	defer op.Affine(transform).Push(gtx.Ops).Pop()
 	f.itemsCache[index].Add(gtx.Ops)
 	return layout.Dimensions{}
 }

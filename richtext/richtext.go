@@ -180,7 +180,6 @@ func (ss *SpanStyle) Set(key, value string) {
 
 // Layout renders the span using the provided text shaping.
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
 	defer s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Push(gtx.Ops).Pop()
@@ -290,15 +289,14 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 					state.contents = span.Content
 					state.metadata = span.metadata
 				}
-				stack := op.Save(gtx.Ops)
 				// set this offset to the upper corner of the text, not the lower
 				shape.offset.Y -= lineDims.Y
-				op.Offset(layout.FPt(shape.offset)).Add(gtx.Ops)
+				offStack := op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops)
 				pr := pointer.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
 				state.Layout(gtx)
 				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
 				pr.Pop()
-				stack.Load()
+				offStack.Pop()
 				// ensure that we request new state for each interactive text
 				// that isn't breaking across a line.
 				if i < len(lineShapes)-1 {

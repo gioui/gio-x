@@ -3,7 +3,7 @@ module gioui.org/x/notify
 go 1.14
 
 require (
-	gioui.org v0.0.0-20211009145857-a4242d04d1cb
+	gioui.org v0.0.0-20211026101311-563eb603823d
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/esiqveland/notify v0.11.0
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4
