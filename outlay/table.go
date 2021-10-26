@@ -26,7 +26,7 @@ type Table struct {
 }
 
 func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
+	defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 	csMax := gtx.Constraints.Max
 
 	// In order to deliver the same scroll events for both lists,

@@ -122,11 +122,10 @@ func (m MuxStyle) layoutOption(gtx C, option string) D {
 }
 
 func borderedSquare(gtx C, c color.NRGBA) D {
-	defer op.Save(gtx.Ops).Load()
 	dims := square(gtx, unit.Dp(20), color.NRGBA{A: 255})
 
 	off := float32(gtx.Px(unit.Dp(1)))
-	op.Offset(f32.Pt(off, off)).Add(gtx.Ops)
+	defer op.Offset(f32.Pt(off, off)).Push(gtx.Ops).Pop()
 	square(gtx, unit.Dp(18), c)
 	return dims
 }
@@ -268,15 +267,13 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 	layoutLeft.Add(gtx.Ops)
 
 	// offset downwards and lay out the color sample
-	var stack op.SaveStack
-	stack = op.Save(gtx.Ops)
-	op.Offset(f32.Pt(float32(margin), float32(leftSideDims.Size.Y))).Add(gtx.Ops)
+	var stack op.TransformStack
+	stack = op.Offset(f32.Pt(float32(margin), float32(leftSideDims.Size.Y))).Push(gtx.Ops)
 	rectAbs(gtx, sampleWidth-(2*margin), sampleHeight-(2*margin), p.State.Color())
-	stack.Load()
+	stack.Pop()
 
 	// offset to the right to lay out the sliders
-	defer op.Save(gtx.Ops).Load()
-	op.Offset(f32.Pt(float32(leftSideDims.Size.X), 0)).Add(gtx.Ops)
+	defer op.Offset(f32.Pt(float32(leftSideDims.Size.X), 0)).Push(gtx.Ops).Pop()
 	layoutRight.Add(gtx.Ops)
 
 	return layout.Dimensions{
