@@ -332,5 +332,6 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 			spans[i+1] = span
 		}
 	}
-	return layout.Dimensions{Size: overallSize}
+
+	return layout.Dimensions{Size: gtx.Constraints.Constrain(overallSize)}
 }
