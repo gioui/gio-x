@@ -246,6 +246,8 @@ func (g *gioNodeRenderer) renderImage(w util.BufWriter, source []byte, node ast.
 	return ast.WalkContinue, nil
 }
 
+// MetadataURL is the metadata key that the parser will set for hyperlinks
+// detected within the markdown.
 const MetadataURL = "url"
 
 func (g *gioNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -293,6 +295,8 @@ func (g *gioNodeRenderer) Result() []richtext.SpanStyle {
 }
 
 // Renderer can transform source markdown into Gio richtext.
+// Hyperlinks will result in text that has the URL set as span metadata
+// with key MetadataURL.
 type Renderer struct {
 	md goldmark.Markdown
 	nr *gioNodeRenderer
@@ -312,8 +316,6 @@ func NewRenderer() *Renderer {
 	)
 	return &Renderer{md: md, nr: nr}
 }
-
-const NonParenBracketAndSpace = `[^([\s]`
 
 // this regex matches a :// with one or more character that isn't whitespace
 // a square bracket, or a parentheses on either side. It seems to reliably
