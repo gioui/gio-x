@@ -77,10 +77,7 @@ func (d DiscloserStyle) Layout(gtx C, control, summary, detail layout.Widget) D 
 	}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			controlWidget := func(gtx C) D {
-				return layout.Stack{}.Layout(gtx,
-					layout.Stacked(control),
-					layout.Expanded(d.Clickable.Layout),
-				)
+				return d.Clickable.Layout(gtx, control)
 			}
 			return layout.Flex{
 				Alignment: layout.Middle,

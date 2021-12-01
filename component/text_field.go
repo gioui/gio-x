@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -21,8 +22,9 @@ import (
 type TextField struct {
 	// Editor contains the edit buffer.
 	widget.Editor
-	// Hoverable detects mouse hovers.
-	Hoverable Hoverable
+	// click detects when the mouse pointer clicks or hovers
+	// within the textfield.
+	click gesture.Click
 	// Alignment specifies where to anchor the text.
 	Alignment layout.Alignment
 
@@ -115,11 +117,13 @@ func (in *TextField) TextTooLong() bool {
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	disabled := gtx.Queue == nil
-	for in.Hoverable.Clicked() {
+	for range in.click.Events(gtx) {
+	}
+	if in.click.Pressed() {
 		in.Editor.Focus()
 	}
 	in.state = inactive
-	if in.Hoverable.Hovered() && !disabled {
+	if in.click.Hovered() && !disabled {
 		in.state = hovered
 	}
 	if in.Editor.Len() > 0 {
@@ -333,7 +337,12 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 					)
 				}),
 				layout.Expanded(func(gtx C) D {
-					return in.Hoverable.Layout(gtx)
+					defer pointer.PassOp{}.Push(gtx.Ops).Pop()
+					defer pointer.Rect(image.Rectangle{
+						Max: gtx.Constraints.Min,
+					}).Push(gtx.Ops).Pop()
+					in.click.Add(gtx.Ops)
+					return D{}
 				}),
 			)
 		}),
@@ -400,51 +409,4 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 // For example, 2.5 is 250% progress.
 func lerp(start, end, progress float32) float32 {
 	return start + (end-start)*progress
-}
-
-// Hoverable tracks mouse hovers over some area.
-type Hoverable struct {
-	widget.Clickable
-	hovered bool
-}
-
-// Hovered if mouse has entered the area.
-func (h *Hoverable) Hovered() bool {
-	return h.hovered
-}
-
-// Layout Hoverable according to min constraints.
-func (h *Hoverable) Layout(gtx C) D {
-	{
-		pt := pointer.PassOp{}.Push(gtx.Ops)
-		stack := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops)
-		h.Clickable.Layout(gtx)
-		stack.Pop()
-		pt.Pop()
-	}
-	h.update(gtx)
-	{
-		pt := pointer.PassOp{}.Push(gtx.Ops)
-		stack := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops)
-		pointer.InputOp{
-			Tag:   h,
-			Types: pointer.Enter | pointer.Leave | pointer.Cancel,
-		}.Add(gtx.Ops)
-		stack.Pop()
-		pt.Pop()
-	}
-	return D{Size: gtx.Constraints.Min}
-}
-
-func (h *Hoverable) update(gtx C) {
-	for _, event := range gtx.Events(h) {
-		if event, ok := event.(pointer.Event); ok {
-			switch event.Type {
-			case pointer.Enter:
-				h.hovered = true
-			case pointer.Leave, pointer.Cancel:
-				h.hovered = false
-			}
-		}
-	}
 }

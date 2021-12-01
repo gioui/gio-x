@@ -246,7 +246,7 @@ type TipIconButtonStyle struct {
 // TipIconButton creates a TipIconButtonStyle.
 func TipIconButton(th *material.Theme, area *TipArea, button *widget.Clickable, label string, icon *widget.Icon) TipIconButtonStyle {
 	return TipIconButtonStyle{
-		IconButtonStyle: material.IconButton(th, button, icon),
+		IconButtonStyle: material.IconButton(th, button, icon, label),
 		State:           area,
 		Tooltip:         PlatformTooltip(th, label),
 	}

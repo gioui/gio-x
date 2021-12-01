@@ -83,7 +83,7 @@ func (a *actionGroup) setActions(actions []AppBarAction, overflows []OverflowAct
 	a.overflowState = make([]widget.Clickable, len(a.actions)+len(a.overflow))
 }
 
-func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable) D {
+func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clickable, overflowDesc string) D {
 	overflowedActions := len(a.actions)
 	gtx.Constraints.Min.Y = 0
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
@@ -114,7 +114,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 	if len(a.overflow)+overflowedActions > 0 {
 		actions = append(actions, layout.Rigid(func(gtx C) D {
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
-			btn := material.IconButton(th, overflowBtn, moreIcon)
+			btn := material.IconButton(th, overflowBtn, moreIcon, overflowDesc)
 			btn.Size = unit.Dp(24)
 			btn.Background = th.Palette.Bg
 			btn.Color = th.Palette.Fg
@@ -366,8 +366,11 @@ func SwapPairs(p material.Palette) material.Palette {
 }
 
 // Layout renders the app bar. It will span all available horizontal
-// space (gtx.Constraints.Max.X), but has a fixed height.
-func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+// space (gtx.Constraints.Max.X), but has a fixed height. The navDesc
+// is an accessibility description for the navigation icon button, and
+// the overflowDesc is an accessibility description for the overflow
+// action button.
+func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme, navDesc, overflowDesc string) layout.Dimensions {
 	a.initialize()
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
 	th := *theme
@@ -403,7 +406,7 @@ func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimens
 			if a.contextualAnim.Visible() {
 				icon = cancelIcon
 			}
-			button := material.IconButton(&th, &a.NavigationButton, icon)
+			button := material.IconButton(&th, &a.NavigationButton, icon, navDesc)
 			button.Size = unit.Dp(24)
 			button.Background = th.Palette.Bg
 			button.Color = th.Fg
@@ -424,7 +427,7 @@ func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme) layout.Dimens
 		layout.Flexed(1, func(gtx C) D {
 			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			return layout.E.Layout(gtx, func(gtx C) D {
-				return actionSet.layout(gtx, &th, &a.overflowMenu.Clickable)
+				return actionSet.layout(gtx, &th, &a.overflowMenu.Clickable, overflowDesc)
 			})
 		}),
 	)

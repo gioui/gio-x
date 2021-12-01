@@ -20,21 +20,22 @@ type Scrim struct {
 // Layout draws the scrim using the provided animation. If the animation indicates
 // that the scrim is not visible, this is a no-op.
 func (s *Scrim) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation) layout.Dimensions {
-	if !anim.Visible() {
-		return layout.Dimensions{}
-	}
-	gtx.Constraints.Min = gtx.Constraints.Max
-	currentAlpha := s.FinalAlpha
-	if anim.Animating() {
-		revealed := anim.Revealed(gtx)
-		currentAlpha = uint8(float32(s.FinalAlpha) * revealed)
-	}
-	color := th.Fg
-	color.A = currentAlpha
-	fill := WithAlpha(color, currentAlpha)
-	paintRect(gtx, gtx.Constraints.Max, fill)
-	s.Clickable.Layout(gtx)
-	return layout.Dimensions{Size: gtx.Constraints.Max}
+	return s.Clickable.Layout(gtx, func(gtx C) D {
+		if !anim.Visible() {
+			return layout.Dimensions{}
+		}
+		gtx.Constraints.Min = gtx.Constraints.Max
+		currentAlpha := s.FinalAlpha
+		if anim.Animating() {
+			revealed := anim.Revealed(gtx)
+			currentAlpha = uint8(float32(s.FinalAlpha) * revealed)
+		}
+		color := th.Fg
+		color.A = currentAlpha
+		fill := WithAlpha(color, currentAlpha)
+		paintRect(gtx, gtx.Constraints.Max, fill)
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	})
 }
 
 // ScrimState defines persistent state for a scrim.
@@ -61,17 +62,18 @@ func NewScrim(th *material.Theme, scrim *ScrimState, alpha uint8) ScrimStyle {
 }
 
 func (scrim ScrimStyle) Layout(gtx C) D {
-	if !scrim.Visible() {
-		return D{}
-	}
-	gtx.Constraints.Min = gtx.Constraints.Max
-	alpha := scrim.FinalAlpha
-	if scrim.Animating() {
-		alpha = uint8(float32(scrim.FinalAlpha) * scrim.Revealed(gtx))
-	}
-	defer scrim.Clickable.Layout(gtx)
-	return Rect{
-		Color: WithAlpha(scrim.Color, alpha),
-		Size:  gtx.Constraints.Max,
-	}.Layout(gtx)
+	return scrim.Clickable.Layout(gtx, func(gtx C) D {
+		if !scrim.Visible() {
+			return D{}
+		}
+		gtx.Constraints.Min = gtx.Constraints.Max
+		alpha := scrim.FinalAlpha
+		if scrim.Animating() {
+			alpha = uint8(float32(scrim.FinalAlpha) * scrim.Revealed(gtx))
+		}
+		return Rect{
+			Color: WithAlpha(scrim.Color, alpha),
+			Size:  gtx.Constraints.Max,
+		}.Layout(gtx)
+	})
 }
