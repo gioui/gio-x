@@ -4,8 +4,10 @@ package explorer
 
 import (
 	"errors"
+	"gioui.org/app"
 	"gioui.org/io/event"
 	"io"
+	"sync"
 )
 
 var (
@@ -16,7 +18,7 @@ var (
 	ErrNotAvailable = errors.New("current OS not supported")
 )
 
-// ListenEvents must get all the events from Gio, in order to get the GioView. You must
+// ListenEventsWindow must get all the events from Gio, in order to get the GioView. You must
 // include that function where you listen for Gio events.
 //
 // Similar as:
@@ -28,9 +30,17 @@ var (
 // 				(( ... your code ...  ))
 // 		}
 // }
-func ListenEvents(event event.Event) {
+func ListenEventsWindow(win *app.Window, event event.Event) {
+	winMutex.Lock()
+	window = win
 	listenEvents(event)
+	winMutex.Unlock()
 }
+
+var (
+	winMutex sync.Mutex
+	window *app.Window
+)
 
 // ReadFile shows the file selector, allowing the user to select a single file.
 // Optionally, it's possible to define which file extensions is supported to
@@ -51,7 +61,7 @@ func ReadFile(extensions ...string) (io.ReadCloser, error) {
 // It's important to close the `io.WriteCloser`. In some platforms the
 // file will be saved only when the writer is closer.
 //
-// In some platforms the resulting `io.ReadCloser` is a `os.File`, but it's not
+// In some platforms the resulting `io.WriteCloser` is a `os.File`, but it's not
 // a guarantee.
 func WriteFile(name string) (io.WriteCloser, error) {
 	return createFile(name)
