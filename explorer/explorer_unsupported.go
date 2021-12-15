@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !windows
-// +build !windows
+//go:build !windows && !android
+// +build !windows,!android
 
 package explorer
 
