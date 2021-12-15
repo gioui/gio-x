@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !android && !windows && !js
-// +build !android,!windows,!js
-
 package explorer
 
 import (
+	"gioui.org/app"
 	"gioui.org/io/event"
 	"io"
 )
 
-func listenEvents(_ event.Event) {}
+type explorer struct{}
 
-func openFile(extensions ...string) (io.ReadCloser, error) {
+func newExplorer(w *app.Window) *explorer {
+	return new(explorer)
+}
+
+func (e *Explorer) listenEvents(_ event.Event) {}
+
+func (e *Explorer) exportFile(_ string) (io.WriteCloser, error) {
 	return nil, ErrNotAvailable
 }
 
-func createFile(name string) (io.WriteCloser, error) {
+func (e *Explorer) importFile(_ ...string) (io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
