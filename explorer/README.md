@@ -2,20 +2,17 @@
 
 -----------
 
-Integrates a simlpe `Save As...` or `Open...` mechanism to your Gio application.
+Integrates a simple `Save As...` or `Open...` mechanism to your Gio application.
 
 ## What can it be used for?
 
 Well, for anything that manipulates user's file. You can use `os.Open` to open and write file, 
-but sometimes you want to know where to save the data, in those case `Explorer` is usefull.
-
-
-
+but sometimes you want to know where to save the data, in those case `Explorer` is useful.
 
 ## Status
 
-Currently, `Explorer` supports across Android, JS and Windows 10. It will return ErrAvailableAPI
-for any other platform that isn't supported. 
+Currently, `Explorer` supports most platforms, including Android 6+, JS, Windows 10+, iOS 14+ and macOS 10+. It will 
+return ErrAvailableAPI for any other platform that isn't supported.
 
 ## Limitations
 
