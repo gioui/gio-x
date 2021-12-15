@@ -3,6 +3,7 @@
 package explorer
 
 import (
+	"gioui.org/app"
 	"gioui.org/io/event"
 	"golang.org/x/sys/windows"
 	"io"
@@ -11,8 +12,6 @@ import (
 	"strings"
 	"unsafe"
 )
-
-func listenEvents(_ event.Event) {}
 
 var (
 	// https://docs.microsoft.com/en-us/windows/win32/api/commdlg/
@@ -60,40 +59,22 @@ type (
 	}
 )
 
-func openFile(extensions ...string) (io.ReadCloser, error) {
-	file := make([]uint16, _FilePathLength)
+type explorer struct{}
 
-	open := _OpenFileName{
-		File:       &file[0],
-		MaxFile:    _FilePathLength,
-		Filter:     buildFilter(extensions),
-		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks,
-		StructSize: _OpenFileStructLength,
-	}
-
-	if r, _, _ := _GetOpenFileName.Call(uintptr(unsafe.Pointer(&open))); r == 0 {
-		return nil, ErrUserDecline
-	}
-
-	path := windows.UTF16ToString(file)
-	if len(path) == 0 {
-		return nil, ErrUserDecline
-	}
-
-	content, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
+func newExplorer(_ *app.Window) *explorer {
+	return &explorer{}
 }
 
-func createFile(name string) (io.WriteCloser, error) {
-	file := make([]uint16, _FilePathLength)
-	copy(file, windows.StringToUTF16(name))
+func (e *Explorer) listenEvents(evt event.Event) {
+	// NO-OP
+}
+
+func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
+	pathUTF16 := make([]uint16, _FilePathLength)
+	copy(pathUTF16, windows.StringToUTF16(name))
 
 	open := _OpenFileName{
-		File:          &file[0],
+		File:          &pathUTF16[0],
 		MaxFile:       _FilePathLength,
 		Filter:        buildFilter([]string{filepath.Ext(name)}),
 		FileExtension: uint16(strings.Index(name, filepath.Ext(name))),
@@ -105,12 +86,35 @@ func createFile(name string) (io.WriteCloser, error) {
 		return nil, ErrUserDecline
 	}
 
-	path := windows.UTF16ToString(file)
+	path := windows.UTF16ToString(pathUTF16)
 	if len(path) == 0 {
 		return nil, ErrUserDecline
 	}
 
 	return os.Create(path)
+}
+
+func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
+	pathUTF16 := make([]uint16, _FilePathLength)
+
+	open := _OpenFileName{
+		File:       &pathUTF16[0],
+		MaxFile:    _FilePathLength,
+		Filter:     buildFilter(extensions),
+		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks,
+		StructSize: _OpenFileStructLength,
+	}
+
+	if r, _, _ := _GetOpenFileName.Call(uintptr(unsafe.Pointer(&open))); r == 0 {
+		return nil, ErrUserDecline
+	}
+
+	path := windows.UTF16ToString(pathUTF16)
+	if len(path) == 0 {
+		return nil, ErrUserDecline
+	}
+
+	return os.Open(path)
 }
 
 func buildFilter(extensions []string) *uint16 {
