@@ -21,15 +21,19 @@ import android.webkit.MimeTypeMap;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.Flushable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class explorer_android {
     final Fragment frag = new explorer_android_fragment();
 
-    static int CODE_OPEN = 756456;
-    static int CODE_CREATE = 756457;
+    static List<Integer> import_codes = new ArrayList<Integer>();
+    static List<Integer> export_codes = new ArrayList<Integer>();
 
-    static public native void OpenCallback(InputStream f);
-    static public native void CreateCallback(OutputStream f);
+    static int PREFIX_CODE = 756456;
+
+    static public native void ImportCallback(InputStream f, int id);
+    static public native void ExportCallback(OutputStream f, int id);
 
     public static class explorer_android_fragment extends Fragment {
         Context context;
@@ -46,35 +50,35 @@ public class explorer_android {
 
             activity.runOnUiThread(new Runnable() {
                 public void run() {
-                    if (resultCode != Activity.RESULT_OK && (requestCode == explorer_android.CODE_OPEN || requestCode == explorer_android.CODE_CREATE)) {
-                        if (requestCode == explorer_android.CODE_OPEN) {
-                            explorer_android.OpenCallback(null);
+                    if (import_codes.contains(Integer.valueOf(requestCode))) {
+                        import_codes.remove(Integer.valueOf(requestCode));
+                        if (resultCode != Activity.RESULT_OK) {
+                            explorer_android.ImportCallback(null, requestCode - PREFIX_CODE);
+                            activity.getFragmentManager().popBackStack();
+                            return;
                         }
-                        if (requestCode == explorer_android.CODE_CREATE) {
-                            explorer_android.CreateCallback(null);
-                        }
-
-                        activity.getFragmentManager().popBackStack();
-                        return;
-                    }
-
-                    if (requestCode == explorer_android.CODE_OPEN) {
                         try {
                             InputStream f = activity.getApplicationContext().getContentResolver().openInputStream(data.getData());
-                            explorer_android.OpenCallback(f);
+                            explorer_android.ImportCallback(f, requestCode - PREFIX_CODE);
                         } catch (Exception e) {
-                            explorer_android.OpenCallback(null);
+                            explorer_android.ImportCallback(null, requestCode - PREFIX_CODE);
                             e.printStackTrace();
                             return;
                         }
                     }
 
-                    if (requestCode == explorer_android.CODE_CREATE) {
+                    if (export_codes.contains(Integer.valueOf(requestCode))) {
+                        export_codes.remove(Integer.valueOf(requestCode));
+                        if (resultCode != Activity.RESULT_OK) {
+                            explorer_android.ExportCallback(null, requestCode - PREFIX_CODE);
+                            activity.getFragmentManager().popBackStack();
+                            return;
+                        }
                         try {
                             OutputStream f = activity.getApplicationContext().getContentResolver().openOutputStream(data.getData());
-                            explorer_android.CreateCallback(f);
+                            explorer_android.ExportCallback(f, requestCode - PREFIX_CODE);
                         } catch (Exception e) {
-                            explorer_android.CreateCallback(null);
+                            explorer_android.ExportCallback(null, requestCode - PREFIX_CODE);
                             e.printStackTrace();
                             return;
                         }
@@ -118,37 +122,41 @@ public class explorer_android {
         }
     }
 
-    public void openFile(View view, String mime) {
+    public void exportFile(View view, String ext, int id) {
         askPermission(view);
 
         ((Activity) view.getContext()).runOnUiThread(new Runnable() {
             public void run() {
                 registerFrag(view);
+                export_codes.add(Integer.valueOf(id + PREFIX_CODE));
+                
+                final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                frag.startActivityForResult(Intent.createChooser(intent, ""), id + PREFIX_CODE);
+            }
+        });
+    }
+
+    public void importFile(View view, String mime, int id) {
+        askPermission(view);
+
+        ((Activity) view.getContext()).runOnUiThread(new Runnable() {
+            public void run() {
+                registerFrag(view);
+                import_codes.add(Integer.valueOf(id + PREFIX_CODE));
 
                 final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("*/*");
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
 
-                final String[] mimes = mime.split(",");
-                if (mime != null && mimes.length > 0) {
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimes);
+                if (mime != null) {
+                    final String[] mimes = mime.split(",");
+                    if (mimes != null && mimes.length > 0) {
+                        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimes);
+                    }
                 }
-                frag.startActivityForResult(Intent.createChooser(intent, ""), explorer_android.CODE_OPEN);
-            }
-        });
-    }
-
-    public void createFile(View view, String ext) {
-        askPermission(view);
-
-        ((Activity) view.getContext()).runOnUiThread(new Runnable() {
-            public void run() {
-                registerFrag(view);
-
-                final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                frag.startActivityForResult(Intent.createChooser(intent, ""), explorer_android.CODE_CREATE);
+                frag.startActivityForResult(Intent.createChooser(intent, ""), id + PREFIX_CODE);
             }
         });
     }
