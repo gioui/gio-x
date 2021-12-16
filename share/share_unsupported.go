@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !windows
-// +build !windows
+//go:build !windows && !js
+// +build !windows,!js
 
 package share
 
