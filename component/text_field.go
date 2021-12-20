@@ -338,7 +338,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 				}),
 				layout.Expanded(func(gtx C) D {
 					defer pointer.PassOp{}.Push(gtx.Ops).Pop()
-					defer pointer.Rect(image.Rectangle{
+					defer clip.Rect(image.Rectangle{
 						Max: gtx.Constraints.Min,
 					}).Push(gtx.Ops).Pop()
 					in.click.Add(gtx.Ops)

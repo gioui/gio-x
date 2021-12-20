@@ -12,6 +12,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -292,7 +293,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				// set this offset to the upper corner of the text, not the lower
 				shape.offset.Y -= lineDims.Y
 				offStack := op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops)
-				pr := pointer.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
+				pr := clip.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
 				state.Layout(gtx)
 				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
 				pr.Pop()

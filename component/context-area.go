@@ -9,6 +9,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 )
 
 // ContextArea is a region of the UI that responds to right-clicks
@@ -94,7 +95,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		// contextual widget.
 		suppressionScrim := func() op.CallOp {
 			macro2 := op.Record(gtx.Ops)
-			pr := pointer.Rect(image.Rectangle{Min: image.Point{-1e6, -1e6}, Max: image.Point{1e6, 1e6}})
+			pr := clip.Rect(image.Rectangle{Min: image.Point{-1e6, -1e6}, Max: image.Point{1e6, 1e6}})
 			stack := pr.Push(gtx.Ops)
 			pointer.InputOp{
 				Tag:   suppressionTag,
@@ -114,7 +115,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		// Lay out a scrim on top of the contextual widget to detect
 		// completed interactions with it (that should dismiss it).
 		pt := pointer.PassOp{}.Push(gtx.Ops)
-		stack := pointer.Rect(image.Rectangle{Max: r.dims.Size}).Push(gtx.Ops)
+		stack := clip.Rect(image.Rectangle{Max: r.dims.Size}).Push(gtx.Ops)
 		pointer.InputOp{
 			Tag:   dismissTag,
 			Grab:  false,
@@ -129,7 +130,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 
 	// Capture pointer events in the contextual area.
 	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
-	defer pointer.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
+	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	pointer.InputOp{
 		Tag:   r,
 		Grab:  false,

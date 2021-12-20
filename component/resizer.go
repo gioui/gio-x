@@ -7,6 +7,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 )
 
 // Resize provides a draggable handle in between two widgets for resizing their area.
@@ -74,7 +75,7 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 	}
 
 	rect := image.Rectangle{Max: dims.Size}
-	defer pointer.Rect(rect).Push(gtx.Ops).Pop()
+	defer clip.Rect(rect).Push(gtx.Ops).Pop()
 	f.drag.Add(gtx.Ops)
 	cursor := pointer.CursorRowResize
 	if axis == layout.Horizontal {

@@ -9,6 +9,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
@@ -127,7 +128,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 
 		// Beneath sheet content, listen for tap events. This prevents taps in the
 		// empty sheet area from passing downward to the scrim underneath it.
-		pr := pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max})
+		pr := clip.Rect(image.Rectangle{Max: gtx.Constraints.Max})
 		defer pr.Push(gtx.Ops).Pop()
 		pointer.InputOp{
 			Tag:   s,
@@ -141,7 +142,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 
 		// On top of sheet content, listen for drag events to close the sheet.
 		defer pointer.PassOp{}.Push(gtx.Ops).Pop()
-		defer pointer.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Push(gtx.Ops).Pop()
+		defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Push(gtx.Ops).Pop()
 		s.drag.Add(gtx.Ops)
 
 		return dims
