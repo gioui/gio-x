@@ -50,7 +50,7 @@
 
         int i;
         for (i = 0; i < [exts count]; i++) {
-            id utt = UTTypePlainText;
+UTType * utt = [UTType typeWithFilenameExtension:exts[i]];
             if (utt != nil) {
                 [contentTypes addObject:utt];
             }
