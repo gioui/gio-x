@@ -35,6 +35,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	input := document.Call("createElement", "input")
 	input.Call("addEventListener", "change", openCallback(r))
 	input.Set("type", "file")
+	input.Set("style", "display:none;")
 	if len(extensions) > 0 {
 		input.Set("accept", strings.Join(extensions, ","))
 	}
