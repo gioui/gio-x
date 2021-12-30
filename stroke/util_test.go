@@ -39,7 +39,9 @@ func drawImage(t *testing.T, size int, ops *op.Ops, draw func(o *op.Ops)) (im *i
 	if err := w.Frame(ops); err != nil {
 		return nil, err
 	}
-	return w.Screenshot()
+	im = image.NewRGBA(image.Rectangle{Max: sz})
+	err = w.Screenshot(im)
+	return im, err
 }
 
 func run(t *testing.T, f func(o *op.Ops), c func(r result)) {
