@@ -94,8 +94,12 @@ func newFile(u *C.char, action func(s string) (*os.File, error)) result {
 	if err != nil {
 		return result{error: err, file: nil}
 	}
-	uri.Scheme = ""
 
-	f, err := action(uri.String())
+	path, err := url.PathUnescape(uri.Path)
+	if err != nil {
+		return result{error: err, file: nil}
+	}
+
+	f, err := action(path)
 	return result{error: err, file: f}
 }
