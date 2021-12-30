@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !windows && !android && !js && !darwin && !ios
-// +build !windows,!android,!js,!darwin,!ios
+//go:build !windows && !android && !js && !darwin && !ios && !linux
+// +build !windows,!android,!js,!darwin,!ios,!linux
 
 package explorer
 
 import (
+	"io"
+
 	"gioui.org/app"
 	"gioui.org/io/event"
-	"io"
 )
 
 type explorer struct{}
