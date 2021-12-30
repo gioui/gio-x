@@ -3,15 +3,13 @@
 package explorer
 
 import (
-	"crypto/rand"
 	"errors"
 	"gioui.org/app"
 	"gioui.org/io/event"
 	"io"
-	"math"
-	"math/big"
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 var (
@@ -45,7 +43,10 @@ type Explorer struct {
 //
 // To avoid hold dead/unnecessary explorer, the active will be removed using `runtime.SetFinalizer` on the related
 // Explorer.
-var active = sync.Map{} // map[int32]*explorer
+var (
+	active  = sync.Map{} // map[int32]*explorer
+	counter = new(int32)
+)
 
 // NewExplorer creates a new Explorer for the given *app.Window.
 // The given app.Window must be unique and you should call NewExplorer
@@ -53,11 +54,9 @@ var active = sync.Map{} // map[int32]*explorer
 //
 // It's mandatory to use Explorer.ListenEvents on the same *app.Window.
 func NewExplorer(w *app.Window) (e *Explorer) {
-	idb, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt32))
-
 	e = &Explorer{
 		explorer: newExplorer(w),
-		id:       int32(idb.Int64()),
+		id:       atomic.AddInt32(counter, 1),
 	}
 
 	active.Store(e.id, e.explorer)
