@@ -103,10 +103,6 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	}
 
 	mimes := strings.Join(extensions, ",")
-	if len(mimes) == 0 {
-		mimes = ""
-	}
-
 	go func() {
 		jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
 			return jni.CallVoidMethod(env, e.libObject, e.explorer.importFile,
