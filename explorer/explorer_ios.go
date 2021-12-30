@@ -11,76 +11,27 @@ package explorer
 #include <UIKit/UIKit.h>
 #include <stdint.h>
 
-@interface explorer_delegate:NSObject
-@end
-
-@interface explorer:NSObject<UIDocumentPickerDelegate>
-@property uint64_t mode;
+// Defined on explorer_ios.m file (implements UIDocumentPickerDelegate).
+@interface explorer_picker:NSObject<UIDocumentPickerDelegate>
 @property (strong) UIDocumentPickerViewController * picker;
 @property (strong) UIViewController * controller;
+@property uint64_t mode;
 @property uint32_t id;
-- (bool) show:(char*)text;
-- (bool) exportFile:(char*)name;
-- (bool) importFile:(char*)ext;
 @end
 
 static const uint64_t IMPORT_MODE = 1;
 static const uint64_t EXPORT_MODE = 2;
 
-static CFTypeRef createExplorer(uint64_t mode, CFTypeRef controllerRef, int32_t id) {
-	explorer * expl = [[explorer alloc] init];
-	expl.mode = mode;
-	expl.controller = (__bridge UIViewController *)controllerRef;
-	expl.id = id;
-	return (__bridge_retained CFTypeRef)expl;
-}
+extern CFTypeRef createPicker(CFTypeRef controllerRef, int32_t id);
+extern bool exportFile(CFTypeRef expl, char * name);
+extern bool importFile(CFTypeRef expl, char * ext);
 
-static bool show(CFTypeRef expl, char * text) {
-	return [(__bridge explorer *)expl show:text];
-}
+extern CFTypeRef fileWriteHandler(CFTypeRef u);
+extern CFTypeRef fileReadHandler(CFTypeRef u);
 
-static CFTypeRef fileWriteHandler(CFTypeRef u) {
-	NSError *err = nil;
-	NSFileHandle *handler = [NSFileHandle fileHandleForWritingToURL:(__bridge NSURL *)u error:&err];
-	if (err != nil) {
-		return 0;
-	}
-	return (__bridge_retained CFTypeRef)handler;
-}
-
-static CFTypeRef fileReadHandler(CFTypeRef u) {
-	NSError *err = nil;
-	NSFileHandle *handler = [NSFileHandle fileHandleForReadingFromURL:(__bridge NSURL *)u error:&err];
-	if (err != nil) {
-		return 0;
-	}
-	return (__bridge_retained CFTypeRef)handler;
-}
-
-static void closeFile(CFTypeRef handler, CFTypeRef u) {
-	[(__bridge NSURL *)u stopAccessingSecurityScopedResource];
-	[(__bridge NSFileHandle *)handler closeFile];
-}
-
-static void fileWrite(CFTypeRef handler, uint8_t* b, uint64_t len) {
-	NSData *data = [NSData dataWithBytes:b length:len];
-
-	NSFileHandle * h = (__bridge NSFileHandle *)handler;
-	[h writeData:data];
-}
-
-static uint64_t fileRead(CFTypeRef handler, uint8_t* b, uint64_t len) {
-	if (@available(iOS 14, *)) {
-		NSError *err = nil;
-
-		NSFileHandle * h = (__bridge NSFileHandle *)handler;
-		NSData *data = [h readDataUpToLength:len error:&err];
-		[data getBytes:b length:data.length];
-
-		return data.length;
-	}
-	return 0;
-}
+extern bool fileWrite(CFTypeRef handler, uint8_t *b, uint64_t len);
+extern uint64_t fileRead(CFTypeRef handler, uint8_t *b, uint64_t len);
+extern void closeFile(CFTypeRef handler, CFTypeRef u);
 */
 import "C"
 import (
@@ -95,11 +46,10 @@ import (
 )
 
 type explorer struct {
-	window     *app.Window
-	mutex      sync.Mutex
+	window         *app.Window
+	mutex          sync.Mutex
 	controller C.CFTypeRef
-	importFile C.CFTypeRef
-	exportFile C.CFTypeRef
+	picker     C.CFTypeRef
 	result     chan result
 }
 
@@ -111,9 +61,7 @@ func (e *Explorer) listenEvents(evt event.Event) {
 	switch evt := evt.(type) {
 	case app.ViewEvent:
 		e.controller = C.CFTypeRef(evt.ViewController)
-
-		e.explorer.exportFile = C.createExplorer(C.EXPORT_MODE, e.controller, C.int32_t(e.id))
-		e.explorer.importFile = C.createExplorer(C.IMPORT_MODE, e.controller, C.int32_t(e.id))
+		e.explorer.picker = C.createPicker(e.controller, C.int32_t(e.id))
 	}
 }
 
@@ -130,7 +78,7 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 
 	go func() {
 		e.window.Run(func() {
-			if ok := bool(C.show(e.explorer.exportFile, C.CString(name))); !ok {
+			if ok := bool(C.exportFile(e.explorer.picker, C.CString(name))); !ok {
 				e.result <- result{error: ErrNotAvailable}
 			}
 		})
@@ -151,7 +99,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	cextensions := C.CString(strings.Join(extensions, ","))
 	go func() {
 		e.window.Run(func() {
-			if ok := bool(C.show(e.explorer.importFile, cextensions)); !ok {
+			if ok := bool(C.importFile(e.explorer.picker, cextensions)); !ok {
 				e.result <- result{error: ErrNotAvailable}
 			}
 		})
@@ -185,7 +133,7 @@ func (f *FileReader) Read(b []byte) (n int, err error) {
 
 	var nc int
 	f.window.Run(func() {
-		nc = int(int64(C.fileRead(f.handler, buf, C.uint64_t(int64(len(b))))))
+		nc = int(int64(C.fileRead(f.handler, buf, C.uint64_t(uint64(len(b))))))
 	})
 
 	if nc == 0 {
