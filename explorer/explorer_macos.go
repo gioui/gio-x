@@ -8,20 +8,11 @@ package explorer
 /*
 #cgo CFLAGS: -Werror -xobjective-c -fmodules -fobjc-arc
 
-@import AppKit;
+#import <Appkit/AppKit.h>
 
-@interface explorer_macos:NSObject
-+ (void) exportFile:(CFTypeRef)viewRef name:(char*)name id:(int32_t)id;
-+ (void) importFile:(CFTypeRef)viewRef ext:(char*)ext id:(int32_t)id;
-@end
-
-static void exportFile(CFTypeRef viewRef, char * name, int32_t id) {
-	[explorer_macos exportFile:viewRef name:name id:id];
-}
-
-static void importFile(CFTypeRef viewRef, char * ext, int32_t id) {
-	[explorer_macos importFile:viewRef ext:ext id:id];
-}
+// Defined on explorer_macos.m file.
+extern void exportFile(CFTypeRef viewRef, char * name, int32_t id);
+extern void importFile(CFTypeRef viewRef, char * ext, int32_t id);
 */
 import "C"
 import (
@@ -78,16 +69,16 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 }
 
 //export importCallback
-func importCallback(u *C.char, id C.int32_t) {
-	if v, ok := active.Load(int32(id)); ok {
+func importCallback(u *C.char, id int32) {
+	if v, ok := active.Load(id); ok {
 		v := v.(*explorer)
 		v.result <- newFile(u, os.Open)
 	}
 }
 
 //export exportCallback
-func exportCallback(u *C.char, id C.int32_t) {
-	if v, ok := active.Load(int32(id)); ok {
+func exportCallback(u *C.char, id int32) {
+	if v, ok := active.Load(id); ok {
 		v := v.(*explorer)
 		v.result <- newFile(u, os.Create)
 	}
