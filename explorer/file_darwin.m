@@ -63,10 +63,20 @@ bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len) {
 	return NO; // Impossible condition since newFileWriter will return 0.
 }
 
-void fileClose(CFTypeRef file) {
+bool fileClose(CFTypeRef file) {
     explorer_file *f = (__bridge explorer_file *)file;
-	[f.url stopAccessingSecurityScopedResource];
-	[f.handler closeFile];
+	if (@available(iOS 13, macOS 10.15, *)) {
+        [f.url stopAccessingSecurityScopedResource];
+
+        NSError *err = nil;
+        [f.handler closeAndReturnError:&err];
+        if (err != nil) {
+            f.err = err;
+            return NO;
+        }
+        return YES;
+	}
+	return NO; // Impossible condition since newFileWriter will return 0.
 }
 
 char* getError(CFTypeRef file) {
