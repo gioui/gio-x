@@ -8,8 +8,7 @@
 #import <Appkit/AppKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
-@implementation explorer_macos
-+ (void) exportFile:(CFTypeRef)viewRef name:(char*)name id:(int32_t)id {
+void exportFile(CFTypeRef viewRef, char * name, int32_t id) {
 	NSView *view = (__bridge NSView *)viewRef;
 
 	NSSavePanel *panel = [NSSavePanel savePanel];
@@ -23,7 +22,8 @@
 		}
 	}];
 }
-+ (void) importFile:(CFTypeRef)viewRef ext:(char*)ext id:(int32_t)id {
+
+void importFile(CFTypeRef viewRef, char * ext, int32_t id) {
 	NSView *view = (__bridge NSView *)viewRef;
 
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
@@ -48,4 +48,3 @@
 		}
 	}];
 }
-@end
