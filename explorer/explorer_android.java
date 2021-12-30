@@ -30,8 +30,6 @@ public class explorer_android {
     static List<Integer> import_codes = new ArrayList<Integer>();
     static List<Integer> export_codes = new ArrayList<Integer>();
 
-    static int PREFIX_CODE = 756456;
-
     static public native void ImportCallback(InputStream f, int id);
     static public native void ExportCallback(OutputStream f, int id);
 
@@ -53,15 +51,15 @@ public class explorer_android {
                     if (import_codes.contains(Integer.valueOf(requestCode))) {
                         import_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ImportCallback(null, requestCode - PREFIX_CODE);
+                            explorer_android.ImportCallback(null, requestCode);
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
                             InputStream f = activity.getApplicationContext().getContentResolver().openInputStream(data.getData());
-                            explorer_android.ImportCallback(f, requestCode - PREFIX_CODE);
+                            explorer_android.ImportCallback(f, requestCode);
                         } catch (Exception e) {
-                            explorer_android.ImportCallback(null, requestCode - PREFIX_CODE);
+                            explorer_android.ImportCallback(null, requestCode);
                             e.printStackTrace();
                             return;
                         }
@@ -70,22 +68,21 @@ public class explorer_android {
                     if (export_codes.contains(Integer.valueOf(requestCode))) {
                         export_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ExportCallback(null, requestCode - PREFIX_CODE);
+                            explorer_android.ExportCallback(null, requestCode);
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
                             OutputStream f = activity.getApplicationContext().getContentResolver().openOutputStream(data.getData());
-                            explorer_android.ExportCallback(f, requestCode - PREFIX_CODE);
+                            explorer_android.ExportCallback(f, requestCode);
                         } catch (Exception e) {
-                            explorer_android.ExportCallback(null, requestCode - PREFIX_CODE);
+                            explorer_android.ExportCallback(null, requestCode);
                             e.printStackTrace();
                             return;
                         }
                     }
                 }
             });
-
 
         }
     }
@@ -128,12 +125,12 @@ public class explorer_android {
         ((Activity) view.getContext()).runOnUiThread(new Runnable() {
             public void run() {
                 registerFrag(view);
-                export_codes.add(Integer.valueOf(id + PREFIX_CODE));
+                export_codes.add(Integer.valueOf(id));
                 
                 final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                frag.startActivityForResult(Intent.createChooser(intent, ""), id + PREFIX_CODE);
+                frag.startActivityForResult(Intent.createChooser(intent, ""), id);
             }
         });
     }
@@ -144,7 +141,7 @@ public class explorer_android {
         ((Activity) view.getContext()).runOnUiThread(new Runnable() {
             public void run() {
                 registerFrag(view);
-                import_codes.add(Integer.valueOf(id + PREFIX_CODE));
+                import_codes.add(Integer.valueOf(id));
 
                 final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("*/*");
@@ -156,7 +153,7 @@ public class explorer_android {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimes);
                     }
                 }
-                frag.startActivityForResult(Intent.createChooser(intent, ""), id + PREFIX_CODE);
+                frag.startActivityForResult(Intent.createChooser(intent, ""), id);
             }
         });
     }
