@@ -183,7 +183,7 @@ func (ss *SpanStyle) Set(key, value string) {
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	defer op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops).Pop()
-	defer s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout).Push(gtx.Ops).Pop()
+	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }
