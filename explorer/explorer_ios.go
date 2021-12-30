@@ -25,13 +25,6 @@ static const uint64_t EXPORT_MODE = 2;
 extern CFTypeRef createPicker(CFTypeRef controllerRef, int32_t id);
 extern bool exportFile(CFTypeRef expl, char * name);
 extern bool importFile(CFTypeRef expl, char * ext);
-
-extern CFTypeRef fileWriteHandler(CFTypeRef u);
-extern CFTypeRef fileReadHandler(CFTypeRef u);
-
-extern bool fileWrite(CFTypeRef handler, uint8_t *b, uint64_t len);
-extern uint64_t fileRead(CFTypeRef handler, uint8_t *b, uint64_t len);
-extern void closeFile(CFTypeRef handler, CFTypeRef u);
 */
 import "C"
 import (
@@ -42,7 +35,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"unsafe"
 )
 
 type explorer struct {
@@ -112,72 +104,6 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return file.file.(io.ReadCloser), nil
 }
 
-type FileReader struct {
-	*explorer
-
-	url     C.CFTypeRef
-	handler C.CFTypeRef
-	closed  bool
-}
-
-func newFileReader(e *explorer, url C.CFTypeRef) *FileReader {
-	return &FileReader{explorer: e, url: url, handler: C.fileReadHandler(url)}
-}
-
-func (f *FileReader) Read(b []byte) (n int, err error) {
-	if f.handler == 0 {
-		return 0, io.ErrUnexpectedEOF
-	}
-
-	buf := (*C.uint8_t)(unsafe.Pointer(&b[0]))
-
-	var nc int
-	f.window.Run(func() {
-		nc = int(int64(C.fileRead(f.handler, buf, C.uint64_t(uint64(len(b))))))
-	})
-
-	if nc == 0 {
-		return nc, io.EOF
-	}
-	return nc, nil
-}
-
-func (f *FileReader) Close() error {
-	C.closeFile(f.handler, f.url)
-	return nil
-}
-
-type FileWriter struct {
-	*explorer
-
-	url     C.CFTypeRef
-	handler C.CFTypeRef
-	closed  bool
-}
-
-func newFileWriter(e *explorer, url C.CFTypeRef) *FileWriter {
-	return &FileWriter{explorer: e, url: url, handler: C.fileWriteHandler(url)}
-}
-
-func (f *FileWriter) Write(b []byte) (n int, err error) {
-	if f.handler == 0 {
-		return 0, io.ErrUnexpectedEOF
-	}
-
-	buf := (*C.uint8_t)(unsafe.Pointer(&b[0]))
-
-	f.window.Run(func() {
-		C.fileWrite(f.handler, buf, C.uint64_t(int64(len(b))))
-	})
-
-	return len(b), nil
-}
-
-func (f *FileWriter) Close() error {
-	C.closeFile(f.handler, f.url)
-	return nil
-}
-
 //export importCallback
 func importCallback(u C.CFTypeRef, id C.int32_t) {
 	if v, ok := active.Load(int32(id)); ok {
@@ -185,7 +111,8 @@ func importCallback(u C.CFTypeRef, id C.int32_t) {
 		if u == 0 {
 			v.result <- result{error: ErrUserDecline}
 		} else {
-			v.result <- result{file: newFileReader(v, u)}
+			file, err := newFileReader(u)
+			v.result <- result{file: file, error: err}
 		}
 	}
 }
@@ -197,7 +124,8 @@ func exportCallback(u C.CFTypeRef, id C.int32_t) {
 		if u == 0 {
 			v.result <- result{error: ErrUserDecline}
 		} else {
-			v.result <- result{file: newFileWriter(v, u)}
+			file, err := newFileWriter(u)
+			v.result <- result{file: file, error: err}
 		}
 	}
 }
