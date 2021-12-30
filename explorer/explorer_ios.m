@@ -5,7 +5,7 @@
 
 #include <UIKit/UIKit.h>
 #include <stdint.h>
-#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#include <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include "_cgo_export.h"
 
 @implementation explorer_picker
@@ -76,53 +76,4 @@ bool importFile(CFTypeRef expl, char * ext) {
         return YES;
     }
     return NO;
-}
-
-CFTypeRef fileWriteHandler(CFTypeRef u) {
-    NSURL *url = (__bridge NSURL *)u;
-    [url startAccessingSecurityScopedResource];
-
-	NSError *err = nil;
-	NSFileHandle *handler = [NSFileHandle fileHandleForWritingToURL:url error:&err];
-	if (err != nil) {
-		return 0;
-	}
-	return (__bridge_retained CFTypeRef)handler;
-}
-
-CFTypeRef fileReadHandler(CFTypeRef u) {
-    NSURL *url = (__bridge NSURL *)u;
-    [url startAccessingSecurityScopedResource];
-
-	NSError *err = nil;
-	NSFileHandle *handler = [NSFileHandle fileHandleForReadingFromURL:url error:&err];
-	if (err != nil) {
-		return 0;
-	}
-	return (__bridge_retained CFTypeRef)handler;
-}
-
-bool fileWrite(CFTypeRef handler, uint8_t *b, uint64_t len) {
-	if (@available(iOS 13, *)) {
-        NSData *data = [NSData dataWithBytes:b length:len];
-
-        NSError *err = nil;
-        return [(__bridge NSFileHandle *)handler writeData:data error:&err];
-	}
-	return NO;
-}
-
-uint64_t fileRead(CFTypeRef handler, uint8_t *b, uint64_t len) {
-	if (@available(iOS 13, *)) {
-	    NSError *err = nil;
-		NSData *data = [(__bridge NSFileHandle *)handler readDataUpToLength:len error:&err];
-		[data getBytes:b length:data.length];
-		return data.length;
-	}
-	return 0;
-}
-
-void closeFile(CFTypeRef handler, CFTypeRef u) {
-	[(__bridge NSURL *)u stopAccessingSecurityScopedResource];
-	[(__bridge NSFileHandle *)handler closeFile];
 }
