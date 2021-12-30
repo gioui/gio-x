@@ -15,7 +15,7 @@ extern CFTypeRef newFileReader(CFTypeRef url);
 extern CFTypeRef newFileWriter(CFTypeRef url);
 extern uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len);
-extern void fileClose(CFTypeRef file);
+extern bool fileClose(CFTypeRef file);
 extern char* getError(CFTypeRef file);
 
 */
@@ -57,7 +57,9 @@ func (f *FileReader) Read(b []byte) (n int, err error) {
 }
 
 func (f *FileReader) Close() error {
-	C.fileClose(f.file)
+	if ok := bool(C.fileClose(f.file)); !ok {
+		return getError(f.file)
+	}
 	f.closed = true
 	return nil
 }
@@ -93,7 +95,10 @@ func (f *FileWriter) Write(b []byte) (n int, err error) {
 }
 
 func (f *FileWriter) Close() error {
-	C.fileClose(f.file)
+	if ok := bool(C.fileClose(f.file)); !ok {
+		return getError(f.file)
+	}
+	f.closed = true
 	return nil
 }
 
