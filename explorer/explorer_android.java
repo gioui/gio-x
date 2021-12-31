@@ -27,11 +27,13 @@ import java.util.List;
 public class explorer_android {
     final Fragment frag = new explorer_android_fragment();
 
+    // List of requestCode used in the callback, to identify the caller.
     static List<Integer> import_codes = new ArrayList<Integer>();
     static List<Integer> export_codes = new ArrayList<Integer>();
 
-    static public native void ImportCallback(InputStream f, int id);
-    static public native void ExportCallback(OutputStream f, int id);
+    // Functions defined on Golang.
+    static public native void ImportCallback(InputStream f, int id, String err);
+    static public native void ExportCallback(OutputStream f, int id, String err);
 
     public static class explorer_android_fragment extends Fragment {
         Context context;
@@ -51,15 +53,15 @@ public class explorer_android {
                     if (import_codes.contains(Integer.valueOf(requestCode))) {
                         import_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ImportCallback(null, requestCode);
+                            explorer_android.ImportCallback(null, requestCode, "");
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
                             InputStream f = activity.getApplicationContext().getContentResolver().openInputStream(data.getData());
-                            explorer_android.ImportCallback(f, requestCode);
+                            explorer_android.ImportCallback(f, requestCode, "");
                         } catch (Exception e) {
-                            explorer_android.ImportCallback(null, requestCode);
+                            explorer_android.ImportCallback(null, requestCode, e.toString());
                             e.printStackTrace();
                             return;
                         }
@@ -68,54 +70,21 @@ public class explorer_android {
                     if (export_codes.contains(Integer.valueOf(requestCode))) {
                         export_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ExportCallback(null, requestCode);
+                            explorer_android.ExportCallback(null, requestCode, "");
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
-                            OutputStream f = activity.getApplicationContext().getContentResolver().openOutputStream(data.getData());
-                            explorer_android.ExportCallback(f, requestCode);
+                            OutputStream f = activity.getApplicationContext().getContentResolver().openOutputStream(data.getData(), "wt");
+                            explorer_android.ExportCallback(f, requestCode, "");
                         } catch (Exception e) {
-                            explorer_android.ExportCallback(null, requestCode);
-                            e.printStackTrace();
+                            explorer_android.ExportCallback(null, requestCode, e.toString());
                             return;
                         }
                     }
                 }
             });
 
-        }
-    }
-
-    public int fileRead(InputStream f, byte[] b) {
-        try {
-            return f.read(b, 0, b.length);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
-    }
-
-    public boolean fileWrite(OutputStream f, byte[] b) {
-        try {
-            f.write(b);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean fileClose(Closeable c, Flushable f) {
-        try {
-            if (f != null) {
-                f.flush();
-            }
-            c.close();
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
         }
     }
 
