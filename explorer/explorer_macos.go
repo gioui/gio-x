@@ -71,20 +71,18 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 //export importCallback
 func importCallback(u *C.char, id int32) {
 	if v, ok := active.Load(id); ok {
-		v := v.(*explorer)
-		v.result <- newFile(u, os.Open)
+		v.(*explorer).result <- newOSFile(u, os.Open)
 	}
 }
 
 //export exportCallback
 func exportCallback(u *C.char, id int32) {
 	if v, ok := active.Load(id); ok {
-		v := v.(*explorer)
-		v.result <- newFile(u, os.Create)
+		v.(*explorer).result <- newOSFile(u, os.Create)
 	}
 }
 
-func newFile(u *C.char, action func(s string) (*os.File, error)) result {
+func newOSFile(u *C.char, action func(s string) (*os.File, error)) result {
 	name := C.GoString(u)
 	if name == "" {
 		return result{error: ErrUserDecline, file: nil}
