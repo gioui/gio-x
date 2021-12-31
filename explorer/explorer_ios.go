@@ -34,15 +34,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 type explorer struct {
-	window         *app.Window
-	mutex          sync.Mutex
-	controller C.CFTypeRef
-	picker     C.CFTypeRef
-	result     chan result
+	window *app.Window
+	picker C.CFTypeRef
+	result chan result
 }
 
 func newExplorer(w *app.Window) *explorer {
@@ -52,8 +49,7 @@ func newExplorer(w *app.Window) *explorer {
 func (e *Explorer) listenEvents(evt event.Event) {
 	switch evt := evt.(type) {
 	case app.ViewEvent:
-		e.controller = C.CFTypeRef(evt.ViewController)
-		e.explorer.picker = C.createPicker(e.controller, C.int32_t(e.id))
+		e.explorer.picker = C.createPicker(C.CFTypeRef(evt.ViewController), C.int32_t(e.id))
 	}
 }
 
@@ -68,13 +64,11 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 
 	name = "file://" + name
 
-	go func() {
-		e.window.Run(func() {
-			if ok := bool(C.exportFile(e.explorer.picker, C.CString(name))); !ok {
-				e.result <- result{error: ErrNotAvailable}
-			}
-		})
-	}()
+	go e.window.Run(func() {
+		if ok := bool(C.exportFile(e.explorer.picker, C.CString(name))); !ok {
+			e.result <- result{error: ErrNotAvailable}
+		}
+	})
 
 	file := <-e.result
 	if file.error != nil {
@@ -89,13 +83,11 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	}
 
 	cextensions := C.CString(strings.Join(extensions, ","))
-	go func() {
-		e.window.Run(func() {
-			if ok := bool(C.importFile(e.explorer.picker, cextensions)); !ok {
-				e.result <- result{error: ErrNotAvailable}
-			}
-		})
-	}()
+	go e.window.Run(func() {
+		if ok := bool(C.importFile(e.explorer.picker, cextensions)); !ok {
+			e.result <- result{error: ErrNotAvailable}
+		}
+	})
 
 	file := <-e.result
 	if file.error != nil {
