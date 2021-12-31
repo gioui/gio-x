@@ -62,7 +62,6 @@ public class explorer_android {
                             explorer_android.ImportCallback(f, requestCode, "");
                         } catch (Exception e) {
                             explorer_android.ImportCallback(null, requestCode, e.toString());
-                            e.printStackTrace();
                             return;
                         }
                     }
@@ -151,15 +150,11 @@ public class explorer_android {
         Activity activity = (Activity) view.getContext();
 
         if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[] {
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            }, 255);
+            activity.requestPermissions(new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, 255);
         }
 
         if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[] {
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            }, 254);
+            activity.requestPermissions(new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE }, 254);
         }
     }
 }
