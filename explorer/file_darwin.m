@@ -3,24 +3,9 @@
 @implementation explorer_file
 @end
 
-CFTypeRef newFileReader(CFTypeRef url) {
+CFTypeRef newFile(CFTypeRef url) {
     if (@available(iOS 13, macOS 10.15, *)) {
         explorer_file *f = [[explorer_file alloc] init];
-        f.url = (__bridge NSURL *)url;
-        [f.url startAccessingSecurityScopedResource];
-
-        NSError *err = nil;
-        f.handler = [NSFileHandle fileHandleForReadingFromURL:f.url error:&err];
-        f.err = err;
-        return (__bridge_retained CFTypeRef)f;
-	}
-    return 0;
-}
-
-CFTypeRef newFileWriter(CFTypeRef url) {
-    if (@available(iOS 13, macOS 10.15, *)) {
-        explorer_file *f = [[explorer_file alloc] init];
-        f.err = nil;
         f.url = (__bridge NSURL *)url;
         [f.url startAccessingSecurityScopedResource];
 

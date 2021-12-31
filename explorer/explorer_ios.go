@@ -106,26 +106,22 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 
 //export importCallback
 func importCallback(u C.CFTypeRef, id C.int32_t) {
-	if v, ok := active.Load(int32(id)); ok {
-		v := v.(*explorer)
-		if u == 0 {
-			v.result <- result{error: ErrUserDecline}
-		} else {
-			file, err := newFileReader(u)
-			v.result <- result{file: file, error: err}
-		}
-	}
+	fileCallback(u, id)
 }
 
 //export exportCallback
 func exportCallback(u C.CFTypeRef, id C.int32_t) {
+	fileCallback(u, id)
+}
+
+func fileCallback(u C.CFTypeRef, id C.int32_t) {
+	var res result
 	if v, ok := active.Load(int32(id)); ok {
-		v := v.(*explorer)
 		if u == 0 {
-			v.result <- result{error: ErrUserDecline}
+			res.error = ErrUserDecline
 		} else {
-			file, err := newFileWriter(u)
-			v.result <- result{file: file, error: err}
+			res.file, res.error = newFile(u)
 		}
+		v.(*explorer).result <- res
 	}
 }

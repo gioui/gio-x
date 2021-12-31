@@ -11,8 +11,7 @@ package explorer
 @property NSURL* url;
 @end
 
-extern CFTypeRef newFileReader(CFTypeRef url);
-extern CFTypeRef newFileWriter(CFTypeRef url);
+extern CFTypeRef newFile(CFTypeRef url);
 extern uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileClose(CFTypeRef file);
@@ -26,20 +25,20 @@ import (
 	"unsafe"
 )
 
-type FileReader struct {
+type File struct {
 	file   C.CFTypeRef
 	closed bool
 }
 
-func newFileReader(url C.CFTypeRef) (*FileReader, error) {
-	file := C.newFileReader(url)
+func newFile(url C.CFTypeRef) (*File, error) {
+	file := C.newFile(url)
 	if err := getError(file); err != nil {
 		return nil, err
 	}
-	return &FileReader{file: file}, nil
+	return &File{file: file}, nil
 }
 
-func (f *FileReader) Read(b []byte) (n int, err error) {
+func (f *File) Read(b []byte) (n int, err error) {
 	if f.file == 0 || f.closed {
 		return 0, io.ErrClosedPipe
 	}
@@ -56,28 +55,7 @@ func (f *FileReader) Read(b []byte) (n int, err error) {
 	return n, nil
 }
 
-func (f *FileReader) Close() error {
-	if ok := bool(C.fileClose(f.file)); !ok {
-		return getError(f.file)
-	}
-	f.closed = true
-	return nil
-}
-
-type FileWriter struct {
-	file   C.CFTypeRef
-	closed bool
-}
-
-func newFileWriter(url C.CFTypeRef) (*FileWriter, error) {
-	file := C.newFileWriter(url)
-	if err := getError(file); err != nil {
-		return nil, err
-	}
-	return &FileWriter{file: file}, nil
-}
-
-func (f *FileWriter) Write(b []byte) (n int, err error) {
+func (f *File) Write(b []byte) (n int, err error) {
 	if f.file == 0 || f.closed {
 		return 0, io.ErrClosedPipe
 	}
@@ -94,7 +72,7 @@ func (f *FileWriter) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-func (f *FileWriter) Close() error {
+func (f *File) Close() error {
 	if ok := bool(C.fileClose(f.file)); !ok {
 		return getError(f.file)
 	}
@@ -118,6 +96,7 @@ func getError(file C.CFTypeRef) error {
 func file_darwin() {}
 
 var (
-	_ io.ReadCloser  = (*FileReader)(nil)
-	_ io.WriteCloser = (*FileWriter)(nil)
+	_ io.ReadWriteCloser = (*File)(nil)
+	_ io.ReadCloser      = (*File)(nil)
+	_ io.WriteCloser     = (*File)(nil)
 )
