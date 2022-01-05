@@ -4,17 +4,18 @@ package explorer
 
 import (
 	"errors"
-	"gioui.org/app"
-	"gioui.org/io/event"
 	"io"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
 )
 
 var (
 	// ErrUserDecline is returned when the user doesn't select the file.
-	ErrUserDecline = errors.New("user exit the file selector without selecting a file")
+	ErrUserDecline = errors.New("user exited the file selector without selecting a file")
 
 	// ErrNotAvailable is return when the current OS isn't supported.
 	ErrNotAvailable = errors.New("current OS not supported")
@@ -25,6 +26,7 @@ type result struct {
 	error error
 }
 
+// Explorer facilitates opening OS-native dialogs to choose files and create files.
 type Explorer struct {
 	id    int32
 	mutex sync.Mutex
@@ -84,7 +86,7 @@ func (e *Explorer) ListenEvents(evt event.Event) {
 	e.listenEvents(evt)
 }
 
-// Import shows the file selector, allowing the user to select a single file.
+// ChooseFile shows the file selector, allowing the user to select a single file.
 // Optionally, it's possible to define which file extensions is supported to
 // be selected (such as `.jpg`, `.png`).
 //
@@ -95,8 +97,8 @@ func (e *Explorer) ListenEvents(evt event.Event) {
 // a guarantee.
 //
 // It's a blocking call, you should call it on a separated goroutine. For most OSes, only one
-// Import or Export, can happen at the same time, for each app.Window/Explorer.
-func (e *Explorer) Import(extensions ...string) (io.ReadCloser, error) {
+// ChooseFile or CreateFile, can happen at the same time, for each app.Window/Explorer.
+func (e *Explorer) ChooseFile(extensions ...string) (io.ReadCloser, error) {
 	if e == nil {
 		return nil, ErrNotAvailable
 	}
@@ -109,7 +111,7 @@ func (e *Explorer) Import(extensions ...string) (io.ReadCloser, error) {
 	return e.importFile(extensions...)
 }
 
-// Export opens the file selector, and writes the given content into
+// CreateFile opens the file selector, and writes the given content into
 // some file, which the use can choose the location.
 //
 // It's important to close the `io.WriteCloser`. In some platforms the
@@ -119,8 +121,8 @@ func (e *Explorer) Import(extensions ...string) (io.ReadCloser, error) {
 // a guarantee.
 //
 // It's a blocking call, you should call it on a separated goroutine. For most OSes, only one
-// Import or Export, can happen at the same time, for each app.Window/Explorer.
-func (e *Explorer) Export(name string) (io.WriteCloser, error) {
+// ChooseFile or CreateFile, can happen at the same time, for each app.Window/Explorer.
+func (e *Explorer) CreateFile(name string) (io.WriteCloser, error) {
 	if e == nil {
 		return nil, ErrNotAvailable
 	}
@@ -148,16 +150,16 @@ func ListenEventsWindow(win *app.Window, event event.Event) {
 	DefaultExplorer.ListenEvents(event)
 }
 
-// ReadFile calls Explorer.ImportFile on DefaultExplorer.
+// ReadFile calls Explorer.ChooseFile on DefaultExplorer.
 //
-// Deprecated: Use NewExplorer and Explorer.Import instead.
+// Deprecated: Use NewExplorer and Explorer.ChooseFile instead.
 func ReadFile(extensions ...string) (io.ReadCloser, error) {
-	return DefaultExplorer.Import(extensions...)
+	return DefaultExplorer.ChooseFile(extensions...)
 }
 
-// WriteFile calls Explorer.ExportFile on DefaultExplorer.
+// WriteFile calls Explorer.CreateFile on DefaultExplorer.
 //
-// Deprecated: Use NewExplorer and Explorer.Export instead.
+// Deprecated: Use NewExplorer and Explorer.CreateFile instead.
 func WriteFile(name string) (io.WriteCloser, error) {
-	return DefaultExplorer.Export(name)
+	return DefaultExplorer.CreateFile(name)
 }
