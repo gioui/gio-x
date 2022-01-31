@@ -33,7 +33,7 @@ func newExplorer(w *app.Window) *explorer {
 
 func (e *Explorer) listenEvents(ev event.Event) {
 	switch ev := ev.(type) {
-	case app.ViewEvent:
+	case app.X11ViewEvent:
 		e.X11Window = ev.Window
 	}
 }

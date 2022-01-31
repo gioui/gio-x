@@ -3,7 +3,7 @@ module gioui.org/x
 go 1.16
 
 require (
-	gioui.org v0.0.0-20220105104929-8d8aeef66bef
+	gioui.org v0.0.0-20220131180029-7204632c39d4
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/esiqveland/notify v0.11.0
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4
@@ -15,3 +15,5 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/text v0.3.6
 )
+
+replace gioui.org => git.sr.ht/~whereswaldon/gio v0.0.0-20220131175100-586978c93489
