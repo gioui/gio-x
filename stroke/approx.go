@@ -550,14 +550,18 @@ func strokePathRoundJoin(rhs, lhs *strokeQuads, hw float32, pivot, n0, n1 f32.Po
 		// Path bends to the right, ie. CW (or 180 degree turn).
 		c := pivot.Sub(lhs.pen())
 		angle := -math.Acos(float64(cosPt(n0, n1)))
-		lhs.arc(c, c, float32(angle))
+		if !math.IsNaN(angle) {
+			lhs.arc(c, c, float32(angle))
+		}
 		lhs.lineTo(lp) // Add a line to accommodate for rounding errors.
 		rhs.lineTo(rp)
 	default:
 		// Path bends to the left, ie. CCW.
 		angle := math.Acos(float64(cosPt(n0, n1)))
 		c := pivot.Sub(rhs.pen())
-		rhs.arc(c, c, float32(angle))
+		if !math.IsNaN(angle) {
+			rhs.arc(c, c, float32(angle))
+		}
 		rhs.lineTo(rp) // Add a line to accommodate for rounding errors.
 		lhs.lineTo(lp)
 	}
@@ -652,7 +656,7 @@ func strokePathRoundCap(qs *strokeQuads, hw float32, pivot, n0 f32.Point) {
 //   cubic Bezier curves", L. Maisonobe
 // An electronic version may be found at:
 //  http://spaceroots.org/documents/ellipse/elliptical-arc.pdf
-func arcTransform(p, f1, f2 f32.Point, angle float32, segments int) f32.Affine2D {
+func arcTransform(p, f1, f2 f32.Point, angle float32, segments int) (result f32.Affine2D) {
 	c := f32.Point{
 		X: 0.5 * (f1.X + f2.X),
 		Y: 0.5 * (f1.Y + f2.Y),
