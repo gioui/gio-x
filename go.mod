@@ -15,5 +15,3 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/text v0.3.6
 )
-
-replace gioui.org => git.sr.ht/~whereswaldon/gio v0.0.0-20220131175100-586978c93489
