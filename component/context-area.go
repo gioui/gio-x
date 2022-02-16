@@ -12,18 +12,34 @@ import (
 	"gioui.org/op/clip"
 )
 
-// ContextArea is a region of the UI that responds to right-clicks
-// with a contextual widget. The contextual widget is overlaid
-// using an op.DeferOp.
+// ContextArea is a region of the UI that responds to certain
+// pointer events by displaying a contextual widget. The contextual
+// widget is overlaid using an op.DeferOp. The contextual widget
+// can be dismissed by primary-clicking within or outside of it.
 type ContextArea struct {
 	position f32.Point
 	dims     D
 	active   bool
+	// Activation is the pointer Buttons within the context area
+	// that trigger the presentation of the contextual widget. If this
+	// is zero, it will default to pointer.ButtonSecondary.
+	Activation pointer.Buttons
+	// AbsolutePosition will position the contextual widget in the
+	// same place no matter where the activating interaction occurred.
+	AbsolutePosition bool
+	// PositionHint tells the ContextArea the closest edge/corner of the
+	// window to where it is being used in the layout. This helps it to
+	// position the contextual widget without it overflowing the edge of
+	// the window.
+	PositionHint layout.Direction
 }
 
 // Layout renders the context area and -- if the area is activated by an
 // appropriate gesture -- also the provided widget overlaid using an op.DeferOp.
 func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
+	if r.Activation == 0 {
+		r.Activation = pointer.ButtonSecondary
+	}
 	suppressionTag := &r.active
 	dismissTag := &r.dims
 
@@ -43,9 +59,11 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 				}
 			}
 		}
-		if e.Buttons.Contain(pointer.ButtonSecondary) && e.Type == pointer.Press {
+		if e.Buttons.Contain(r.Activation) && e.Type == pointer.Press {
 			r.active = true
-			r.position = e.Position
+			if !r.AbsolutePosition {
+				r.position = e.Position
+			}
 		}
 	}
 
@@ -86,10 +104,20 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 
 	if r.active {
 		if int(r.position.X)+r.dims.Size.X > gtx.Constraints.Max.X {
-			r.position.X = float32(gtx.Constraints.Max.X - r.dims.Size.X)
+			switch r.PositionHint {
+			case layout.E, layout.NE, layout.SE:
+				r.position.X = float32(gtx.Constraints.Max.X - r.dims.Size.X)
+			case layout.W, layout.NW, layout.SW:
+				r.position.X = 0
+			}
 		}
 		if int(r.position.Y)+r.dims.Size.Y > gtx.Constraints.Max.Y {
-			r.position.Y = float32(gtx.Constraints.Max.Y - r.dims.Size.Y)
+			switch r.PositionHint {
+			case layout.S, layout.SE, layout.SW:
+				r.position.Y = float32(gtx.Constraints.Max.Y - r.dims.Size.Y)
+			case layout.N, layout.NE, layout.NW:
+				r.position.Y = 0
+			}
 		}
 		// Lay out a transparent scrim to block input to things beneath the
 		// contextual widget.
