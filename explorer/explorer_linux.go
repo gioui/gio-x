@@ -233,10 +233,13 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	if err := e.withDesktopPortal(func(conn *dbus.Conn, desktopPortal dbus.BusObject, config config) error {
 		// Invoke the OpenFile method.
 		requestHandle := ""
-		err := desktopPortal.Call("org.freedesktop.portal.FileChooser.OpenFile", 0, config.parentWindow, "Choose File", map[string]dbus.Variant{
+		options := map[string]dbus.Variant{
 			"handle_token": dbus.MakeVariant(config.handleToken),
-			"filters":      makeFilter(extensions),
-		}).Store(&requestHandle)
+		}
+		if len(extensions) > 0 {
+			options["filters"] = makeFilter(extensions)
+		}
+		err := desktopPortal.Call("org.freedesktop.portal.FileChooser.OpenFile", 0, config.parentWindow, "Choose File", options).Store(&requestHandle)
 		if err != nil {
 			return fmt.Errorf("failed to call OpenFile: %w", err)
 		}
