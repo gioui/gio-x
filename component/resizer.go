@@ -81,7 +81,7 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 	if axis == layout.Horizontal {
 		cursor = pointer.CursorColResize
 	}
-	pointer.CursorNameOp{Name: cursor}.Add(gtx.Ops)
+	cursor.Add(gtx.Ops)
 
 	return layout.Dimensions{Size: dims.Size}
 }

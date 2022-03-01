@@ -295,7 +295,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				offStack := op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops)
 				pr := clip.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
 				state.Layout(gtx)
-				pointer.CursorNameOp{Name: pointer.CursorPointer}.Add(gtx.Ops)
+				pointer.CursorPointer.Add(gtx.Ops)
 				pr.Pop()
 				offStack.Pop()
 				// ensure that we request new state for each interactive text
