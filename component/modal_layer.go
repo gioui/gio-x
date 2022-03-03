@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/widget/material"
 )
 
@@ -80,7 +81,8 @@ func (m ModalStyle) Layout(gtx C) D {
 	if m.Clicked() {
 		m.Disappear(gtx.Now)
 	}
-	return layout.Stack{}.Layout(
+	macro := op.Record(gtx.Ops)
+	dims := layout.Stack{}.Layout(
 		gtx,
 		layout.Expanded(func(gtx C) D {
 			return m.Scrim.Layout(gtx)
@@ -92,6 +94,8 @@ func (m ModalStyle) Layout(gtx C) D {
 			return D{}
 		}),
 	)
+	op.Defer(gtx.Ops, macro.Stop())
+	return dims
 }
 
 // Show widget w in the modal, starting animation at now.
