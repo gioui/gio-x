@@ -240,7 +240,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
 		// shape the text of the current span
-		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, span.Content)
+		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, gtx.Locale, span.Content)
 
 		// grab the first line of the result and compute its dimensions
 		firstLine := lines[0]
@@ -329,7 +329,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				spans[k] = spans[k-1]
 			}
 			// synthesize and insert a new span
-			span.Content = span.Content[len(firstLine.Layout.Text):]
+			span.Content = span.Content[firstLine.Layout.Runes.Count:]
 			spans[i+1] = span
 		}
 	}

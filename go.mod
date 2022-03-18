@@ -3,7 +3,7 @@ module gioui.org/x
 go 1.16
 
 require (
-	gioui.org v0.0.0-20220301130546-cdb288d1f98a
+	gioui.org v0.0.0-20220318070519-8833a6738a3b
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/esiqveland/notify v0.11.0
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4
