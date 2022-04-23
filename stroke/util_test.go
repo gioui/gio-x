@@ -116,13 +116,13 @@ func verifyRef(t *testing.T, img *image.RGBA, frame int) (ok bool) {
 }
 
 func colorsClose(c1, c2 color.RGBA) bool {
-	const delta = 0.01 // magic value obtained from experimentation.
+	const delta = 0.04 // magic value obtained from experimentation.
 	return yiqEqApprox(c1, c2, delta)
 }
 
 func alphaClose(c1, c2 color.RGBA) bool {
 	d := int8(c1.A - c2.A)
-	return d > -3 && d < 3
+	return d > -60 && d < 60
 }
 
 // yiqEqApprox compares the colors of 2 pixels, in the NTSC YIQ color space,

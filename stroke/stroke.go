@@ -7,6 +7,7 @@ import (
 	"gioui.org/f32"
 	"gioui.org/op"
 	"gioui.org/op/clip"
+	"github.com/andybalholm/stroke"
 )
 
 // Path defines the shape of a Stroke.
@@ -33,8 +34,6 @@ type Stroke struct {
 	Width float32 // Width of the stroked path.
 
 	// Miter is the limit to apply to a miter joint.
-	// The zero Miter disables the miter joint; setting Miter to +∞
-	// unconditionally enables the miter joint.
 	Miter float32
 	Cap   StrokeCap  // Cap describes the head or tail of a stroked path.
 	Join  StrokeJoin // Join describes how stroked paths are collated.
@@ -79,6 +78,10 @@ const (
 
 	// BevelJoin joins path segments with sharp bevels.
 	BevelJoin
+
+	// MiterJoin joins path segments with a sharp corner.
+	// It falls back to a bevel join if the miter limit is exceeded.
+	MiterJoin
 )
 
 func MoveTo(p f32.Point) Segment {
@@ -122,19 +125,76 @@ func (s Stroke) Op(ops *op.Ops) clip.Op {
 		return clip.Op{}
 	}
 
-	// Approximate and output path data.
+	// Use the stroke package to find the outline of the stroke.
+	var path [][]stroke.Segment
+	var contour []stroke.Segment
+	var pen f32.Point
+
+	for _, seg := range s.Path.Segments {
+		switch seg.op {
+		case segOpMoveTo:
+			if len(contour) > 0 {
+				path = append(path, contour)
+				contour = nil
+			}
+			pen = seg.args[0]
+		case segOpLineTo:
+			contour = append(contour, stroke.LinearSegment(stroke.Point(pen), stroke.Point(seg.args[0])))
+			pen = seg.args[0]
+		case segOpQuadTo:
+			contour = append(contour, stroke.QuadraticSegment(stroke.Point(pen), stroke.Point(seg.args[0]), stroke.Point(seg.args[1])))
+			pen = seg.args[1]
+		case segOpCubeTo:
+			contour = append(contour, stroke.Segment{stroke.Point(pen), stroke.Point(seg.args[0]), stroke.Point(seg.args[1]), stroke.Point(seg.args[2])})
+			pen = seg.args[2]
+		}
+	}
+	if len(contour) > 0 {
+		path = append(path, contour)
+	}
+
+	if len(s.Dashes.Dashes) > 0 {
+		path = stroke.Dash(path, s.Dashes.Dashes, s.Dashes.Phase)
+	}
+
+	var opt stroke.Options
+	opt.Width = s.Width
+	opt.MiterLimit = s.Miter
+	switch s.Cap {
+	case RoundCap:
+		opt.Cap = stroke.RoundCap
+	case SquareCap:
+		opt.Cap = stroke.SquareCap
+	case FlatCap:
+		opt.Cap = stroke.FlatCap
+	}
+	switch s.Join {
+	case RoundJoin:
+		opt.Join = stroke.RoundJoin
+	case BevelJoin:
+		opt.Join = stroke.BevelJoin
+	case MiterJoin:
+		opt.Join = stroke.MiterJoin
+	}
+
+	stroked := stroke.Stroke(path, opt)
+
+	// Output path data.
 	var outline clip.Path
 	outline.Begin(ops)
-	quads := strokePathCommands(s)
-	pen := f32.Pt(0, 0)
-	for _, quad := range quads {
-		q := quad.Quad
-		if q.From != pen {
-			pen = q.From
-			outline.MoveTo(pen)
+	for _, contour := range stroked {
+		for i, seg := range contour {
+			if i == 0 {
+				outline.MoveTo(f32.Point(seg.Start))
+				pen = f32.Point(seg.Start)
+			}
+			if pen != f32.Point(seg.Start) {
+				outline.LineTo(f32.Point(seg.Start))
+			}
+			outline.CubeTo(f32.Point(seg.CP1), f32.Point(seg.CP2), f32.Point(seg.End))
+			pen = f32.Point(seg.End)
 		}
-		outline.QuadTo(q.Ctrl, q.To)
-		pen = q.To
 	}
+
 	return clip.Outline{Path: outline.End()}.Op()
 }

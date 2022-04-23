@@ -68,7 +68,7 @@ func TestStrokedPathFlatMiter(t *testing.T) {
 				Path:  zigzag,
 				Width: 10,
 				Cap:   FlatCap,
-				Join:  BevelJoin,
+				Join:  MiterJoin,
 				Miter: 5,
 			}.Op(o).Push(o)
 			paint.Fill(o, red)
@@ -98,7 +98,7 @@ func TestStrokedPathFlatMiterInf(t *testing.T) {
 				Path:  zigzag,
 				Width: 10,
 				Cap:   FlatCap,
-				Join:  BevelJoin,
+				Join:  MiterJoin,
 				Miter: float32(math.Inf(+1)),
 			}.Op(o).Push(o)
 			paint.Fill(o, red)
@@ -171,7 +171,7 @@ func TestDashedPathFlatCapEllipse(t *testing.T) {
 				Path:  ellipse,
 				Width: 10,
 				Cap:   FlatCap,
-				Join:  BevelJoin,
+				Join:  MiterJoin,
 				Miter: float32(math.Inf(+1)),
 				Dashes: Dashes{
 					Dashes: []float32{5, 3},
@@ -210,7 +210,7 @@ func TestDashedPathFlatCapZ(t *testing.T) {
 				Path:  zigzag,
 				Width: 10,
 				Cap:   FlatCap,
-				Join:  BevelJoin,
+				Join:  MiterJoin,
 				Miter: float32(math.Inf(+1)),
 				Dashes: Dashes{
 					Dashes: []float32{5, 3},
@@ -245,7 +245,7 @@ func TestDashedPathFlatCapZNoDash(t *testing.T) {
 				Path:  zigzag,
 				Width: 10,
 				Cap:   FlatCap,
-				Join:  BevelJoin,
+				Join:  MiterJoin,
 				Miter: float32(math.Inf(+1)),
 				Dashes: Dashes{
 					Phase: 1,
@@ -269,40 +269,6 @@ func TestDashedPathFlatCapZNoDash(t *testing.T) {
 		r.expect(40, 10, colornames.Black)
 		r.expect(40, 12, colornames.Red)
 		r.expect(46, 12, colornames.Red)
-	})
-}
-
-func TestDashedPathFlatCapZNoPath(t *testing.T) {
-	run(t, func(o *op.Ops) {
-		{
-			cl := Stroke{
-				Path:  zigzag,
-				Width: 10,
-				Cap:   FlatCap,
-				Join:  BevelJoin,
-				Miter: float32(math.Inf(+1)),
-				Dashes: Dashes{
-					Dashes: []float32{0},
-				},
-			}.Op(o).Push(o)
-			paint.Fill(o, red)
-			cl.Pop()
-		}
-		{
-			cl := Stroke{
-				Path:  zigzag,
-				Width: 2,
-				Cap:   FlatCap,
-				Join:  BevelJoin,
-			}.Op(o).Push(o)
-			paint.Fill(o, black)
-			cl.Pop()
-		}
-	}, func(r result) {
-		r.expect(0, 0, transparent)
-		r.expect(40, 10, colornames.Black)
-		r.expect(40, 12, transparent)
-		r.expect(46, 12, transparent)
 	})
 }
 
