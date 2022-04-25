@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"time"
+	"unicode/utf8"
 
 	"gioui.org/gesture"
 	"gioui.org/io/pointer"
@@ -329,7 +330,12 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				spans[k] = spans[k-1]
 			}
 			// synthesize and insert a new span
-			span.Content = span.Content[firstLine.Layout.Runes.Count:]
+			byteLen := 0
+			for i := 0; i < firstLine.Layout.Runes.Count; i++ {
+				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
+				byteLen += n
+			}
+			span.Content = span.Content[byteLen:]
 			spans[i+1] = span
 		}
 	}
