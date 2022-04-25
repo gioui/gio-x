@@ -96,6 +96,8 @@ func (e *Explorer) ListenEvents(evt event.Event) {
 // In some platforms the resulting `io.ReadCloser` is a `os.File`, but it's not
 // a guarantee.
 //
+// In most known browsers, when user clicks cancel then this function never returns.
+//
 // It's a blocking call, you should call it on a separated goroutine. For most OSes, only one
 // ChooseFile or CreateFile, can happen at the same time, for each app.Window/Explorer.
 func (e *Explorer) ChooseFile(extensions ...string) (io.ReadCloser, error) {
