@@ -9,6 +9,7 @@ import android.app.NotificationManager;
 import android.util.Log;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
+import android.os.Build;
 
 public class NotificationHelper {
     private final static String tag = "NotificationHelper";
@@ -21,7 +22,12 @@ public class NotificationHelper {
     }
     public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text) throws ClassNotFoundException{
         Intent resultIntent = new Intent(ctx, Class.forName("org.gioui.GioActivity"));
-        PendingIntent pending = PendingIntent.getActivity(ctx, notificationID, resultIntent, Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pending = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pending = PendingIntent.getActivity(ctx, notificationID, resultIntent, PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pending = PendingIntent.getActivity(ctx, notificationID, resultIntent, Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        }
         Bitmap bitmap = Bitmap.createBitmap(data, 0, width, width, height, Bitmap.Config.ARGB_8888);
         Notification.Builder builder = new Notification.Builder(ctx, channelID)
                 .setContentTitle(title)
