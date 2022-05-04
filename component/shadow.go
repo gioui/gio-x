@@ -17,7 +17,6 @@ import (
 	"image/color"
 	"math"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -32,11 +31,11 @@ import (
 type ShadowStyle struct {
 	// The radius of the corners of the rectangle casting the surface.
 	// Non-rounded rectangles can just provide a zero.
-	CornerRadius unit.Value
+	CornerRadius unit.Dp
 	// Elevation is how high the surface casting the shadow is above
 	// the background, and therefore determines how diffuse and large
 	// the shadow is.
-	Elevation unit.Value
+	Elevation unit.Dp
 	// The colors of various components of the shadow. The Shadow()
 	// constructor populates these with reasonable defaults.
 	AmbientColor, PenumbraColor, UmbraColor color.NRGBA
@@ -45,7 +44,7 @@ type ShadowStyle struct {
 // Shadow defines a shadow cast by a rounded rectangle with the given
 // corner radius and elevation. It sets reasonable defaults for the
 // shadow colors.
-func Shadow(radius, elevation unit.Value) ShadowStyle {
+func Shadow(radius, elevation unit.Dp) ShadowStyle {
 	return ShadowStyle{
 		CornerRadius:  radius,
 		Elevation:     elevation,
@@ -59,25 +58,25 @@ func Shadow(radius, elevation unit.Value) ShadowStyle {
 // that the rectangle casting the shadow is of size gtx.Constraints.Min.
 func (s ShadowStyle) Layout(gtx layout.Context) layout.Dimensions {
 	sz := gtx.Constraints.Min
-	rr := float32(gtx.Px(s.CornerRadius))
+	rr := gtx.Dp(s.CornerRadius)
 
-	r := f32.Rect(0, 0, float32(sz.X), float32(sz.Y))
+	r := image.Rect(0, 0, sz.X, sz.Y)
 	s.layoutShadow(gtx, r, rr)
 
 	return layout.Dimensions{Size: sz}
 }
 
-func (s ShadowStyle) layoutShadow(gtx layout.Context, r f32.Rectangle, rr float32) {
-	if s.Elevation.V <= 0 {
+func (s ShadowStyle) layoutShadow(gtx layout.Context, r image.Rectangle, rr int) {
+	if s.Elevation <= 0 {
 		return
 	}
 
-	offset := pxf(gtx.Metric, s.Elevation)
+	offset := gtx.Dp(s.Elevation)
 
 	ambient := r
 	gradientBox(gtx.Ops, ambient, rr, offset/2, s.AmbientColor)
 
-	penumbra := r.Add(f32.Pt(0, offset/2))
+	penumbra := r.Add(image.Pt(0, offset/2))
 	gradientBox(gtx.Ops, penumbra, rr, offset, s.PenumbraColor)
 
 	umbra := outset(penumbra, -offset/2)
@@ -86,7 +85,7 @@ func (s ShadowStyle) layoutShadow(gtx layout.Context, r f32.Rectangle, rr float3
 
 // TODO(whereswaldon): switch back to commented implementation when radial
 // gradients are available in core.
-func gradientBox(ops *op.Ops, r f32.Rectangle, rr, spread float32, col color.NRGBA) {
+func gradientBox(ops *op.Ops, r image.Rectangle, rr, spread int, col color.NRGBA) {
 	/*
 		transparent := col
 		transparent.A = 0
@@ -274,7 +273,7 @@ func gradientBox(ops *op.Ops, r f32.Rectangle, rr, spread float32, col color.NRG
 	}.Op(ops))
 }
 
-func imageRect(r f32.Rectangle) image.Rectangle {
+func imageRect(r image.Rectangle) image.Rectangle {
 	return image.Rectangle{
 		Min: image.Point{
 			X: int(math.Round(float64(r.Min.X))),
@@ -287,46 +286,25 @@ func imageRect(r f32.Rectangle) image.Rectangle {
 	}
 }
 
-func round(r f32.Rectangle) f32.Rectangle {
-	return f32.Rectangle{
-		Min: f32.Point{
-			X: float32(math.Round(float64(r.Min.X))),
-			Y: float32(math.Round(float64(r.Min.Y))),
+func round(r image.Rectangle) image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{
+			X: int(math.Round(float64(r.Min.X))),
+			Y: int(math.Round(float64(r.Min.Y))),
 		},
-		Max: f32.Point{
-			X: float32(math.Round(float64(r.Max.X))),
-			Y: float32(math.Round(float64(r.Max.Y))),
+		Max: image.Point{
+			X: int(math.Round(float64(r.Max.X))),
+			Y: int(math.Round(float64(r.Max.Y))),
 		},
 	}
 }
 
-func outset(r f32.Rectangle, rr float32) f32.Rectangle {
+func outset(r image.Rectangle, rr int) image.Rectangle {
 	r.Min.X -= rr
 	r.Min.Y -= rr
 	r.Max.X += rr
 	r.Max.Y += rr
 	return r
-}
-
-func pxf(c unit.Metric, v unit.Value) float32 {
-	switch v.U {
-	case unit.UnitPx:
-		return v.V
-	case unit.UnitDp:
-		s := c.PxPerDp
-		if s == 0 {
-			s = 1
-		}
-		return s * v.V
-	case unit.UnitSp:
-		s := c.PxPerSp
-		if s == 0 {
-			s = 1
-		}
-		return s * v.V
-	default:
-		panic("unknown unit")
-	}
 }
 
 func topLeft(r image.Rectangle) image.Point     { return r.Min }

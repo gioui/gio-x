@@ -147,7 +147,7 @@ func (i *InteractiveText) Events() (*InteractiveSpan, []Event) {
 // SpanStyle describes the appearance of a span of styled text.
 type SpanStyle struct {
 	Font        text.Font
-	Size        unit.Value
+	Size        unit.Sp
 	Color       color.NRGBA
 	Content     string
 	Interactive bool
@@ -183,8 +183,8 @@ func (ss *SpanStyle) Set(key, value string) {
 // Layout renders the span using the provided text shaping.
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
-	defer op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops).Pop()
-	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Px(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
+	defer op.Offset(shape.offset).Push(gtx.Ops).Pop()
+	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Sp(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }
@@ -241,7 +241,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
 		// shape the text of the current span
-		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Px(span.Size)), maxWidth, gtx.Locale, span.Content)
+		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Sp(span.Size)), maxWidth, gtx.Locale, span.Content)
 
 		// grab the first line of the result and compute its dimensions
 		firstLine := lines[0]
@@ -293,7 +293,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				}
 				// set this offset to the upper corner of the text, not the lower
 				shape.offset.Y -= lineDims.Y
-				offStack := op.Offset(layout.FPt(shape.offset)).Push(gtx.Ops)
+				offStack := op.Offset(shape.offset).Push(gtx.Ops)
 				pr := clip.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
 				state.Layout(gtx)
 				pointer.CursorPointer.Add(gtx.Ops)

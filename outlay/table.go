@@ -3,7 +3,6 @@ package outlay
 import (
 	"image"
 
-	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
@@ -26,7 +25,6 @@ type Table struct {
 }
 
 func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimensions {
-	defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 	csMax := gtx.Constraints.Max
 
 	// In order to deliver the same scroll events for both lists,
@@ -76,7 +74,7 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 		X: -t.xList.Position.Offset,
 		Y: -t.yList.Position.Offset,
 	}
-	op.Offset(layout.FPt(p)).Add(gtx.Ops)
+	op.Offset(p).Add(gtx.Ops)
 
 	gtx.Constraints.Min = image.Point{}
 	var yy int
@@ -93,13 +91,13 @@ func (t *Table) Layout(gtx layout.Context, xn, yn int, el Cell) layout.Dimension
 				break
 			}
 			xx += sz.X
-			op.Offset(f32.Point{X: float32(sz.X)}).Add(gtx.Ops)
+			op.Offset(image.Point{X: sz.X}).Add(gtx.Ops)
 		}
 		if yy >= csMax.Y {
 			break
 		}
 		pt := image.Point{X: -xx, Y: sz.Y}
-		op.Offset(layout.FPt(pt)).Add(gtx.Ops)
+		op.Offset(pt).Add(gtx.Ops)
 	}
 	return layout.Dimensions{Size: csMax}
 }

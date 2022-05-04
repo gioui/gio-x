@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
@@ -18,7 +17,7 @@ type (
 type Rect struct {
 	Color color.NRGBA
 	Size  image.Point
-	Radii float32
+	Radii int
 }
 
 func (r Rect) Layout(gtx C) D {
@@ -26,10 +25,10 @@ func (r Rect) Layout(gtx C) D {
 		gtx.Ops,
 		r.Color,
 		clip.UniformRRect(
-			f32.Rectangle{
-				Max: layout.FPt(r.Size),
+			image.Rectangle{
+				Max: r.Size,
 			},
 			r.Radii,
 		).Op(gtx.Ops))
-	return layout.Dimensions{Size: image.Pt(r.Size.X, r.Size.Y)}
+	return layout.Dimensions{Size: r.Size}
 }

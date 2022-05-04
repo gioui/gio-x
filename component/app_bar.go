@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -184,7 +183,7 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 							Bottom: unit.Dp(4),
 							Left:   unit.Dp(8),
 						}.Layout(gtx, func(gtx C) D {
-							label := material.Label(th, unit.Dp(18), action.Name)
+							label := material.Label(th, unit.Sp(18), action.Name)
 							label.MaxLines = 1
 							return label.Layout(gtx)
 						})
@@ -196,8 +195,8 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 		menuOp := menuMacro.Stop()
 		progress := anim.Revealed(gtx)
 		maxWidth, maxHeight := dims.Size.X, dims.Size.Y
-		offset := f32.Point{
-			X: float32(width),
+		offset := image.Point{
+			X: width,
 		}
 		var rect clip.Rect
 		if barPos == Top {
@@ -212,7 +211,7 @@ func (o *overflowMenu) configureOverflow(gtx C, th *material.Theme, barPos Verti
 				},
 			}
 		} else {
-			offset.Y = float32(gtx.Constraints.Max.Y - maxHeight)
+			offset.Y = gtx.Constraints.Max.Y - maxHeight
 			rect = clip.Rect{
 				Max: image.Point{
 					X: maxWidth,
@@ -372,7 +371,7 @@ func SwapPairs(p material.Palette) material.Palette {
 // action button.
 func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme, navDesc, overflowDesc string) layout.Dimensions {
 	a.initialize()
-	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(56))
+	gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(56))
 	th := *theme
 
 	normalBg := th.Palette.ContrastBg
@@ -420,7 +419,7 @@ func (a *AppBar) Layout(gtx layout.Context, theme *material.Theme, navDesc, over
 					titleText = a.ContextualTitle
 				}
 				title := material.Body1(&th, titleText)
-				title.TextSize = unit.Dp(18)
+				title.TextSize = unit.Sp(18)
 				return title.Layout(gtx)
 			})
 		}),

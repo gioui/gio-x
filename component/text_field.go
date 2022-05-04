@@ -56,13 +56,13 @@ type TextField struct {
 type Validator = func(string) string
 
 type label struct {
-	TextSize float32
+	TextSize unit.Sp
 	Inset    layout.Inset
 	Smallest layout.Dimensions
 }
 
 type border struct {
-	Thickness float32
+	Thickness unit.Dp
 	Color     color.NRGBA
 }
 
@@ -154,7 +154,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	var (
 		// Text size transitions.
 		textNormal = th.TextSize
-		textSmall  = th.TextSize.Scale(0.8)
+		textSmall  = th.TextSize * 0.8
 		// Border color transitions.
 		borderColor        = WithAlpha(th.Palette.Fg, 128)
 		borderColorHovered = WithAlpha(th.Palette.Fg, 221)
@@ -162,10 +162,10 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		// TODO: derive from Theme.Error or Theme.Danger
 		dangerColor = color.NRGBA{R: 200, A: 255}
 		// Border thickness transitions.
-		borderThickness       = float32(0.5)
-		borderThicknessActive = float32(2.0)
+		borderThickness       = unit.Dp(0.5)
+		borderThicknessActive = unit.Dp(2.0)
 	)
-	in.label.TextSize = lerp(textSmall.V, textNormal.V, 1.0-in.anim.Progress())
+	in.label.TextSize = unit.Sp(lerp(float32(textSmall), float32(textNormal), 1.0-in.anim.Progress()))
 	switch in.state {
 	case inactive:
 		in.border.Thickness = borderThickness
@@ -197,9 +197,10 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	})
 	macro.Stop()
 	labelTopInsetNormal := float32(in.label.Smallest.Size.Y) - float32(in.label.Smallest.Size.Y/4)
-	labelTopInsetActive := (labelTopInsetNormal / 2 * -1) - in.border.Thickness
+	topInsetDP := unit.Dp(labelTopInsetNormal / gtx.Metric.PxPerDp)
+	topInsetActiveDP := (topInsetDP / 2 * -1) - unit.Dp(in.border.Thickness)
 	in.label.Inset = layout.Inset{
-		Top:  unit.Px(lerp(labelTopInsetNormal, labelTopInsetActive, in.anim.Progress())),
+		Top:  unit.Dp(lerp(float32(topInsetDP), float32(topInsetActiveDP), in.anim.Progress())),
 		Left: unit.Dp(10),
 	}
 }
@@ -207,7 +208,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 	in.Update(gtx, th, hint)
 	// Offset accounts for label height, which sticks above the border dimensions.
-	defer op.Offset(f32.Pt(0, float32(in.label.Smallest.Size.Y)/2)).Push(gtx.Ops).Pop()
+	defer op.Offset(image.Pt(0, in.label.Smallest.Size.Y/2)).Push(gtx.Ops).Pop()
 	in.label.Inset.Layout(
 		gtx,
 		func(gtx C) D {
@@ -255,7 +256,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 						visibleBorder.LineTo(f32.Point{
 							X: float32(gtx.Constraints.Max.X),
 						})
-						labelStartX := float32(gtx.Px(in.label.Inset.Left))
+						labelStartX := float32(gtx.Dp(in.label.Inset.Left))
 						labelEndX := labelStartX + float32(in.label.Smallest.Size.X)
 						labelEndY := float32(in.label.Smallest.Size.Y)
 						visibleBorder.LineTo(f32.Point{
@@ -346,7 +347,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 					}.Layout(
 						gtx,
 						func(gtx C) D {
-							helper := material.Label(th, unit.Dp(12), in.helper.Text)
+							helper := material.Label(th, unit.Sp(12), in.helper.Text)
 							helper.Color = in.helper.Color
 							return helper.Layout(gtx)
 						},
@@ -364,7 +365,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 						func(gtx C) D {
 							count := material.Label(
 								th,
-								unit.Dp(12),
+								unit.Sp(12),
 								strconv.Itoa(in.Editor.Len())+"/"+strconv.Itoa(int(in.CharLimit)),
 							)
 							count.Color = in.helper.Color

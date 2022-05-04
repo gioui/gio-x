@@ -122,7 +122,7 @@ func (d DiscloserStyle) Layout(gtx C, control, summary, detail layout.Widget) D 
 // Discloser control that rotates downward as the content is revealed.
 type DiscloserArrowStyle struct {
 	Color color.NRGBA
-	Size  unit.Value
+	Size  unit.Dp
 	State *DiscloserState
 	Side
 	Margin layout.Inset
@@ -141,20 +141,20 @@ func DiscloserArrow(th *material.Theme, style DiscloserStyle) DiscloserArrowStyl
 }
 
 // Width returns the width of the arrow and surrounding whitespace.
-func (d DiscloserArrowStyle) Width(m unit.Metric) unit.Value {
-	return unit.Add(m, d.Size, d.Margin.Right, d.Margin.Left)
+func (d DiscloserArrowStyle) Width() unit.Dp {
+	return d.Size + d.Margin.Right + d.Margin.Left
 }
 
 // DetailInset returns a layout.Inset that can be used to align a
 // Discloser's details with its summary.
-func (d DiscloserArrowStyle) DetailInset(m unit.Metric) layout.Inset {
+func (d DiscloserArrowStyle) DetailInset() layout.Inset {
 	if d.Side == Left {
 		return layout.Inset{
-			Left: d.Width(m),
+			Left: d.Width(),
 		}
 	}
 	return layout.Inset{
-		Right: d.Width(m),
+		Right: d.Width(),
 	}
 }
 
@@ -166,7 +166,7 @@ func (d DiscloserArrowStyle) Layout(gtx C) D {
 		// Draw a triangle.
 		path := clip.Path{}
 		path.Begin(gtx.Ops)
-		size := float32(gtx.Px(d.Size))
+		size := float32(gtx.Dp(d.Size))
 		halfSize := size * .5
 		path.LineTo(f32.Pt(0, size))
 		path.LineTo(f32.Pt(size, halfSize))
@@ -219,6 +219,6 @@ func SimpleDiscloser(th *material.Theme, state *DiscloserState) SimpleDiscloserS
 // Layout the discloser with the provided summary and detail widget content.
 func (sd SimpleDiscloserStyle) Layout(gtx C, summary, details layout.Widget) D {
 	return sd.DiscloserStyle.Layout(gtx, sd.DiscloserArrowStyle.Layout, summary, func(gtx C) D {
-		return sd.DiscloserArrowStyle.DetailInset(gtx.Metric).Layout(gtx, details)
+		return sd.DiscloserArrowStyle.DetailInset().Layout(gtx, details)
 	})
 }

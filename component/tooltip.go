@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"time"
 
-	"gioui.org/f32"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -23,7 +22,7 @@ type Tooltip struct {
 	layout.Inset
 	// CornerRadius defines the corner radius of the RRect background.
 	// of the tooltip.
-	CornerRadius unit.Value
+	CornerRadius unit.Dp
 	// Text defines the content of the tooltip.
 	Text material.LabelStyle
 	// Bg defines the color of the RRect background.
@@ -34,7 +33,7 @@ type Tooltip struct {
 func MobileTooltip(th *material.Theme, text string) Tooltip {
 	txt := material.Body1(th, text)
 	txt.Color = th.Bg
-	txt.TextSize = unit.Dp(16)
+	txt.TextSize = 16
 	return Tooltip{
 		Inset: layout.Inset{
 			Top:    unit.Dp(8),
@@ -52,7 +51,7 @@ func MobileTooltip(th *material.Theme, text string) Tooltip {
 func DesktopTooltip(th *material.Theme, text string) Tooltip {
 	txt := material.Body2(th, text)
 	txt.Color = th.Bg
-	txt.TextSize = unit.Dp(12)
+	txt.TextSize = 12
 	return Tooltip{
 		Inset: layout.Inset{
 			Top:    unit.Dp(6),
@@ -70,10 +69,10 @@ func DesktopTooltip(th *material.Theme, text string) Tooltip {
 func (t Tooltip) Layout(gtx C) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
-			radius := float32(gtx.Px(t.CornerRadius))
+			radius := gtx.Dp(t.CornerRadius)
 			paint.FillShape(gtx.Ops, t.Bg, clip.RRect{
-				Rect: f32.Rectangle{
-					Max: layout.FPt(gtx.Constraints.Min),
+				Rect: image.Rectangle{
+					Max: gtx.Constraints.Min,
 				},
 				NW: radius,
 				NE: radius,
@@ -223,10 +222,10 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 				tip.Bg = Interpolate(color.NRGBA{}, tip.Bg, t.VisibilityAnimation.Revealed(gtx))
 				dims := tip.Layout(gtx)
 				call := macro.Stop()
-				xOffset := float32((originalMin.X / 2) - (dims.Size.X / 2))
-				yOffset := float32(originalMin.Y)
+				xOffset := (originalMin.X / 2) - (dims.Size.X / 2)
+				yOffset := originalMin.Y
 				macro = op.Record(gtx.Ops)
-				op.Offset(f32.Pt(xOffset, yOffset)).Add(gtx.Ops)
+				op.Offset(image.Pt(xOffset, yOffset)).Add(gtx.Ops)
 				call.Add(gtx.Ops)
 				call = macro.Stop()
 				op.Defer(gtx.Ops, call)

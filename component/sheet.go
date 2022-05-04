@@ -27,9 +27,9 @@ func NewSheet() Sheet {
 // the maximum space available.
 func (s Sheet) Layout(gtx layout.Context, th *material.Theme, anim *VisibilityAnimation, widget layout.Widget) layout.Dimensions {
 	revealed := -1 + anim.Revealed(gtx)
-	finalOffset := revealed * (float32(gtx.Constraints.Max.X))
-	revealedWidth := finalOffset + float32(gtx.Constraints.Max.X)
-	defer op.Offset(f32.Point{X: finalOffset}).Push(gtx.Ops).Pop()
+	finalOffset := int(revealed * (float32(gtx.Constraints.Max.X)))
+	revealedWidth := finalOffset + gtx.Constraints.Max.X
+	defer op.Offset(image.Point{X: finalOffset}).Push(gtx.Ops).Pop()
 	// lay out background
 	paintRect(gtx, gtx.Constraints.Max, th.Bg)
 
@@ -54,7 +54,7 @@ type ModalSheet struct {
 	// leftover area for the drawer. Values between 200 and 400 Dp are recommended.
 	//
 	// The default value used by NewModalNav is 400 Dp.
-	MaxWidth unit.Value
+	MaxWidth unit.Dp
 
 	Modal *ModalLayer
 
@@ -63,7 +63,7 @@ type ModalSheet struct {
 	// animation state
 	dragging    bool
 	dragStarted f32.Point
-	dragOffset  float32
+	dragOffset  int
 
 	Sheet
 }
@@ -108,7 +108,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 				s.dragOffset = 0
 				s.dragging = true
 			case pointer.Drag:
-				newOffset := s.dragStarted.X - event.Position.X
+				newOffset := int(s.dragStarted.X - event.Position.X)
 				if newOffset > s.dragOffset {
 					s.dragOffset = newOffset
 				}
@@ -119,7 +119,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 			}
 		}
 		// Ensure any transformation is undone on return.
-		defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
+		defer op.Offset(image.Point{}).Push(gtx.Ops).Pop()
 		if s.dragOffset != 0 || anim.Animating() {
 			s.drawerTransform(gtx, anim).Add(gtx.Ops)
 			op.InvalidateOp{}.Add(gtx.Ops)
@@ -154,15 +154,15 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 // into account.
 func (s ModalSheet) drawerTransform(gtx C, anim *VisibilityAnimation) op.TransformOp {
 	finalOffset := -s.dragOffset
-	return op.Offset(f32.Point{X: finalOffset})
+	return op.Offset(image.Point{X: finalOffset})
 }
 
 // sheetWidth returns the width of the sheet taking both the dimensions
 // of the modal layer and the MaxWidth field into account.
 func (s ModalSheet) sheetWidth(gtx layout.Context) int {
-	scrimWidth := gtx.Px(unit.Dp(56))
+	scrimWidth := gtx.Dp(unit.Dp(56))
 	withScrim := gtx.Constraints.Max.X - scrimWidth
-	max := gtx.Px(s.MaxWidth)
+	max := gtx.Dp(s.MaxWidth)
 	return min(withScrim, max)
 }
 

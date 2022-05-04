@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -124,18 +123,18 @@ func (m MuxStyle) layoutOption(gtx C, option string) D {
 func borderedSquare(gtx C, c color.NRGBA) D {
 	dims := square(gtx, unit.Dp(20), color.NRGBA{A: 255})
 
-	off := float32(gtx.Px(unit.Dp(1)))
-	defer op.Offset(f32.Pt(off, off)).Push(gtx.Ops).Pop()
+	off := gtx.Dp(unit.Dp(1))
+	defer op.Offset(image.Pt(off, off)).Push(gtx.Ops).Pop()
 	square(gtx, unit.Dp(18), c)
 	return dims
 }
 
-func square(gtx C, sizeDp unit.Value, color color.NRGBA) D {
+func square(gtx C, sizeDp unit.Dp, color color.NRGBA) D {
 	return rect(gtx, sizeDp, sizeDp, color)
 }
 
-func rect(gtx C, width, height unit.Value, color color.NRGBA) D {
-	w, h := gtx.Px(width), gtx.Px(height)
+func rect(gtx C, width, height unit.Dp, color color.NRGBA) D {
+	w, h := gtx.Dp(width), gtx.Dp(height)
 	return rectAbs(gtx, w, h, color)
 }
 
@@ -260,7 +259,7 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 	// compute the space beneath the editor that will not extend
 	// past the sliders vertically
-	margin := gtx.Px(unit.Dp(4))
+	margin := gtx.Dp(unit.Dp(4))
 	sampleWidth, sampleHeight := leftSideDims.Size.X, rightSideDims.Size.Y-leftSideDims.Size.Y
 
 	// lay everything out for real, starting with the editor/label
@@ -268,12 +267,12 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 	// offset downwards and lay out the color sample
 	var stack op.TransformStack
-	stack = op.Offset(f32.Pt(float32(margin), float32(leftSideDims.Size.Y))).Push(gtx.Ops)
+	stack = op.Offset(image.Pt(margin, leftSideDims.Size.Y)).Push(gtx.Ops)
 	rectAbs(gtx, sampleWidth-(2*margin), sampleHeight-(2*margin), p.State.Color())
 	stack.Pop()
 
 	// offset to the right to lay out the sliders
-	defer op.Offset(f32.Pt(float32(leftSideDims.Size.X), 0)).Push(gtx.Ops).Pop()
+	defer op.Offset(image.Pt(leftSideDims.Size.X, 0)).Push(gtx.Ops).Pop()
 	layoutRight.Add(gtx.Ops)
 
 	return layout.Dimensions{

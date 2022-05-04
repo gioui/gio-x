@@ -3,7 +3,6 @@ package outlay
 import (
 	"image"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 )
@@ -36,7 +35,6 @@ type wrapData struct {
 }
 
 func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dimensions {
-	defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 	csMax := gtx.Constraints.Max
 	var mainSize, crossSize, mainPos, crossPos, base, firstBase int
 	gtx.Constraints.Min = image.Point{}
@@ -124,9 +122,9 @@ func (g GridWrap) placeAll(ops *op.Ops, els []wrapData, crossMax, baseMax int) {
 			el.call.Add(ops)
 		} else {
 			pt = axisPoint(g.Axis, 0, cross)
-			op.Offset(layout.FPt(pt)).Add(ops)
+			op.Offset(pt).Add(ops)
 			el.call.Add(ops)
-			op.Offset(layout.FPt(pt.Mul(-1))).Add(ops)
+			op.Offset(pt.Mul(-1)).Add(ops)
 		}
 		if i == len(els)-1 {
 			pt = axisPoint(g.Axis, -mainPos, crossMax)
@@ -135,7 +133,7 @@ func (g GridWrap) placeAll(ops *op.Ops, els []wrapData, crossMax, baseMax int) {
 			pt = axisPoint(g.Axis, main, 0)
 			mainPos += main
 		}
-		op.Offset(layout.FPt(pt)).Add(ops)
+		op.Offset(pt).Add(ops)
 	}
 }
 
@@ -153,7 +151,6 @@ func (g *Grid) Layout(gtx layout.Context, num int, el GridElement) layout.Dimens
 	}
 	csMax := gtx.Constraints.Max
 	return g.list.Layout(gtx, (num+g.Num-1)/g.Num, func(gtx layout.Context, idx int) layout.Dimensions {
-		defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 		if g.Axis == layout.Horizontal {
 			gtx.Constraints.Max.Y = inf
 		} else {
@@ -174,7 +171,7 @@ func (g *Grid) Layout(gtx layout.Context, num int, el GridElement) layout.Dimens
 				break
 			}
 			pt := axisPoint(g.Axis, main, 0)
-			op.Offset(layout.FPt(pt)).Add(gtx.Ops)
+			op.Offset(pt).Add(gtx.Ops)
 			mainMax += main
 		}
 		return layout.Dimensions{Size: axisPoint(g.Axis, mainMax, crossMax)}

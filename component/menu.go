@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -40,7 +39,7 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx C) D {
 			c.ShadowStyle.Layout(gtx)
-			surface := clip.UniformRRect(f32.Rectangle{Max: layout.FPt(gtx.Constraints.Min)}, float32(gtx.Px(c.ShadowStyle.CornerRadius)))
+			surface := clip.UniformRRect(image.Rectangle{Max: gtx.Constraints.Min}, gtx.Dp(c.ShadowStyle.CornerRadius))
 			paint.FillShape(gtx.Ops, c.Theme.Bg, surface.Op(gtx.Ops))
 			return D{Size: gtx.Constraints.Min}
 		}),
@@ -51,7 +50,7 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 // DividerStyle defines the presentation of a material divider, as specified
 // here: https://material.io/components/dividers
 type DividerStyle struct {
-	Thickness unit.Value
+	Thickness unit.Dp
 	Fill      color.NRGBA
 	layout.Inset
 
@@ -97,7 +96,7 @@ func (d DividerStyle) Layout(gtx C) D {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return d.Inset.Layout(gtx, func(gtx C) D {
-				weight := gtx.Px(d.Thickness)
+				weight := gtx.Dp(d.Thickness)
 				line := image.Rectangle{Max: image.Pt(gtx.Constraints.Min.X, weight)}
 				paint.FillShape(gtx.Ops, d.Fill, clip.Rect(line).Op())
 				return D{Size: line.Max}
@@ -122,7 +121,7 @@ type MenuItemStyle struct {
 	Label      material.LabelStyle
 
 	*widget.Icon
-	IconSize  unit.Value
+	IconSize  unit.Dp
 	IconInset layout.Inset
 	IconColor color.NRGBA
 
@@ -179,7 +178,7 @@ func (m MenuItemStyle) Layout(gtx C) D {
 							return D{}
 						}
 						return m.IconInset.Layout(gtx, func(gtx C) D {
-							iconSize := gtx.Px(m.IconSize)
+							iconSize := gtx.Dp(m.IconSize)
 							gtx.Constraints = layout.Exact(image.Point{X: iconSize, Y: iconSize})
 							return m.Icon.Layout(gtx, m.IconColor)
 						})

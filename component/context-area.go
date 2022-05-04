@@ -4,6 +4,7 @@ package component
 
 import (
 	"image"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/io/pointer"
@@ -54,7 +55,12 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 			// Check whether we should dismiss menu.
 			if e.Buttons.Contain(pointer.ButtonPrimary) {
 				clickPos := e.Position.Sub(r.position)
-				if !clickPos.In(f32.Rectangle{Max: layout.FPt(r.dims.Size)}) {
+				min := f32.Point{}
+				max := f32.Point{
+					X: float32(r.dims.Size.X),
+					Y: float32(r.dims.Size.Y),
+				}
+				if !(clickPos.X > min.X && clickPos.Y > min.Y && clickPos.X < max.X && clickPos.Y < max.Y) {
 					r.Dismiss()
 				}
 			}
@@ -136,8 +142,12 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		op.Defer(gtx.Ops, suppressionScrim)
 
 		// Lay out the contextual widget itself.
+		pos := image.Point{
+			X: int(math.Round(float64(r.position.X))),
+			Y: int(math.Round(float64(r.position.Y))),
+		}
 		macro := op.Record(gtx.Ops)
-		op.Offset(r.position).Add(gtx.Ops)
+		op.Offset(pos).Add(gtx.Ops)
 		contextual.Add(gtx.Ops)
 
 		// Lay out a scrim on top of the contextual widget to detect

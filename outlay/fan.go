@@ -2,6 +2,7 @@ package outlay
 
 import (
 	"fmt"
+	"image"
 	"math"
 
 	"gioui.org/f32"
@@ -28,7 +29,7 @@ type Fan struct {
 
 	// The radius of the hollow circle at the center of the fan. Leave nil to
 	// use the default heuristic of half the width of the widest item.
-	HollowRadius *unit.Value
+	HollowRadius *unit.Dp
 }
 
 type fanParams struct {
@@ -74,9 +75,9 @@ func (f *Fan) offsetRadians() float32 {
 }
 
 func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
-	defer op.Offset(f32.Point{
-		X: float32(gtx.Constraints.Max.X / 2),
-		Y: float32(gtx.Constraints.Max.Y / 2),
+	defer op.Offset(image.Point{
+		X: gtx.Constraints.Max.X / 2,
+		Y: gtx.Constraints.Max.Y / 2,
 	}).Push(gtx.Ops).Pop()
 	f.itemsCache = f.itemsCache[:0]
 	maxWidth := 0
@@ -98,7 +99,7 @@ func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 	if f.HollowRadius == nil {
 		current.radius = float32(maxWidth * 2.0)
 	} else {
-		current.radius = float32(gtx.Px(*f.HollowRadius))
+		current.radius = float32(gtx.Dp(*f.HollowRadius))
 	}
 	var itemArcFraction float32
 	if len(items) > 1 {

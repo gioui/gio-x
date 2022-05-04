@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"time"
 
-	"gioui.org/f32"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -105,13 +104,13 @@ func (n *renderNavItem) layoutContent(gtx layout.Context, th *material.Theme) la
 				}
 				return layout.Inset{Right: unit.Dp(40)}.Layout(gtx,
 					func(gtx C) D {
-						iconSize := gtx.Px(unit.Dp(24))
+						iconSize := gtx.Dp(unit.Dp(24))
 						gtx.Constraints = layout.Exact(image.Pt(iconSize, iconSize))
 						return n.NavItem.Icon.Layout(gtx, contentColor)
 					})
 			}),
 			layout.Rigid(func(gtx C) D {
-				label := material.Label(th, unit.Dp(14), n.Name)
+				label := material.Label(th, unit.Sp(14), n.Name)
 				label.Color = contentColor
 				label.Font.Weight = text.Bold
 				return layout.Center.Layout(gtx, TruncatingLabelStyle(label).Layout)
@@ -130,10 +129,10 @@ func (n *renderNavItem) layoutBackground(gtx layout.Context, th *material.Theme)
 	} else if n.selected {
 		fill = WithAlpha(th.Palette.ContrastBg, n.AlphaPalette.Selected)
 	}
-	rr := float32(gtx.Px(unit.Dp(4)))
+	rr := gtx.Dp(unit.Dp(4))
 	defer clip.RRect{
-		Rect: f32.Rectangle{
-			Max: layout.FPt(gtx.Constraints.Max),
+		Rect: image.Rectangle{
+			Max: gtx.Constraints.Max,
 		},
 		NE: rr,
 		SE: rr,
@@ -216,16 +215,16 @@ func (m *NavDrawer) LayoutContents(gtx layout.Context, th *material.Theme, anim 
 			}.Layout(gtx, func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx C) D {
-						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(36))
+						gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(36))
 						gtx.Constraints.Min = gtx.Constraints.Max
-						title := material.Label(th, unit.Dp(18), m.Title)
+						title := material.Label(th, unit.Sp(18), m.Title)
 						title.Font.Weight = text.Bold
 						return layout.SW.Layout(gtx, title.Layout)
 					}),
 					layout.Rigid(func(gtx C) D {
-						gtx.Constraints.Max.Y = gtx.Px(unit.Dp(20))
+						gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(20))
 						gtx.Constraints.Min = gtx.Constraints.Max
-						return layout.SW.Layout(gtx, material.Label(th, unit.Dp(12), m.Subtitle).Layout)
+						return layout.SW.Layout(gtx, material.Label(th, unit.Sp(12), m.Subtitle).Layout)
 					}),
 				)
 			})
@@ -242,7 +241,7 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, th *material.Theme, anim *
 	gtx.Constraints.Min.Y = 0
 	m.navList.Axis = layout.Vertical
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
-		gtx.Constraints.Max.Y = gtx.Px(unit.Dp(48))
+		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		dimensions := m.items[index].Layout(gtx, th)
 		if m.items[index].Clicked() {
