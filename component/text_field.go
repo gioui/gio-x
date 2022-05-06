@@ -220,6 +220,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 				return label.Layout(gtx)
 			})
 		})
+
 	dims := layout.Flex{
 		Axis: layout.Vertical,
 	}.Layout(
@@ -229,73 +230,55 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 				gtx,
 				layout.Expanded(func(gtx C) D {
 					cornerRadius := unit.Dp(4)
-					macro := op.Record(gtx.Ops)
-					dims := widget.Border{
+					dimsFunc := func(gtx C) D {
+						return D{Size: image.Point{
+							X: gtx.Constraints.Max.X,
+							Y: gtx.Constraints.Min.Y,
+						}}
+					}
+					border := widget.Border{
 						Color:        in.border.Color,
 						Width:        unit.Dp(in.border.Thickness),
 						CornerRadius: cornerRadius,
-					}.Layout(
-						gtx,
-						func(gtx C) D {
-							return D{Size: image.Point{
-								X: gtx.Constraints.Max.X,
-								Y: gtx.Constraints.Min.Y,
-							}}
-						},
-					)
-					border := macro.Stop()
-					if in.Editor.Focused() || in.Editor.Len() > 0 {
-						// Clip a concave shape which ignores the label area.
-						clips := []func(gtx C) clip.Stack{
-							func(gtx C) clip.Stack {
-								return clip.RRect{
-									Rect: layout.FRect(image.Rectangle{
-										Max: image.Point{
-											X: gtx.Px(in.label.Inset.Left),
-											Y: gtx.Constraints.Min.Y,
-										},
-									}),
-									NW: float32(gtx.Px(cornerRadius)),
-									SW: float32(gtx.Px(cornerRadius)),
-								}.Push(gtx.Ops)
-							},
-							func(gtx C) clip.Stack {
-								return clip.Rect{
-									Min: image.Point{
-										X: gtx.Px(in.label.Inset.Left),
-										Y: in.label.Smallest.Size.Y / 2,
-									},
-									Max: image.Point{
-										X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-										Y: gtx.Constraints.Min.Y,
-									},
-								}.Push(gtx.Ops)
-							},
-							func(gtx C) clip.Stack {
-								return clip.RRect{
-									Rect: layout.FRect(image.Rectangle{
-										Min: image.Point{
-											X: gtx.Px(in.label.Inset.Left) + in.label.Smallest.Size.X,
-										},
-										Max: image.Point{
-											X: gtx.Constraints.Max.X,
-											Y: gtx.Constraints.Min.Y,
-										},
-									}),
-									NE: float32(gtx.Px(cornerRadius)),
-									SE: float32(gtx.Px(cornerRadius)),
-								}.Push(gtx.Ops)
-							},
-						}
-						for _, c := range clips {
-							stack := c(gtx)
-							border.Add(gtx.Ops)
-							stack.Pop()
-						}
-					} else {
-						border.Add(gtx.Ops)
 					}
-					return dims
+					if in.Editor.Focused() || in.Editor.Len() > 0 {
+						visibleBorder := clip.Path{}
+						visibleBorder.Begin(gtx.Ops)
+						// Move from the origin to the beginning of the
+						visibleBorder.LineTo(f32.Point{
+							Y: float32(gtx.Constraints.Min.Y),
+						})
+						visibleBorder.LineTo(f32.Point{
+							X: float32(gtx.Constraints.Max.X),
+							Y: float32(gtx.Constraints.Min.Y),
+						})
+						visibleBorder.LineTo(f32.Point{
+							X: float32(gtx.Constraints.Max.X),
+						})
+						labelStartX := float32(gtx.Px(in.label.Inset.Left))
+						labelEndX := labelStartX + float32(in.label.Smallest.Size.X)
+						labelEndY := float32(in.label.Smallest.Size.Y)
+						visibleBorder.LineTo(f32.Point{
+							X: labelEndX,
+						})
+						visibleBorder.LineTo(f32.Point{
+							X: labelEndX,
+							Y: labelEndY,
+						})
+						visibleBorder.LineTo(f32.Point{
+							X: labelStartX,
+							Y: labelEndY,
+						})
+						visibleBorder.LineTo(f32.Point{
+							X: labelStartX,
+						})
+						visibleBorder.LineTo(f32.Point{})
+						visibleBorder.Close()
+						defer clip.Outline{
+							Path: visibleBorder.End(),
+						}.Op().Push(gtx.Ops).Pop()
+					}
+					return border.Layout(gtx, dimsFunc)
 				}),
 				layout.Stacked(func(gtx C) D {
 					return layout.UniformInset(unit.Dp(12)).Layout(
