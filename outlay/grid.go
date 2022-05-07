@@ -5,7 +5,6 @@ package outlay
 import (
 	"image"
 
-	"gioui.org/f32"
 	"gioui.org/gesture"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -115,7 +114,7 @@ type Dimensioner func(axis layout.Axis, index, constraint int) int
 func (g *Grid) drawRow(gtx layout.Context, row, rowHeight int, dimensioner Dimensioner, cellFunc Cell) layout.Dimensions {
 	xPos := -g.Horizontal.Offset
 	for col := g.Horizontal.First; col <= g.Horizontal.Last; col++ {
-		trans := op.Offset(f32.Pt(float32(xPos), 0)).Push(gtx.Ops)
+		trans := op.Offset(image.Pt(xPos, 0)).Push(gtx.Ops)
 		c := gtx
 		c.Constraints = layout.Exact(image.Pt(dimensioner(layout.Horizontal, col, gtx.Constraints.Max.X), rowHeight))
 		dims := cellFunc(c, row, col)
@@ -158,7 +157,7 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	lockedHeight := 0
 	yOffset := 0
 	for row := 0; row < g.LockedRows && row < rows; row++ {
-		offset := op.Offset(f32.Pt(0, float32(yOffset))).Push(gtx.Ops)
+		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
 		offset.Pop()
@@ -178,7 +177,7 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	firstRow := g.Vertical.First + g.LockedRows
 	lastRow := g.Vertical.Last + g.LockedRows
 	for row := firstRow; row <= lastRow && row+g.LockedRows < rows; row++ {
-		offset := op.Offset(f32.Pt(0, float32(yOffset))).Push(gtx.Ops)
+		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
 		offset.Pop()
