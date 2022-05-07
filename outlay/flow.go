@@ -10,21 +10,21 @@ import (
 // inf is an infinite axis constraint.
 const inf = 1e6
 
-// GridElement lays out the ith element of a Grid.
-type GridElement func(gtx layout.Context, i int) layout.Dimensions
+// FlowElement lays out the ith element of a Grid.
+type FlowElement func(gtx layout.Context, i int) layout.Dimensions
 
-// Grid lays out at most Num elements along the main axis.
+// Flow lays out at most Num elements along the main axis.
 // The number of cross axis elements depend on the total number of elements.
-type Grid struct {
+type Flow struct {
 	Num       int
 	Axis      layout.Axis
 	Alignment layout.Alignment
 	list      layout.List
 }
 
-// GridWrap lays out as many elements as possible along the main axis
+// FlowWrap lays out as many elements as possible along the main axis
 // before wrapping to the cross axis.
-type GridWrap struct {
+type FlowWrap struct {
 	Axis      layout.Axis
 	Alignment layout.Alignment
 }
@@ -34,7 +34,7 @@ type wrapData struct {
 	call op.CallOp
 }
 
-func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dimensions {
+func (g FlowWrap) Layout(gtx layout.Context, num int, el FlowElement) layout.Dimensions {
 	csMax := gtx.Constraints.Max
 	var mainSize, crossSize, mainPos, crossPos, base, firstBase int
 	gtx.Constraints.Min = image.Point{}
@@ -83,7 +83,7 @@ func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dim
 	return layout.Dimensions{Size: sz, Baseline: sz.Y - firstBase}
 }
 
-func (g GridWrap) place(gtx layout.Context, i int, el GridElement) (dims layout.Dimensions, okMain, okCross bool) {
+func (g FlowWrap) place(gtx layout.Context, i int, el FlowElement) (dims layout.Dimensions, okMain, okCross bool) {
 	cs := gtx.Constraints
 	if g.Axis == layout.Horizontal {
 		gtx.Constraints.Max.X = inf
@@ -99,7 +99,7 @@ func (g GridWrap) place(gtx layout.Context, i int, el GridElement) (dims layout.
 	return
 }
 
-func (g GridWrap) placeAll(ops *op.Ops, els []wrapData, crossMax, baseMax int) {
+func (g FlowWrap) placeAll(ops *op.Ops, els []wrapData, crossMax, baseMax int) {
 	var mainPos int
 	var pt image.Point
 	for i, el := range els {
@@ -137,7 +137,7 @@ func (g GridWrap) placeAll(ops *op.Ops, els []wrapData, crossMax, baseMax int) {
 	}
 }
 
-func (g *Grid) Layout(gtx layout.Context, num int, el GridElement) layout.Dimensions {
+func (g *Flow) Layout(gtx layout.Context, num int, el FlowElement) layout.Dimensions {
 	if g.Num == 0 {
 		return layout.Dimensions{Size: gtx.Constraints.Min}
 	}
