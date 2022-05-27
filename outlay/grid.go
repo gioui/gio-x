@@ -38,7 +38,7 @@ type wrapData struct {
 func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dimensions {
 	defer op.Offset(f32.Point{}).Push(gtx.Ops).Pop()
 	csMax := gtx.Constraints.Max
-	var mainSize, crossSize, mainPos, crossPos, base int
+	var mainSize, crossSize, mainPos, crossPos, base, firstBase int
 	gtx.Constraints.Min = image.Point{}
 	mainCs := axisMain(g.Axis, csMax)
 	crossCs := axisCross(g.Axis, gtx.Constraints.Max)
@@ -47,6 +47,9 @@ func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dim
 	for i := 0; i < num; i++ {
 		macro := op.Record(gtx.Ops)
 		dims, okMain, okCross := g.place(gtx, i, el)
+		if i == 0 {
+			firstBase = dims.Size.Y - dims.Baseline
+		}
 		call := macro.Stop()
 		if !okMain && !okCross {
 			break
@@ -79,7 +82,7 @@ func (g GridWrap) Layout(gtx layout.Context, num int, el GridElement) layout.Dim
 	crossSize += crossPos
 	g.placeAll(gtx.Ops, els, crossPos, base)
 	sz := axisPoint(g.Axis, mainSize, crossSize)
-	return layout.Dimensions{Size: sz}
+	return layout.Dimensions{Size: sz, Baseline: sz.Y - firstBase}
 }
 
 func (g GridWrap) place(gtx layout.Context, i int, el GridElement) (dims layout.Dimensions, okMain, okCross bool) {
