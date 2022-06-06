@@ -70,33 +70,32 @@ func (t TableStyle) Layout(gtx layout.Context, rows, cols int, dimensioner outla
 
 // Layout will draw a grid, using fixed column widths and row height.
 func (g GridStyle) Layout(gtx layout.Context, rows, cols int, dimensioner outlay.Dimensioner, cellFunc outlay.Cell) layout.Dimensions {
-
 	// Determine how much space the scrollbars occupy when present.
 	hBarWidth := gtx.Px(g.HScrollbarStyle.Width(gtx.Metric))
 	vBarWidth := gtx.Px(g.VScrollbarStyle.Width(gtx.Metric))
 
-	// Calculate column widths in pixels. Width is sum of widths.
-	totalWidth := g.State.Horizontal.Length
-	totalHeight := g.State.Vertical.Length
-	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
-
-	displayWidth := totalWidth
 	// Reserve space for the scrollbars using the gtx constraints.
 	if g.AnchorStrategy == material.Occupy {
 		gtx.Constraints.Max.X -= vBarWidth
 		gtx.Constraints.Max.Y -= hBarWidth
 	}
 
-	// Make the scroll bar stick to the grid.
-	if gtx.Constraints.Max.X > displayWidth {
-		gtx.Constraints.Max.X = displayWidth
-	}
-	gtx.Constraints.Min = gtx.Constraints.Max
-
 	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
-
 	// Draw grid.
 	dim := g.State.Grid.Layout(gtx, rows, cols, dimensioner, cellFunc)
+
+	// Calculate column widths in pixels. Width is sum of widths.
+	totalWidth := g.State.Horizontal.Length
+	totalHeight := g.State.Vertical.Length
+	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
+
+	// Make the scroll bar stick to the grid.
+	if gtx.Constraints.Max.X > dim.Size.X {
+		gtx.Constraints.Max.X = dim.Size.X
+		if g.AnchorStrategy == material.Occupy {
+			gtx.Constraints.Max.X += vBarWidth
+		}
+	}
 
 	// Get horizontal scroll info.
 	delta := g.HScrollbarStyle.Scrollbar.ScrollDistance()
@@ -148,5 +147,6 @@ func (g GridStyle) Layout(gtx layout.Context, rows, cols int, dimensioner outlay
 		dim.Size.Y += hBarWidth
 	}
 	dim.Size.Y += rowHeight
+
 	return dim
 }
