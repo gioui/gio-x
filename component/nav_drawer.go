@@ -251,8 +251,13 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, th *material.Theme, anim *
 	})
 }
 
+func (m *NavDrawer) UnselectNavDestination() {
+	m.items[m.selectedItem].selected = false
+	m.selectedChanged = false
+}
+
 func (m *NavDrawer) changeSelected(newIndex int) {
-	if newIndex == m.selectedItem {
+	if newIndex == m.selectedItem && m.items[m.selectedItem].selected {
 		return
 	}
 	m.items[m.selectedItem].selected = false
