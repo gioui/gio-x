@@ -11,7 +11,7 @@ but sometimes you want to know where to save the data, in those case `Explorer` 
 
 ## Status
 
-Currently, `Explorer` supports most platforms, including Android 6+, JS, Windows 10+, iOS 14+ and macOS 10+. It will 
+Currently, `Explorer` supports most platforms, including Android 6+, JS, Linux (with XDG Portals), Windows 10+, iOS 14+ and macOS 10+. It will
 return ErrAvailableAPI for any other platform that isn't supported.
 
 ## Limitations
