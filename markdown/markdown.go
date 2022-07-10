@@ -8,12 +8,14 @@ package markdown
 import (
 	"bytes"
 	"fmt"
+	"image/color"
 	"io/ioutil"
+	"math"
 	"regexp"
 	"strings"
 
 	"gioui.org/text"
-	"gioui.org/widget/material"
+	"gioui.org/unit"
 	"gioui.org/x/richtext"
 
 	"github.com/yuin/goldmark"
@@ -22,12 +24,25 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+// Config defines settings used by the renderer.
+type Config struct {
+	DefaultFont text.Font
+	// Defaults to 12 if unset.
+	DefaultSize unit.Sp
+	// If unset, each level will be 1.2 times larger than the previous.
+	H1Size, H2Size, H3Size, H4Size, H5Size, H6Size unit.Sp
+	// Defaults to black.
+	DefaultColor color.NRGBA
+	// Defaults to blue.
+	InteractiveColor color.NRGBA
+}
+
 // gioNodeRenderer transforms AST nodes into gio's richtext types
 type gioNodeRenderer struct {
 	TextObjects []richtext.SpanStyle
 
+	Config       Config
 	Current      richtext.SpanStyle
-	Theme        *material.Theme
 	OrderedList  bool
 	OrderedIndex int
 }
@@ -36,16 +51,52 @@ func newNodeRenderer() *gioNodeRenderer {
 	return &gioNodeRenderer{}
 }
 
+// CommitCurrent compies the state of the Current field and appends it to
+// TextObjects. This finalizes the content and style of that section of text.
 func (g *gioNodeRenderer) CommitCurrent() {
 	g.TextObjects = append(g.TextObjects, g.Current.DeepCopy())
 }
 
-func (g *gioNodeRenderer) UpdateCurrent(l material.LabelStyle) {
-	g.Current.Font = l.Font
-	g.Current.Color = l.Color
-	g.Current.Size = l.TextSize
+// UpdateCurrentSize edits only the size of the current text.
+func (g *gioNodeRenderer) UpdateCurrentSize(sp unit.Sp) {
+	g.Current.Size = sp
 }
 
+// UpdateCurrentColor edits only the color of the current text.
+func (g *gioNodeRenderer) UpdateCurrentColor(c color.NRGBA) {
+	g.Current.Color = c
+}
+
+// UpdateCurrentFont uses the provided font as a set of attributes to
+// update. If any of those attributes are not their zero value, the
+// current text's corresponding attribute will be updated to match.
+// If the provided font is the zero value, the current font will be
+// reset to the zero value as well.
+func (g *gioNodeRenderer) UpdateCurrentFont(f text.Font) {
+	reset := true
+	if f.Style != 0 {
+		reset = false
+		g.Current.Font.Style = f.Style
+	}
+	if f.Typeface != "" {
+		reset = false
+		g.Current.Font.Typeface = f.Typeface
+	}
+	if f.Variant != "" {
+		reset = false
+		g.Current.Font.Variant = f.Variant
+	}
+	if f.Weight != 0 {
+		reset = false
+		g.Current.Font.Weight = f.Weight
+	}
+	if reset {
+		g.Current.Font = f
+	}
+}
+
+// AppendNewline ensures that there is a newline character at the end
+// of the most-recently-generated TextObject.
 func (g *gioNodeRenderer) AppendNewline() {
 	if len(g.TextObjects) < 1 {
 		return
@@ -53,6 +104,10 @@ func (g *gioNodeRenderer) AppendNewline() {
 	g.TextObjects[len(g.TextObjects)-1].Content += "\n"
 }
 
+// EnsureSeparationFromPrevious ensures that next text object will be
+// visually separated from the previous by a blank line. It achieves
+// this by inserting a synthetic label containing only newlines if
+// necessary.
 func (g *gioNodeRenderer) EnsureSeparationFromPrevious() {
 	if len(g.TextObjects) < 1 {
 		return
@@ -103,25 +158,24 @@ func (g *gioNodeRenderer) renderHeading(w util.BufWriter, source []byte, node as
 	n := node.(*ast.Heading)
 	if entering {
 		g.EnsureSeparationFromPrevious()
-		var l material.LabelStyle
+		var sp unit.Sp
 		switch n.Level {
 		case 1:
-			l = material.H1(g.Theme, "")
+			sp = g.Config.H1Size
 		case 2:
-			l = material.H2(g.Theme, "")
+			sp = g.Config.H2Size
 		case 3:
-			l = material.H3(g.Theme, "")
+			sp = g.Config.H3Size
 		case 4:
-			l = material.H4(g.Theme, "")
+			sp = g.Config.H4Size
 		case 5:
-			l = material.H5(g.Theme, "")
+			sp = g.Config.H5Size
 		case 6:
-			l = material.H6(g.Theme, "")
+			sp = g.Config.H6Size
 		}
-		g.UpdateCurrent(l)
+		g.UpdateCurrentSize(sp)
 	} else {
-		l := material.Body1(g.Theme, "")
-		g.UpdateCurrent(l)
+		g.UpdateCurrentSize(g.Config.DefaultSize)
 	}
 	return ast.WalkContinue, nil
 }
@@ -193,32 +247,37 @@ func (g *gioNodeRenderer) renderListItem(w util.BufWriter, source []byte, node a
 
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		g.EnsureSeparationFromPrevious()
 	}
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderTextBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderThematicBreak(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderAutoLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.AutoLink)
 	if entering {
 		url := string(n.URL(source))
 		g.Current.Set(MetadataURL, url)
-		g.Current.Color = g.Theme.ContrastBg
+		g.Current.Color = g.Config.InteractiveColor
 		g.Current.Content = url
 		g.CommitCurrent()
 	} else {
 		g.Current.Set(MetadataURL, "")
-		g.Current.Color = g.Theme.Fg
+		g.Current.Color = g.Config.DefaultColor
 	}
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderCodeSpan(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		g.Current.Font.Variant = "Mono"
@@ -227,6 +286,7 @@ func (g *gioNodeRenderer) renderCodeSpan(w util.BufWriter, source []byte, node a
 	}
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderEmphasis(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Emphasis)
 
@@ -242,6 +302,7 @@ func (g *gioNodeRenderer) renderEmphasis(w util.BufWriter, source []byte, node a
 	}
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderImage(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }
@@ -253,19 +314,21 @@ const MetadataURL = "url"
 func (g *gioNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
-		g.Current.Color = g.Theme.ContrastBg
+		g.Current.Color = g.Config.InteractiveColor
 		g.Current.Interactive = true
 		g.Current.Set(MetadataURL, string(n.Destination))
 	} else {
-		g.Current.Color = g.Theme.Fg
+		g.Current.Color = g.Config.DefaultColor
 		g.Current.Interactive = false
 		g.Current.Set(MetadataURL, "")
 	}
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
@@ -278,6 +341,7 @@ func (g *gioNodeRenderer) renderText(w util.BufWriter, source []byte, node ast.N
 
 	return ast.WalkContinue, nil
 }
+
 func (g *gioNodeRenderer) renderString(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
@@ -288,6 +352,7 @@ func (g *gioNodeRenderer) renderString(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
+// Result returns the accumulated text objects.
 func (g *gioNodeRenderer) Result() []richtext.SpanStyle {
 	o := g.TextObjects
 	g.TextObjects = nil
@@ -300,6 +365,9 @@ func (g *gioNodeRenderer) Result() []richtext.SpanStyle {
 type Renderer struct {
 	md goldmark.Markdown
 	nr *gioNodeRenderer
+	// Config defines how the various markdown elements are presented.
+	// If left as the zero value, sane defaults will be used.
+	Config Config
 }
 
 // NewRenderer creates a ready-to-use markdown renderer.
@@ -325,13 +393,42 @@ var urlExp = regexp.MustCompile(`(^|\s)([^([\s]+://[^)\]\s]+)`)
 
 // Render transforms the provided src markdown into gio richtext using the
 // fonts and styles defined by the given theme.
-func (r *Renderer) Render(th *material.Theme, src []byte) ([]richtext.SpanStyle, error) {
+func (r *Renderer) Render(src []byte) ([]richtext.SpanStyle, error) {
 	if bytes.Contains(src, []byte("://")) {
 		src = urlExp.ReplaceAll(src, []byte("$1[$2]($2)"))
 	}
-	l := material.Body1(th, "")
-	r.nr.Theme = th
-	r.nr.UpdateCurrent(l)
+	if r.Config.DefaultSize == 0 {
+		r.Config.DefaultSize = 12
+	}
+	if r.Config.H6Size == 0 {
+		r.Config.H6Size = unit.Sp(math.Round(1.2 * float64(r.Config.DefaultSize)))
+	}
+	if r.Config.H5Size == 0 {
+		r.Config.H5Size = unit.Sp(math.Round(1.2 * float64(r.Config.H6Size)))
+	}
+	if r.Config.H4Size == 0 {
+		r.Config.H4Size = unit.Sp(math.Round(1.2 * float64(r.Config.H5Size)))
+	}
+	if r.Config.H3Size == 0 {
+		r.Config.H3Size = unit.Sp(math.Round(1.2 * float64(r.Config.H4Size)))
+	}
+	if r.Config.H2Size == 0 {
+		r.Config.H2Size = unit.Sp(math.Round(1.2 * float64(r.Config.H3Size)))
+	}
+	if r.Config.H1Size == 0 {
+		r.Config.H1Size = unit.Sp(math.Round(1.2 * float64(r.Config.H2Size)))
+	}
+	if r.Config.DefaultColor == (color.NRGBA{}) {
+		r.Config.DefaultColor = color.NRGBA{A: 255}
+	}
+	if r.Config.InteractiveColor == (color.NRGBA{}) {
+		// Match the default material theme primary color.
+		r.Config.InteractiveColor = color.NRGBA{R: 0x3f, G: 0x51, B: 0xb5, A: 255}
+	}
+	r.nr.Config = r.Config
+	r.nr.UpdateCurrentColor(r.Config.DefaultColor)
+	r.nr.UpdateCurrentFont(r.Config.DefaultFont)
+	r.nr.UpdateCurrentSize(r.Config.DefaultSize)
 	if err := r.md.Convert(src, ioutil.Discard); err != nil {
 		return nil, err
 	}
