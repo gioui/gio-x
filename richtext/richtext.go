@@ -249,30 +249,38 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
 		spanAscent := firstLine.Ascent.Ceil()
 
-		// store the text shaping results for the line
-		lineShapes = append(lineShapes, spanShape{
-			offset: image.Point{X: lineDims.X},
-			size:   image.Point{X: spanWidth, Y: spanHeight},
-			layout: firstLine.Layout,
-		})
+		// forceToNextLine handles the case in which the first segment of the new span does not fit
+		// AND there is already content on the current line. If there is no content on the line,
+		// we should display the content that doesn't fit anyway, as it won't fit on the next
+		// line either.
+		forceToNextLine := lineDims.X > 0 && spanWidth > maxWidth
 
-		// update the dimensions of the current line
-		lineDims.X += spanWidth
-		if lineDims.Y < spanHeight {
-			lineDims.Y = spanHeight
-		}
-		if lineAscent < spanAscent {
-			lineAscent = spanAscent
-		}
+		if !forceToNextLine {
+			// store the text shaping results for the line
+			lineShapes = append(lineShapes, spanShape{
+				offset: image.Point{X: lineDims.X},
+				size:   image.Point{X: spanWidth, Y: spanHeight},
+				layout: firstLine.Layout,
+			})
+			// update the dimensions of the current line
+			lineDims.X += spanWidth
+			if lineDims.Y < spanHeight {
+				lineDims.Y = spanHeight
+			}
+			if lineAscent < spanAscent {
+				lineAscent = spanAscent
+			}
 
-		// update the width of the overall text
-		if overallSize.X < lineDims.X {
-			overallSize.X = lineDims.X
+			// update the width of the overall text
+			if overallSize.X < lineDims.X {
+				overallSize.X = lineDims.X
+			}
+
 		}
 
 		// if we are breaking the current span across lines or we are on the
 		// last span, lay out all of the spans for the line.
-		if len(lines) > 1 || i == len(spans)-1 {
+		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
 			for i, shape := range lineShapes {
 				// lay out this span
 				span = spans[i+lineStartIndex]
@@ -311,7 +319,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		}
 
 		// if the current span breaks across lines
-		if len(lines) > 1 {
+		if len(lines) > 1 && !forceToNextLine {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
 			lineDims = image.Point{}
@@ -337,6 +345,12 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 			}
 			span.Content = span.Content[byteLen:]
 			spans[i+1] = span
+		} else if forceToNextLine {
+			// mark where the next line to be laid out starts
+			lineStartIndex = i
+			lineDims = image.Point{}
+			lineAscent = 0
+			i--
 		}
 	}
 
