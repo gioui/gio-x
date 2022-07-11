@@ -297,8 +297,11 @@ func (g *gioNodeRenderer) renderEmphasis(w util.BufWriter, source []byte, node a
 			g.Current.Font.Style = text.Italic
 		}
 	} else {
-		g.Current.Font.Style = text.Regular
-		g.Current.Font.Weight = text.Normal
+		if n.Level == 2 {
+			g.Current.Font.Weight = text.Normal
+		} else {
+			g.Current.Font.Style = text.Regular
+		}
 	}
 	return ast.WalkContinue, nil
 }
