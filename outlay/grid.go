@@ -176,7 +176,7 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	yOffset -= g.Vertical.Offset
 	firstRow := g.Vertical.First + g.LockedRows
 	lastRow := g.Vertical.Last + g.LockedRows
-	for row := firstRow; row <= lastRow && row+g.LockedRows < rows; row++ {
+	for row := firstRow; row <= lastRow && row < rows; row++ {
 		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
