@@ -137,7 +137,6 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	if rows == 0 || cols == 0 {
 		return layout.Dimensions{Size: gtx.Constraints.Min}
 	}
-	listDims := image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y)
 
 	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
 
@@ -156,12 +155,15 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	clp := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
 	lockedHeight := 0
 	yOffset := 0
+	listDims := image.Point{}
 	for row := 0; row < g.LockedRows && row < rows; row++ {
 		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
 		offset.Pop()
 		lockedHeight += rowDims.Size.Y
+		listDims.X = max(listDims.X, rowDims.Size.X)
+		listDims.Y += rowDims.Size.Y
 	}
 	clp.Pop()
 	lockedRows := macro.Stop()
@@ -181,12 +183,16 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
 		offset.Pop()
+		listDims.X = max(listDims.X, rowDims.Size.X)
+		listDims.Y += rowDims.Size.Y
 	}
 	clp.Pop()
 	lockedRows.Add(gtx.Ops)
 
+	listDims = gtx.Constraints.Constrain(listDims)
+
 	// Enable scroll wheel within the grid.
-	c := gtx.Constraints.Max
+	c := listDims
 	cl := clip.Rect{Max: c}.Push(gtx.Ops)
 	g.Vscroll.Add(gtx.Ops, image.Rect(0, -c.Y/2, 0, c.Y/2))
 	g.Hscroll.Add(gtx.Ops, image.Rect(-c.X, 0, c.X, 0))
