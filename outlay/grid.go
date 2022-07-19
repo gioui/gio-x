@@ -150,6 +150,8 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 
 	g.Horizontal.update(gtx, layout.Horizontal, cols, gtx.Constraints.Max.X, dimensioner)
 
+	contentMacro := op.Record(gtx.Ops)
+
 	// Draw locked rows in a macro.
 	macro := op.Record(gtx.Ops)
 	clp := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
@@ -191,11 +193,17 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 
 	listDims = gtx.Constraints.Constrain(listDims)
 
+	content := contentMacro.Stop()
+
 	// Enable scroll wheel within the grid.
 	c := listDims
 	cl := clip.Rect{Max: c}.Push(gtx.Ops)
 	g.Vscroll.Add(gtx.Ops, image.Rect(0, -c.Y/2, 0, c.Y/2))
 	g.Hscroll.Add(gtx.Ops, image.Rect(-c.X, 0, c.X, 0))
+
+	// We draw into a macro, and call the macro inside the clip set up for scrolling, so that cells in the grid are
+	// children of the clip area, not siblings. This ensures cells can receive pointer events.
+	content.Add(gtx.Ops)
 	cl.Pop()
 
 	return layout.Dimensions{Size: listDims, Baseline: 0}
