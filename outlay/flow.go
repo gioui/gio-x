@@ -35,6 +35,8 @@ type wrapData struct {
 }
 
 func (g FlowWrap) Layout(gtx layout.Context, num int, el FlowElement) layout.Dimensions {
+	defer op.TransformOp{}.Push(gtx.Ops).Pop()
+
 	csMax := gtx.Constraints.Max
 	var mainSize, crossSize, mainPos, crossPos, base, firstBase int
 	gtx.Constraints.Min = image.Point{}
