@@ -206,8 +206,9 @@ func (ss SpanStyle) DeepCopy() SpanStyle {
 
 // TextStyle presents rich text.
 type TextStyle struct {
-	State  *InteractiveText
-	Styles []SpanStyle
+	State     *InteractiveText
+	Styles    []SpanStyle
+	Alignment text.Alignment
 	text.Shaper
 }
 
@@ -283,6 +284,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		// if we are breaking the current span across lines or we are on the
 		// last span, lay out all of the spans for the line.
 		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
+			lineMacro := op.Record(gtx.Ops)
 			for i, shape := range lineShapes {
 				// lay out this span
 				span = spans[i+lineStartIndex]
@@ -315,6 +317,28 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 					state = nil
 				}
 			}
+			lineCall := lineMacro.Stop()
+
+			// Compute padding to align line. If the line is longer than can be displayed then padding is implicitly
+			// limited to zero.
+			finalShape := lineShapes[len(lineShapes)-1]
+			lineWidth := finalShape.offset.X + finalShape.size.X
+			var pad int
+			if lineWidth < gtx.Constraints.Max.X {
+				switch t.Alignment {
+				case text.Start:
+					pad = 0
+				case text.Middle:
+					pad = (gtx.Constraints.Max.X - lineWidth) / 2
+				case text.End:
+					pad = gtx.Constraints.Max.X - lineWidth
+				}
+			}
+
+			stack := op.Offset(image.Pt(pad, 0)).Push(gtx.Ops)
+			lineCall.Add(gtx.Ops)
+			stack.Pop()
+
 			// reset line shaping data and update overall vertical dimensions
 			lineShapes = lineShapes[:0]
 			overallSize.Y += lineDims.Y
