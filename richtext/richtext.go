@@ -129,7 +129,9 @@ func (i *InteractiveText) next() *InteractiveSpan {
 // allowing them to be reused. This should be called at the start of every
 // layout.
 func (i *InteractiveText) reset() {
-	i.current = 0
+	if i != nil {
+		i.current = 0
+	}
 }
 
 // Events returns the first span with unprocessed events and the events that
