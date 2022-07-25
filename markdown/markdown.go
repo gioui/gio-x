@@ -401,7 +401,7 @@ func (r *Renderer) Render(src []byte) ([]richtext.SpanStyle, error) {
 		src = urlExp.ReplaceAll(src, []byte("$1[$2]($2)"))
 	}
 	if r.Config.DefaultSize == 0 {
-		r.Config.DefaultSize = 12
+		r.Config.DefaultSize = 16
 	}
 	if r.Config.H6Size == 0 {
 		r.Config.H6Size = unit.Sp(math.Round(1.2 * float64(r.Config.DefaultSize)))
