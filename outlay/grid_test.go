@@ -5,10 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"gioui.org/f32"
+	"gioui.org/io/pointer"
 	"gioui.org/io/router"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/unit"
 )
 
@@ -106,5 +109,57 @@ func TestGridSize(t *testing.T) {
 	expected = (layout.Dimensions{Size: image.Pt(500, 500)})
 	if dims != expected {
 		t.Errorf("expected size %#+v, got %#+v", expected, dims)
+	}
+}
+
+func TestGridPointerEvents(t *testing.T) {
+	var grid Grid
+	var ops op.Ops
+	router := &router.Router{}
+	var gtx layout.Context = layout.Context{
+		Constraints: layout.Exact(image.Pt(100, 100)),
+		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+		Queue:       router,
+		Now:         time.Time{},
+		Locale:      system.Locale{},
+		Ops:         &ops,
+	}
+
+	sideSize := 100
+
+	dimensioner := func(axis layout.Axis, index, constraint int) int {
+		return sideSize
+	}
+	layoutCell := func(gtx layout.Context, x, y int) layout.Dimensions {
+		defer clip.Rect{Max: image.Pt(sideSize, sideSize)}.Push(gtx.Ops).Pop()
+		pointer.InputOp{
+			Tag:   t,
+			Types: pointer.Press,
+		}.Add(gtx.Ops)
+		return layout.Dimensions{Size: image.Pt(sideSize, sideSize)}
+	}
+
+	// Lay out the grid to establish its input handlers.
+	grid.Layout(gtx, 1, 1, dimensioner, layoutCell)
+	router.Frame(gtx.Ops)
+
+	// Drain the initial cancel event:
+	_ = router.Events(t)
+
+	// Queue up a press.
+	press := pointer.Event{
+		Position: f32.Point{
+			X: 50,
+			Y: 50,
+		},
+		Type: pointer.Press,
+	}
+	router.Queue(press)
+
+	events := router.Events(t)
+	if len(events) != 1 {
+		t.Errorf("expected %d events, got %d", 1, len(events))
+	} else if events[0].(pointer.Event).Type != press.Type {
+		t.Errorf("expected %#+v, got %#+v", press, events[0])
 	}
 }
