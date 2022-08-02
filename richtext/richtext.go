@@ -49,7 +49,7 @@ type InteractiveSpan struct {
 	longPressed  bool
 	pressStarted time.Time
 	contents     string
-	metadata     map[string]string
+	metadata     map[string]interface{}
 	events       []Event
 }
 
@@ -98,12 +98,12 @@ func (i *InteractiveSpan) Events() []Event {
 
 // Content returns the text content of the interactive span as well as the
 // metadata associated with it.
-func (i *InteractiveSpan) Content() (string, map[string]string) {
+func (i *InteractiveSpan) Content() (string, map[string]interface{}) {
 	return i.contents, i.metadata
 }
 
 // Get looks up a metadata property on the interactive span.
-func (i *InteractiveSpan) Get(key string) string {
+func (i *InteractiveSpan) Get(key string) interface{} {
 	return i.metadata[key]
 }
 
@@ -153,7 +153,7 @@ type SpanStyle struct {
 	Color       color.NRGBA
 	Content     string
 	Interactive bool
-	metadata    map[string]string
+	metadata    map[string]interface{}
 }
 
 // spanShape describes the text shaping of a single span.
@@ -166,7 +166,7 @@ type spanShape struct {
 // Set configures a metadata key-value pair on the span that can be
 // retrieved if the span is interacted with. If the provided value
 // is empty, the key will be deleted from the metadata.
-func (ss *SpanStyle) Set(key, value string) {
+func (ss *SpanStyle) Set(key string, value interface{}) {
 	if value == "" {
 		if ss.metadata != nil {
 			delete(ss.metadata, key)
@@ -177,7 +177,7 @@ func (ss *SpanStyle) Set(key, value string) {
 		return
 	}
 	if ss.metadata == nil {
-		ss.metadata = make(map[string]string)
+		ss.metadata = make(map[string]interface{})
 	}
 	ss.metadata[key] = value
 }
@@ -195,7 +195,7 @@ func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) l
 func (ss SpanStyle) DeepCopy() SpanStyle {
 	out := ss
 	if len(ss.metadata) > 0 {
-		md := make(map[string]string)
+		md := make(map[string]interface{})
 		for k, v := range ss.metadata {
 			md[k] = v
 		}
