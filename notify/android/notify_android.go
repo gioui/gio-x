@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gioui.org/app"
+
 	"git.wow.st/gmp/jni"
 )
 
@@ -144,7 +145,9 @@ type Notification struct {
 }
 
 // Send creates a new Notification and requests that it be displayed on this channel.
-func (nc *NotificationChannel) Send(title, text string) (*Notification, error) {
+// The onGoing field specifies if the notification should be ongoing. Ongoing
+// notifications are ones that cannot be swiped away.
+func (nc *NotificationChannel) Send(title, text string, onGoing bool) (*Notification, error) {
 	notificationID := nextID()
 	if err := jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
 		appCtx := jni.Object(app.AppContext())
@@ -153,11 +156,16 @@ func (nc *NotificationChannel) Send(title, text string) (*Notification, error) {
 		if err != nil {
 			return err
 		}
-		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "sendNotification", "(Landroid/content/Context;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)V")
+		// (Context ctx, String channelID, int notificationID, String title, String text, boolean onGoing
+		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "sendNotification", "(Landroid/content/Context;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V")
 		jtitle := jni.Value(jni.JavaString(env, title))
 		jtext := jni.Value(jni.JavaString(env, text))
 		jID := jni.Value(jni.JavaString(env, nc.id))
-		err = jni.CallStaticVoidMethod(env, notifyClass, newChannelMethod, jni.Value(app.AppContext()), jID, jni.Value(notificationID), jtitle, jtext)
+		jOnGoing := jni.FALSE
+		if onGoing {
+			jOnGoing = jni.TRUE
+		}
+		err = jni.CallStaticVoidMethod(env, notifyClass, newChannelMethod, jni.Value(app.AppContext()), jID, jni.Value(notificationID), jtitle, jtext, jni.Value(jOnGoing))
 		if err != nil {
 			return err
 		}
