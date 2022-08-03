@@ -20,7 +20,7 @@ public class NotificationHelper {
         NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
     }
-    public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text) throws ClassNotFoundException{
+    public static void sendNotification(Context ctx, String channelID, int notificationID, String title, String text, boolean onGoing) throws ClassNotFoundException{
         Intent resultIntent = new Intent(ctx, Class.forName("org.gioui.GioActivity"));
         PendingIntent pending = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -34,7 +34,7 @@ public class NotificationHelper {
                 .setSmallIcon(Icon.createWithBitmap(bitmap))
                 .setContentText(text)
                 .setContentIntent(pending)
-                .setPriority(Notification.PRIORITY_DEFAULT);
+                .setOngoing(onGoing);
 
         NotificationManager notificationManager = ctx.getSystemService(NotificationManager.class);
         notificationManager.notify(notificationID, builder.build());
