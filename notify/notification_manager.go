@@ -28,6 +28,12 @@ type IconNotifier interface {
 	UseIcon(path string)
 }
 
+// OnGoingNotifier is a notifier that can display an ongoing notification.
+type OnGoingNotifier interface {
+	Notifier
+	SetOnGoing(ongoing bool)
+}
+
 // NewNotifier creates a new Manager tailored to the current operating system.
 func NewNotifier() (Notifier, error) {
 	return newNotifier()

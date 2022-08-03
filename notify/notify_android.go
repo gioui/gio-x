@@ -9,6 +9,8 @@ import (
 
 type androidNotifier struct {
 	channel *android.NotificationChannel
+	// ongoing is if the notifications should be ongoing, meaning they cannot be removed.
+	ongoing bool
 }
 
 var _ Notifier = (*androidNotifier)(nil)
@@ -24,9 +26,13 @@ func newNotifier() (Notifier, error) {
 }
 
 func (a *androidNotifier) CreateNotification(title, text string) (Notification, error) {
-	notification, err := a.channel.Send(title, text)
+	notification, err := a.channel.Send(title, text, a.ongoing)
 	if err != nil {
 		return nil, err
 	}
 	return notification, nil
+}
+
+func (a *androidNotifier) SetOnGoing(ongoing bool) {
+	a.ongoing = ongoing
 }
