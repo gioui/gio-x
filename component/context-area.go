@@ -18,9 +18,11 @@ import (
 // widget is overlaid using an op.DeferOp. The contextual widget
 // can be dismissed by primary-clicking within or outside of it.
 type ContextArea struct {
-	position f32.Point
-	dims     D
-	active   bool
+	position      f32.Point
+	dims          D
+	active        bool
+	justActivated bool
+	justDismissed bool
 	// Activation is the pointer Buttons within the context area
 	// that trigger the presentation of the contextual widget. If this
 	// is zero, it will default to pointer.ButtonSecondary.
@@ -67,6 +69,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		}
 		if e.Buttons.Contain(r.Activation) && e.Type == pointer.Press {
 			r.active = true
+			r.justActivated = true
 			if !r.AbsolutePosition {
 				r.position = e.Position
 			}
@@ -181,10 +184,29 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 // Dismiss sets the ContextArea to not be active.
 func (r *ContextArea) Dismiss() {
 	r.active = false
+	r.justDismissed = true
 }
 
 // Active returns whether the ContextArea is currently active (whether
 // it is currently displaying overlaid content or not).
 func (r ContextArea) Active() bool {
 	return r.active
+}
+
+// Activated returns true if the context area has become active since
+// the last call to Activated.
+func (r *ContextArea) Activated() bool {
+	defer func() {
+		r.justActivated = false
+	}()
+	return r.justActivated
+}
+
+// Dismissed returns true if the context area has been dismissed since
+// the last call to Dismissed.
+func (r *ContextArea) Dismissed() bool {
+	defer func() {
+		r.justDismissed = false
+	}()
+	return r.justDismissed
 }
