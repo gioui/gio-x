@@ -5,6 +5,7 @@ package component
 import (
 	"image"
 	"math"
+	"time"
 
 	"gioui.org/f32"
 	"gioui.org/io/pointer"
@@ -18,9 +19,11 @@ import (
 // widget is overlaid using an op.DeferOp. The contextual widget
 // can be dismissed by primary-clicking within or outside of it.
 type ContextArea struct {
+	lastUpdate    time.Time
 	position      f32.Point
 	dims          D
 	active        bool
+	startedActive bool
 	justActivated bool
 	justDismissed bool
 	// Activation is the pointer Buttons within the context area
@@ -37,16 +40,21 @@ type ContextArea struct {
 	PositionHint layout.Direction
 }
 
-// Layout renders the context area and -- if the area is activated by an
-// appropriate gesture -- also the provided widget overlaid using an op.DeferOp.
-func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
+// Update performs event processing for the context area but does not lay it out.
+// It is automatically invoked by Layout() if it has not already been called during
+// a given frame.
+func (r *ContextArea) Update(gtx C) {
+	if gtx.Now == r.lastUpdate {
+		return
+	}
+	r.lastUpdate = gtx.Now
 	if r.Activation == 0 {
 		r.Activation = pointer.ButtonSecondary
 	}
 	suppressionTag := &r.active
 	dismissTag := &r.dims
 
-	startedActive := r.active
+	r.startedActive = r.active
 	// Summon the contextual widget if the area recieved a secondary click.
 	for _, e := range gtx.Events(r) {
 		e, ok := e.(pointer.Event)
@@ -96,11 +104,18 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 			r.Dismiss()
 		}
 	}
+}
 
+// Layout renders the context area and -- if the area is activated by an
+// appropriate gesture -- also the provided widget overlaid using an op.DeferOp.
+func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
+	r.Update(gtx)
+	suppressionTag := &r.active
+	dismissTag := &r.dims
 	dims := D{Size: gtx.Constraints.Min}
 
 	var contextual op.CallOp
-	if r.active || startedActive {
+	if r.active || r.startedActive {
 		// Render if the layout started as active to ensure that widgets
 		// within the contextual content get to update their state in reponse
 		// to the event that dismissed the contextual widget.
