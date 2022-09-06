@@ -128,19 +128,27 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 
 	if r.active {
 		if int(r.position.X)+r.dims.Size.X > gtx.Constraints.Max.X {
-			switch r.PositionHint {
-			case layout.E, layout.NE, layout.SE:
-				r.position.X = float32(gtx.Constraints.Max.X - r.dims.Size.X)
-			case layout.W, layout.NW, layout.SW:
-				r.position.X = 0
+			if newX := int(r.position.X) - r.dims.Size.X; newX < 0 {
+				switch r.PositionHint {
+				case layout.E, layout.NE, layout.SE:
+					r.position.X = float32(gtx.Constraints.Max.X - r.dims.Size.X)
+				case layout.W, layout.NW, layout.SW:
+					r.position.X = 0
+				}
+			} else {
+				r.position.X = float32(newX)
 			}
 		}
 		if int(r.position.Y)+r.dims.Size.Y > gtx.Constraints.Max.Y {
-			switch r.PositionHint {
-			case layout.S, layout.SE, layout.SW:
-				r.position.Y = float32(gtx.Constraints.Max.Y - r.dims.Size.Y)
-			case layout.N, layout.NE, layout.NW:
-				r.position.Y = 0
+			if newY := int(r.position.Y) - r.dims.Size.Y; newY < 0 {
+				switch r.PositionHint {
+				case layout.S, layout.SE, layout.SW:
+					r.position.Y = float32(gtx.Constraints.Max.Y - r.dims.Size.Y)
+				case layout.N, layout.NE, layout.NW:
+					r.position.Y = 0
+				}
+			} else {
+				r.position.Y = float32(newY)
 			}
 		}
 		// Lay out a transparent scrim to block input to things beneath the
