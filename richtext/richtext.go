@@ -231,11 +231,14 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		lineDims       image.Point
 		lineAscent     int
 		overallSize    image.Point
-		lineShapes     []spanShape
+		spanShapes     []spanShape
 		lineStartIndex int
 		state          *InteractiveSpan
 	)
 
+	// We cannot simply lay out spans from front to back in a single pass, because multiple spans on the same line may
+	// have different line heights. A taller span following a narrower span will retroactively affect the narrower
+	// span's baseline. Instead, we collect spans for a line until we know that the line is full before rendering it.
 	for i := 0; i < len(spans); i++ {
 		// grab the next span
 		span := spans[i]
@@ -260,7 +263,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 		if !forceToNextLine {
 			// store the text shaping results for the line
-			lineShapes = append(lineShapes, spanShape{
+			spanShapes = append(spanShapes, spanShape{
 				offset: image.Point{X: lineDims.X},
 				size:   image.Point{X: spanWidth, Y: spanHeight},
 				layout: firstLine.Layout,
@@ -285,7 +288,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 		// last span, lay out all of the spans for the line.
 		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
 			lineMacro := op.Record(gtx.Ops)
-			for i, shape := range lineShapes {
+			for i, shape := range spanShapes {
 				// lay out this span
 				span = spans[i+lineStartIndex]
 				shape.offset.Y = overallSize.Y + lineAscent
@@ -313,7 +316,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 				offStack.Pop()
 				// ensure that we request new state for each interactive text
 				// that isn't breaking across a line.
-				if i < len(lineShapes)-1 {
+				if i < len(spanShapes)-1 {
 					state = nil
 				}
 			}
@@ -321,7 +324,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 			// Compute padding to align line. If the line is longer than can be displayed then padding is implicitly
 			// limited to zero.
-			finalShape := lineShapes[len(lineShapes)-1]
+			finalShape := spanShapes[len(spanShapes)-1]
 			lineWidth := finalShape.offset.X + finalShape.size.X
 			var pad int
 			if lineWidth < gtx.Constraints.Max.X {
@@ -340,7 +343,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 			stack.Pop()
 
 			// reset line shaping data and update overall vertical dimensions
-			lineShapes = lineShapes[:0]
+			spanShapes = spanShapes[:0]
 			overallSize.Y += lineDims.Y
 		}
 
