@@ -1,23 +1,18 @@
-/*
-Package richtext provides rendering of text containing multiple fonts, styles, and levels of interactivity.
-*/
+// Package richtext provides rendering of text containing multiple fonts, styles, and levels of interactivity.
 package richtext
 
 import (
-	"image"
 	"image/color"
 	"time"
-	"unicode/utf8"
 
 	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
-	"golang.org/x/image/math/fixed"
+	"gioui.org/x/styledtext"
 )
 
 // LongPressDuration is the default duration of a long press gesture.
@@ -56,6 +51,9 @@ type InteractiveSpan struct {
 // Layout adds the pointer input op for this interactive span and updates its
 // state. It uses the most recent pointer.AreaOp as its input area.
 func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
+	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
+
+	pointer.CursorPointer.Add(gtx.Ops)
 	i.click.Add(gtx.Ops)
 	for _, e := range i.click.Events(gtx) {
 		switch e.Type {
@@ -110,27 +108,19 @@ func (i *InteractiveSpan) Get(key string) interface{} {
 // InteractiveText holds persistent state for a block of text containing
 // spans that may be interactive.
 type InteractiveText struct {
-	Spans   []InteractiveSpan
-	current int
+	Spans []InteractiveSpan
 }
 
-// next returns an InteractiveSpan that hasn't been used since the last
-// call to reset().
-func (i *InteractiveText) next() *InteractiveSpan {
-	if i.current >= len(i.Spans) {
-		i.Spans = append(i.Spans, InteractiveSpan{})
+// resize makes sure that there are exactly n interactive spans.
+func (i *InteractiveText) resize(n int) {
+	if n == 0 && i == nil {
+		return
 	}
-	span := &i.Spans[i.current]
-	i.current++
-	return span
-}
 
-// reset moves the internal iteration cursor back the start of the spans,
-// allowing them to be reused. This should be called at the start of every
-// layout.
-func (i *InteractiveText) reset() {
-	if i != nil {
-		i.current = 0
+	if cap(i.Spans) >= n {
+		i.Spans = i.Spans[:n]
+	} else {
+		i.Spans = make([]InteractiveSpan, n)
 	}
 }
 
@@ -148,19 +138,13 @@ func (i *InteractiveText) Events() (*InteractiveSpan, []Event) {
 
 // SpanStyle describes the appearance of a span of styled text.
 type SpanStyle struct {
-	Font        text.Font
-	Size        unit.Sp
-	Color       color.NRGBA
-	Content     string
-	Interactive bool
-	metadata    map[string]interface{}
-}
-
-// spanShape describes the text shaping of a single span.
-type spanShape struct {
-	offset image.Point
-	layout text.Layout
-	size   image.Point
+	Font           text.Font
+	Size           unit.Sp
+	Color          color.NRGBA
+	Content        string
+	Interactive    bool
+	metadata       map[string]interface{}
+	interactiveIdx int
 }
 
 // Set configures a metadata key-value pair on the span that can be
@@ -180,15 +164,6 @@ func (ss *SpanStyle) Set(key string, value interface{}) {
 		ss.metadata = make(map[string]interface{})
 	}
 	ss.metadata[key] = value
-}
-
-// Layout renders the span using the provided text shaping.
-func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
-	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
-	defer op.Offset(shape.offset).Push(gtx.Ops).Pop()
-	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Sp(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
-	paint.PaintOp{}.Add(gtx.Ops)
-	return layout.Dimensions{Size: shape.size}
 }
 
 // DeepCopy returns an identical SpanStyle with its own copy of its metadata.
@@ -223,165 +198,34 @@ func Text(state *InteractiveText, shaper text.Shaper, styles ...SpanStyle) TextS
 
 // Layout renders the TextStyle.
 func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
-	spans := make([]SpanStyle, len(t.Styles))
-	copy(spans, t.Styles)
-	t.State.reset()
-
-	var (
-		lineDims       image.Point
-		lineAscent     int
-		overallSize    image.Point
-		spanShapes     []spanShape
-		lineStartIndex int
-		state          *InteractiveSpan
-	)
-
-	// We cannot simply lay out spans from front to back in a single pass, because multiple spans on the same line may
-	// have different line heights. A taller span following a narrower span will retroactively affect the narrower
-	// span's baseline. Instead, we collect spans for a line until we know that the line is full before rendering it.
-	for i := 0; i < len(spans); i++ {
-		// grab the next span
-		span := spans[i]
-
-		// constrain the width of the line to the remaining space
-		maxWidth := gtx.Constraints.Max.X - lineDims.X
-
-		// shape the text of the current span
-		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Sp(span.Size)), maxWidth, gtx.Locale, span.Content)
-
-		// grab the first line of the result and compute its dimensions
-		firstLine := lines[0]
-		spanWidth := firstLine.Width.Ceil()
-		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
-		spanAscent := firstLine.Ascent.Ceil()
-
-		// forceToNextLine handles the case in which the first segment of the new span does not fit
-		// AND there is already content on the current line. If there is no content on the line,
-		// we should display the content that doesn't fit anyway, as it won't fit on the next
-		// line either.
-		forceToNextLine := lineDims.X > 0 && spanWidth > maxWidth
-
-		if !forceToNextLine {
-			// store the text shaping results for the line
-			spanShapes = append(spanShapes, spanShape{
-				offset: image.Point{X: lineDims.X},
-				size:   image.Point{X: spanWidth, Y: spanHeight},
-				layout: firstLine.Layout,
-			})
-			// update the dimensions of the current line
-			lineDims.X += spanWidth
-			if lineDims.Y < spanHeight {
-				lineDims.Y = spanHeight
-			}
-			if lineAscent < spanAscent {
-				lineAscent = spanAscent
-			}
-
-			// update the width of the overall text
-			if overallSize.X < lineDims.X {
-				overallSize.X = lineDims.X
-			}
-
+	// OPT(dh): it'd be nice to avoid this allocation
+	styles := make([]styledtext.SpanStyle, len(t.Styles))
+	numInteractive := 0
+	for i, st := range t.Styles {
+		if st.Interactive {
+			st.interactiveIdx = numInteractive
+			numInteractive++
 		}
-
-		// if we are breaking the current span across lines or we are on the
-		// last span, lay out all of the spans for the line.
-		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
-			lineMacro := op.Record(gtx.Ops)
-			for i, shape := range spanShapes {
-				// lay out this span
-				span = spans[i+lineStartIndex]
-				shape.offset.Y = overallSize.Y + lineAscent
-				span.Layout(gtx, t.Shaper, shape)
-
-				if !span.Interactive {
-					state = nil
-					continue
-				}
-				// grab an interactive state and lay it out atop the text.
-				// If we still have a state, this line is a continuation of
-				// the previous span and we should use the same state.
-				if state == nil {
-					state = t.State.next()
-					state.contents = span.Content
-					state.metadata = span.metadata
-				}
-				// set this offset to the upper corner of the text, not the lower
-				shape.offset.Y -= lineDims.Y
-				offStack := op.Offset(shape.offset).Push(gtx.Ops)
-				pr := clip.Rect(image.Rectangle{Max: shape.size}).Push(gtx.Ops)
-				state.Layout(gtx)
-				pointer.CursorPointer.Add(gtx.Ops)
-				pr.Pop()
-				offStack.Pop()
-				// ensure that we request new state for each interactive text
-				// that isn't breaking across a line.
-				if i < len(spanShapes)-1 {
-					state = nil
-				}
-			}
-			lineCall := lineMacro.Stop()
-
-			// Compute padding to align line. If the line is longer than can be displayed then padding is implicitly
-			// limited to zero.
-			finalShape := spanShapes[len(spanShapes)-1]
-			lineWidth := finalShape.offset.X + finalShape.size.X
-			var pad int
-			if lineWidth < gtx.Constraints.Max.X {
-				switch t.Alignment {
-				case text.Start:
-					pad = 0
-				case text.Middle:
-					pad = (gtx.Constraints.Max.X - lineWidth) / 2
-				case text.End:
-					pad = gtx.Constraints.Max.X - lineWidth
-				}
-			}
-
-			stack := op.Offset(image.Pt(pad, 0)).Push(gtx.Ops)
-			lineCall.Add(gtx.Ops)
-			stack.Pop()
-
-			// reset line shaping data and update overall vertical dimensions
-			spanShapes = spanShapes[:0]
-			overallSize.Y += lineDims.Y
-		}
-
-		// if the current span breaks across lines
-		if len(lines) > 1 && !forceToNextLine {
-			// mark where the next line to be laid out starts
-			lineStartIndex = i + 1
-			lineDims = image.Point{}
-			lineAscent = 0
-
-			// if this span isn't interactive, don't use the same interaction
-			// state on the next line.
-			if !span.Interactive {
-				state = nil
-			}
-
-			// ensure the spans slice has room for another span
-			spans = append(spans, SpanStyle{})
-			// shift existing spans further
-			for k := len(spans) - 1; k > i+1; k-- {
-				spans[k] = spans[k-1]
-			}
-			// synthesize and insert a new span
-			byteLen := 0
-			for i := 0; i < firstLine.Layout.Runes.Count; i++ {
-				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
-				byteLen += n
-			}
-			span.Content = span.Content[byteLen:]
-			spans[i+1] = span
-		} else if forceToNextLine {
-			// mark where the next line to be laid out starts
-			lineStartIndex = i
-			lineDims = image.Point{}
-			lineAscent = 0
-			i--
+		styles[i] = styledtext.SpanStyle{
+			Font:    st.Font,
+			Size:    st.Size,
+			Color:   st.Color,
+			Content: st.Content,
 		}
 	}
+	t.State.resize(numInteractive)
 
-	return layout.Dimensions{Size: gtx.Constraints.Constrain(overallSize)}
+	text := styledtext.Text(t.Shaper, styles...)
+	text.Alignment = t.Alignment
+	return text.Layout(gtx, func(_ layout.Context, i int, _ layout.Dimensions) {
+		span := &t.Styles[i]
+		if !span.Interactive {
+			return
+		}
+
+		state := &t.State.Spans[span.interactiveIdx]
+		state.contents = span.Content
+		state.metadata = span.metadata
+		state.Layout(gtx)
+	})
 }
