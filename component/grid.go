@@ -87,7 +87,6 @@ func (g GridStyle) Layout(gtx layout.Context, rows, cols int, dimensioner outlay
 	// Calculate column widths in pixels. Width is sum of widths.
 	totalWidth := g.State.Horizontal.Length
 	totalHeight := g.State.Vertical.Length
-	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
 
 	// Make the scroll bar stick to the grid.
 	if gtx.Constraints.Max.X > dim.Size.X {
@@ -146,7 +145,6 @@ func (g GridStyle) Layout(gtx layout.Context, rows, cols int, dimensioner outlay
 	if g.AnchorStrategy == material.Occupy {
 		dim.Size.Y += hBarWidth
 	}
-	dim.Size.Y += rowHeight
 
 	return dim
 }
