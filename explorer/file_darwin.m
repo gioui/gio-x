@@ -71,3 +71,12 @@ char* getError(CFTypeRef file) {
     }
     return (char*)([[f.err localizedDescription] UTF8String]);
 }
+
+const char* getURL(CFTypeRef url_ref) {
+    NSURL *url = (__bridge NSURL *)url_ref;
+    NSString *str = [url absoluteString];
+
+    const char *unsafe_cstr = [str UTF8String];
+    char *safe_cstr = strdup(unsafe_cstr);
+    return safe_cstr;
+}
