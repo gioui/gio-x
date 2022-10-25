@@ -16,17 +16,20 @@ extern uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileClose(CFTypeRef file);
 extern char* getError(CFTypeRef file);
+extern const char* getURL(CFTypeRef url_ref);
 
 */
 import "C"
 import (
 	"errors"
 	"io"
+	"net/url"
 	"unsafe"
 )
 
 type File struct {
 	file   C.CFTypeRef
+	url    string
 	closed bool
 }
 
@@ -35,7 +38,16 @@ func newFile(url C.CFTypeRef) (*File, error) {
 	if err := getError(file); err != nil {
 		return nil, err
 	}
-	return &File{file: file}, nil
+
+	cstr := C.getURL(url)
+	urlStr := C.GoString(cstr)
+	C.free(unsafe.Pointer(cstr))
+
+	ret := &File{
+		file: file,
+		url:  urlStr,
+	}
+	return ret, nil
 }
 
 func (f *File) Read(b []byte) (n int, err error) {
@@ -70,6 +82,15 @@ func (f *File) Write(b []byte) (n int, err error) {
 		return 0, errors.New("unknown error")
 	}
 	return len(b), nil
+}
+
+func (f *File) Name() string {
+	parsed, err := url.Parse(f.url)
+	if err != nil {
+		return ""
+	}
+
+	return parsed.Path
 }
 
 func (f *File) Close() error {
