@@ -13,44 +13,44 @@ CFTypeRef newFile(CFTypeRef url) {
         f.handler = [NSFileHandle fileHandleForUpdatingURL:f.url error:&err];
         f.err = err;
         return (__bridge_retained CFTypeRef)f;
-	}
+    }
     return 0;
 }
 
 uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len) {
     explorer_file *f = (__bridge explorer_file *)file;
-	if (@available(iOS 13, macOS 10.15, *)) {
-	    NSError *err = nil;
-		NSData *data = [f.handler readDataUpToLength:len error:&err];
-	    if (err != nil) {
-	    	f.err = err;
-		    return 0;
-	    }
+    if (@available(iOS 13, macOS 10.15, *)) {
+        NSError *err = nil;
+        NSData *data = [f.handler readDataUpToLength:len error:&err];
+        if (err != nil) {
+            f.err = err;
+            return 0;
+        }
 
-		[data getBytes:b length:data.length];
-		return data.length;
-	}
-	return 0; // Impossible condition since newFileReader will return 0.
+        [data getBytes:b length:data.length];
+        return data.length;
+    }
+    return 0; // Impossible condition since newFileReader will return 0.
 }
 
 bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len) {
     explorer_file *f = (__bridge explorer_file *)file;
-	if (@available(iOS 13, macOS 10.15, *)) {
-	    NSError *err = nil;
-	    [f.handler writeData:[NSData dataWithBytes:b length:len] error:&err];
-	    if (err != nil) {
-	    	f.err = err;
-		    return NO;
-	    }
+    if (@available(iOS 13, macOS 10.15, *)) {
+        NSError *err = nil;
+        [f.handler writeData:[NSData dataWithBytes:b length:len] error:&err];
+        if (err != nil) {
+            f.err = err;
+            return NO;
+        }
 
         return YES;
-	}
-	return NO; // Impossible condition since newFileWriter will return 0.
+    }
+    return NO; // Impossible condition since newFileWriter will return 0.
 }
 
 bool fileClose(CFTypeRef file) {
     explorer_file *f = (__bridge explorer_file *)file;
-	if (@available(iOS 13, macOS 10.15, *)) {
+    if (@available(iOS 13, macOS 10.15, *)) {
         [f.url stopAccessingSecurityScopedResource];
 
         NSError *err = nil;
@@ -60,8 +60,8 @@ bool fileClose(CFTypeRef file) {
             return NO;
         }
         return YES;
-	}
-	return NO; // Impossible condition since newFileWriter will return 0.
+    }
+    return NO; // Impossible condition since newFileWriter will return 0.
 }
 
 char* getError(CFTypeRef file) {
