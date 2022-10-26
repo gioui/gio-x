@@ -201,7 +201,8 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 	// OPT(dh): it'd be nice to avoid this allocation
 	styles := make([]styledtext.SpanStyle, len(t.Styles))
 	numInteractive := 0
-	for i, st := range t.Styles {
+	for i := range t.Styles {
+		st := &t.Styles[i]
 		if st.Interactive {
 			st.interactiveIdx = numInteractive
 			numInteractive++
