@@ -28,7 +28,7 @@ type SpanStyle struct {
 // spanShape describes the text shaping of a single span.
 type spanShape struct {
 	offset image.Point
-	layout text.Layout
+	layout text.Line
 	size   image.Point
 	ascent int
 }
@@ -37,7 +37,7 @@ type spanShape struct {
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	defer op.Offset(shape.offset).Push(gtx.Ops).Pop()
-	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Sp(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
+	defer clip.Outline{Path: s.Shape(shape.layout)}.Op().Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }
@@ -90,13 +90,37 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
 		// shape the text of the current span
-		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Sp(span.Size)), maxWidth, gtx.Locale, span.Content)
+		shaped := t.Shaper.LayoutString(text.Parameters{
+			Font:    span.Font,
+			PxPerEm: fixed.I(gtx.Sp(span.Size)),
+		}, 0, maxWidth, gtx.Locale, span.Content)
+
+		shaped.SetViewport(image.Rectangle{Max: image.Pt(1e6, 1e6)})
 
 		// grab the first line of the result and compute its dimensions
-		firstLine := lines[0]
-		spanWidth := firstLine.Width.Ceil()
-		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
-		spanAscent := firstLine.Ascent.Ceil()
+		firstLine, ok := shaped.Next()
+		if !ok {
+			continue
+		}
+		width, ascent, descent := firstLine.Metrics()
+		_, multiLine := shaped.Next()
+		spanWidth := width.Ceil()
+		spanHeight := (ascent + descent).Ceil()
+		spanAscent := ascent.Ceil()
+		runeCount := firstLine.Runes()
+		if runeCount > 0 && !multiLine {
+			// synthesize and insert a new span
+			byteLen := 0
+			var lastRune rune
+			var n int
+			for i := 0; i < firstLine.Runes(); i++ {
+				lastRune, n = utf8.DecodeRuneInString(span.Content[byteLen:])
+				byteLen += n
+			}
+			if lastRune == '\n' {
+				multiLine = true
+			}
+		}
 
 		// forceToNextLine handles the case in which the first segment of the new span does not fit
 		// AND there is already content on the current line. If there is no content on the line,
@@ -109,7 +133,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			lineShapes = append(lineShapes, spanShape{
 				offset: image.Point{X: lineDims.X},
 				size:   image.Point{X: spanWidth, Y: spanHeight},
-				layout: firstLine.Layout,
+				layout: firstLine,
 				ascent: spanAscent,
 			})
 			// update the dimensions of the current line
@@ -130,7 +154,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 
 		// if we are breaking the current span across lines or we are on the
 		// last span, lay out all of the spans for the line.
-		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
+		if multiLine || i == len(spans)-1 || forceToNextLine {
 			lineMacro := op.Record(gtx.Ops)
 			for i, shape := range lineShapes {
 				// lay out this span
@@ -178,7 +202,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		}
 
 		// if the current span breaks across lines
-		if len(lines) > 1 && !forceToNextLine {
+		if multiLine && !forceToNextLine {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
 			lineDims = image.Point{}
@@ -192,7 +216,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			}
 			// synthesize and insert a new span
 			byteLen := 0
-			for i := 0; i < firstLine.Layout.Runes.Count; i++ {
+			for i := 0; i < firstLine.Runes(); i++ {
 				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
 				byteLen += n
 			}
