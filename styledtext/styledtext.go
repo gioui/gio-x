@@ -28,7 +28,7 @@ type SpanStyle struct {
 // spanShape describes the text shaping of a single span.
 type spanShape struct {
 	offset image.Point
-	layout text.Layout
+	layout text.Line
 	size   image.Point
 	ascent int
 }
@@ -37,7 +37,10 @@ type spanShape struct {
 func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	defer op.Offset(shape.offset).Push(gtx.Ops).Pop()
-	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Sp(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
+	left := text.GlyphPosition{}
+	right := text.GlyphPosition{Run: len(shape.layout.Runs) - 1}
+	right.Glyph = len(shape.layout.Runs[right.Run].Glyphs) - 1
+	defer clip.Outline{Path: s.Shape(shape.layout, left, right)}.Op().Push(gtx.Ops).Pop()
 	paint.PaintOp{}.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }
@@ -109,7 +112,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			lineShapes = append(lineShapes, spanShape{
 				offset: image.Point{X: lineDims.X},
 				size:   image.Point{X: spanWidth, Y: spanHeight},
-				layout: firstLine.Layout,
+				layout: firstLine,
 				ascent: spanAscent,
 			})
 			// update the dimensions of the current line
@@ -192,7 +195,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			}
 			// synthesize and insert a new span
 			byteLen := 0
-			for i := 0; i < firstLine.Layout.Runes.Count; i++ {
+			for i := 0; i < firstLine.RuneCount; i++ {
 				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
 				byteLen += n
 			}
