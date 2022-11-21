@@ -218,7 +218,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 
 	text := styledtext.Text(t.Shaper, styles...)
 	text.Alignment = t.Alignment
-	return text.Layout(gtx, func(_ layout.Context, i int, _ layout.Dimensions) {
+	return text.Layout(gtx, func(gtx layout.Context, i int, _ layout.Dimensions) {
 		span := &t.Styles[i]
 		if !span.Interactive {
 			return
