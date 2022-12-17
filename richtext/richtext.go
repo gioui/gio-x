@@ -184,11 +184,11 @@ type TextStyle struct {
 	State     *InteractiveText
 	Styles    []SpanStyle
 	Alignment text.Alignment
-	text.Shaper
+	*text.Shaper
 }
 
 // Text constructs a TextStyle.
-func Text(state *InteractiveText, shaper text.Shaper, styles ...SpanStyle) TextStyle {
+func Text(state *InteractiveText, shaper *text.Shaper, styles ...SpanStyle) TextStyle {
 	return TextStyle{
 		State:  state,
 		Styles: styles,

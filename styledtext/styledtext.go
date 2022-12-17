@@ -8,7 +8,6 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -28,17 +27,16 @@ type SpanStyle struct {
 // spanShape describes the text shaping of a single span.
 type spanShape struct {
 	offset image.Point
-	layout text.Layout
+	call   op.CallOp
 	size   image.Point
 	ascent int
 }
 
 // Layout renders the span using the provided text shaping.
-func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) layout.Dimensions {
+func (ss SpanStyle) Layout(gtx layout.Context, shape spanShape) layout.Dimensions {
 	paint.ColorOp{Color: ss.Color}.Add(gtx.Ops)
 	defer op.Offset(shape.offset).Push(gtx.Ops).Pop()
-	defer clip.Outline{Path: s.Shape(ss.Font, fixed.I(gtx.Sp(ss.Size)), shape.layout)}.Op().Push(gtx.Ops).Pop()
-	paint.PaintOp{}.Add(gtx.Ops)
+	shape.call.Add(gtx.Ops)
 	return layout.Dimensions{Size: shape.size}
 }
 
@@ -46,11 +44,11 @@ func (ss SpanStyle) Layout(gtx layout.Context, s text.Shaper, shape spanShape) l
 type TextStyle struct {
 	Styles    []SpanStyle
 	Alignment text.Alignment
-	text.Shaper
+	*text.Shaper
 }
 
 // Text constructs a TextStyle.
-func Text(shaper text.Shaper, styles ...SpanStyle) TextStyle {
+func Text(shaper *text.Shaper, styles ...SpanStyle) TextStyle {
 	return TextStyle{
 		Styles: styles,
 		Shaper: shaper,
@@ -80,6 +78,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		overallSize    image.Point
 		lineShapes     []spanShape
 		lineStartIndex int
+		glyphs         [32]text.Glyph
 	)
 
 	for i := 0; i < len(spans); i++ {
@@ -90,13 +89,33 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
 		// shape the text of the current span
-		lines := t.Shaper.LayoutString(span.Font, fixed.I(gtx.Sp(span.Size)), maxWidth, gtx.Locale, span.Content)
+		macro := op.Record(gtx.Ops)
+		paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
+		t.Shaper.LayoutString(text.Parameters{
+			Font:     span.Font,
+			PxPerEm:  fixed.I(gtx.Sp(span.Size)),
+			MaxLines: 1,
+		}, 0, maxWidth, gtx.Locale, span.Content)
+		ti := textIterator{
+			viewport: image.Rectangle{Max: gtx.Constraints.Max},
+			maxLines: 1,
+		}
+
+		line := glyphs[:0]
+		for g, ok := t.Shaper.NextGlyph(); ok; g, ok = t.Shaper.NextGlyph() {
+			line, ok = ti.paintGlyph(gtx, t.Shaper, g, line)
+			if !ok {
+				break
+			}
+		}
+		call := macro.Stop()
+		runesDisplayed := ti.runes
+		multiLine := runesDisplayed < utf8.RuneCountInString(span.Content)
 
 		// grab the first line of the result and compute its dimensions
-		firstLine := lines[0]
-		spanWidth := firstLine.Width.Ceil()
-		spanHeight := (firstLine.Ascent + firstLine.Descent).Ceil()
-		spanAscent := firstLine.Ascent.Ceil()
+		spanWidth := ti.bounds.Dx()
+		spanHeight := ti.bounds.Dy()
+		spanAscent := ti.baseline
 
 		// forceToNextLine handles the case in which the first segment of the new span does not fit
 		// AND there is already content on the current line. If there is no content on the line,
@@ -109,7 +128,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			lineShapes = append(lineShapes, spanShape{
 				offset: image.Point{X: lineDims.X},
 				size:   image.Point{X: spanWidth, Y: spanHeight},
-				layout: firstLine.Layout,
+				call:   call,
 				ascent: spanAscent,
 			})
 			// update the dimensions of the current line
@@ -130,19 +149,17 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 
 		// if we are breaking the current span across lines or we are on the
 		// last span, lay out all of the spans for the line.
-		if len(lines) > 1 || i == len(spans)-1 || forceToNextLine {
+		if multiLine || ti.hasNewline || i == len(spans)-1 || forceToNextLine {
 			lineMacro := op.Record(gtx.Ops)
 			for i, shape := range lineShapes {
 				// lay out this span
 				span = spans[i+lineStartIndex]
-				shape.offset.Y = overallSize.Y + lineAscent
-				span.Layout(gtx, t.Shaper, shape)
+				shape.offset.Y = overallSize.Y
+				span.Layout(gtx, shape)
 
 				if spanFn == nil {
 					continue
 				}
-				// set this offset to the upper corner of the text, not the lower
-				shape.offset.Y -= shape.ascent
 				offStack := op.Offset(shape.offset).Push(gtx.Ops)
 				fnGtx := gtx
 				fnGtx.Constraints.Min = image.Point{}
@@ -175,14 +192,14 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			// reset line shaping data and update overall vertical dimensions
 			lineShapes = lineShapes[:0]
 			overallSize.Y += lineDims.Y
+			lineDims = image.Point{}
+			lineAscent = 0
 		}
 
 		// if the current span breaks across lines
-		if len(lines) > 1 && !forceToNextLine {
+		if multiLine && !forceToNextLine {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
-			lineDims = image.Point{}
-			lineAscent = 0
 
 			// ensure the spans slice has room for another span
 			spans = append(spans, SpanStyle{})
@@ -192,7 +209,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			}
 			// synthesize and insert a new span
 			byteLen := 0
-			for i := 0; i < firstLine.Layout.Runes.Count; i++ {
+			for i := 0; i < runesDisplayed; i++ {
 				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
 				byteLen += n
 			}
@@ -201,9 +218,10 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		} else if forceToNextLine {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i
-			lineDims = image.Point{}
-			lineAscent = 0
 			i--
+		} else if ti.hasNewline {
+			// mark where the next line to be laid out starts
+			lineStartIndex = i + 1
 		}
 	}
 
