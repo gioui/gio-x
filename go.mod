@@ -3,7 +3,7 @@ module gioui.org/x
 go 1.18
 
 require (
-	gioui.org v0.0.0-20221216233230-5d1d1df2061c
+	gioui.org v0.0.0-20221219171716-c455f0f342ef
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/andybalholm/stroke v0.0.0-20220316233208-2609e58d58a5
 	github.com/esiqveland/notify v0.11.0
