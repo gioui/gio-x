@@ -41,8 +41,8 @@ tasks:
  - install_go: |
      mkdir -p /home/build/sdk
      cd /home/build/sdk
-     curl -Lso go.tar.gz https://golang.org/dl/go1.17.1.linux-amd64.tar.gz
-     echo "dab7d9c34361dc21ec237d584590d72500652e7c909bf082758fb63064fca0ef go.tar.gz" | sha256sum -c -
+     curl -Lso go.tar.gz https://golang.org/dl/go1.18.9.linux-amd64.tar.gz
+     echo "015692d2a48e3496f1da3328cf33337c727c595011883f6fc74f9b5a9c86ffa8 go.tar.gz" | sha256sum -c -
      tar xzf go.tar.gz
  - test_gio: |
      cd gio-x
