@@ -67,6 +67,11 @@ const (
 	// and left-hand sides of a stroked path with a half square of length
 	// the stroked path's width.
 	SquareCap
+
+	// TriangularCap caps stroked paths with a triangular cap, joining the
+	// right-hand and left-hand sides of a stroked path with a triangle
+	// with height half of the stroked path's width.
+	TriangularCap
 )
 
 // StrokeJoin describes how stroked paths are collated.
@@ -167,6 +172,8 @@ func (s Stroke) Op(ops *op.Ops) clip.Op {
 		opt.Cap = stroke.SquareCap
 	case FlatCap:
 		opt.Cap = stroke.FlatCap
+	case TriangularCap:
+		opt.Cap = stroke.TriangularCap
 	}
 	switch s.Join {
 	case RoundJoin:

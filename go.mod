@@ -5,7 +5,7 @@ go 1.18
 require (
 	gioui.org v0.0.0-20221219171716-c455f0f342ef
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
-	github.com/andybalholm/stroke v0.0.0-20220316233208-2609e58d58a5
+	github.com/andybalholm/stroke v0.0.0-20221221101821-bd29b49d73f0
 	github.com/esiqveland/notify v0.11.0
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4
 	github.com/godbus/dbus/v5 v5.0.6
