@@ -118,6 +118,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}
+
 func buildFilter(extensions []string) *uint16 {
 	if len(extensions) <= 0 {
 		return nil

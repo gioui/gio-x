@@ -69,6 +69,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return resp.file.(io.ReadCloser), resp.error
 }
 
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}
+
 //export importCallback
 func importCallback(u *C.char, id int32) {
 	if v, ok := active.Load(id); ok {

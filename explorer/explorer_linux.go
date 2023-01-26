@@ -276,3 +276,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	}
 	return os.Open(filepath)
 }
+
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}

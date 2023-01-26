@@ -114,6 +114,33 @@ func (e *Explorer) ChooseFile(extensions ...string) (io.ReadCloser, error) {
 	return e.importFile(extensions...)
 }
 
+// ChooseFiles shows the files selector, allowing the user to select multiple files.
+// Optionally, it's possible to define which file extensions is supported to
+// be selected (such as `.jpg`, `.png`).
+//
+// Example: ChooseFiles(".jpg", ".png") will only accept the selection of files with
+// .jpg or .png extensions.
+//
+// In some platforms the resulting `io.ReadCloser` is a `os.File`, but it's not
+// a guarantee.
+//
+// In most known browsers, when user clicks cancel then this function never returns.
+//
+// It's a blocking call, you should call it on a separated goroutine. For most OSes, only one
+// ChooseFile{,s} or CreateFile, can happen at the same time, for each app.Window/Explorer.
+func (e *Explorer) ChooseFiles(extensions ...string) ([]io.ReadCloser, error) {
+	if e == nil {
+		return nil, ErrNotAvailable
+	}
+
+	if runtime.GOOS != "js" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
+
+	return e.importFiles(extensions...)
+}
+
 // CreateFile opens the file selector, and writes the given content into
 // some file, which the use can choose the location.
 //

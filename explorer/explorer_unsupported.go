@@ -27,3 +27,7 @@ func (e *Explorer) exportFile(_ string) (io.WriteCloser, error) {
 func (e *Explorer) importFile(_ ...string) (io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
+
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}

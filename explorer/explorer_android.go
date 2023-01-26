@@ -132,6 +132,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return file.file.(io.ReadCloser), nil
 }
 
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}
+
 //export Java_org_gioui_x_explorer_explorer_1android_ImportCallback
 func Java_org_gioui_x_explorer_explorer_1android_ImportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, err C.jstring) {
 	fileCallback(env, stream, id, err)

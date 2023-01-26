@@ -97,6 +97,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return file.file.(io.ReadCloser), nil
 }
 
+func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
+	return nil, ErrNotAvailable
+}
+
 //export importCallback
 func importCallback(u C.CFTypeRef, id C.int32_t) {
 	fileCallback(u, id)
