@@ -3,14 +3,15 @@
 package explorer
 
 import (
-	"gioui.org/app"
-	"gioui.org/io/event"
-	"golang.org/x/sys/windows"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"unsafe"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
+	"golang.org/x/sys/windows"
 )
 
 var (

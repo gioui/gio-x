@@ -2,9 +2,10 @@ package explorer
 
 import (
 	"errors"
+	"io"
+
 	"gioui.org/app"
 	"git.wow.st/gmp/jni"
-	"io"
 )
 
 //go:generate javac -source 8 -target 8  -bootclasspath $ANDROID_HOME/platforms/android-30/android.jar -d $TEMP/explorer_file_android/classes file_android.java

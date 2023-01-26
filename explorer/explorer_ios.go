@@ -28,12 +28,13 @@ extern bool importFile(CFTypeRef expl, char * ext);
 */
 import "C"
 import (
-	"gioui.org/app"
-	"gioui.org/io/event"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
 )
 
 type explorer struct {

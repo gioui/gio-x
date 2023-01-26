@@ -113,6 +113,7 @@ func getError(file C.CFTypeRef) error {
 }
 
 // Exported function is required to create cgo header.
+//
 //export file_darwin
 func file_darwin() {}
 

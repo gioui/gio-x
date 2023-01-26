@@ -72,13 +72,14 @@ func NewExplorer(w *app.Window) (e *Explorer) {
 //
 // Similar as:
 //
-// select {
-// case e := <-window.Events():
-// 		explorer.ListenEvents(e)
-// 		switch e := e.(type) {
-// 				(( ... your code ...  ))
-// 		}
-// }
+//	select {
+//	case e := <-window.Events():
+//
+//		explorer.ListenEvents(e)
+//		switch e := e.(type) {
+//			(( ... your code ...  ))
+//		}
+//	}
 func (e *Explorer) ListenEvents(evt event.Event) {
 	if e == nil {
 		return

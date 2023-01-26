@@ -3,11 +3,12 @@
 package explorer
 
 import (
-	"gioui.org/app"
-	"gioui.org/io/event"
 	"io"
 	"strings"
 	"syscall/js"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
 )
 
 type explorer struct{}

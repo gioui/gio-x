@@ -11,14 +11,15 @@ package explorer
 import "C"
 import (
 	"errors"
-	"gioui.org/app"
-	"gioui.org/io/event"
-	"git.wow.st/gmp/jni"
 	"io"
 	"mime"
 	"path/filepath"
 	"strings"
 	"unsafe"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
+	"git.wow.st/gmp/jni"
 )
 
 //go:generate javac -source 8 -target 8  -bootclasspath $ANDROID_HOME/platforms/android-30/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java

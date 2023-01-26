@@ -16,12 +16,13 @@ extern void importFile(CFTypeRef viewRef, char * ext, int32_t id);
 */
 import "C"
 import (
-	"gioui.org/app"
-	"gioui.org/io/event"
 	"io"
 	"net/url"
 	"os"
 	"strings"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
 )
 
 type explorer struct {
