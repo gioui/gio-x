@@ -277,6 +277,67 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return os.Open(filepath)
 }
 
-func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
-	return nil, ErrNotAvailable
+// importFiles opens a multi-file picker to choose multiple files.
+func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
+	var filepaths []string
+	if err := e.withDesktopPortal(func(conn *dbus.Conn, desktopPortal dbus.BusObject, config config) error {
+		// Invoke the OpenFile method.
+		requestHandle := ""
+		options := map[string]dbus.Variant{
+			"handle_token": dbus.MakeVariant(config.handleToken),
+			"multiple":     dbus.MakeVariant(true),
+		}
+		if len(extensions) > 0 {
+			options["filters"] = makeFilter(extensions)
+		}
+		err := desktopPortal.Call("org.freedesktop.portal.FileChooser.OpenFile", 0, config.parentWindow, "Choose File", options).Store(&requestHandle)
+		if err != nil {
+			return fmt.Errorf("failed to call OpenFile: %w", err)
+		}
+
+		// Make sure we got the request object's path right. Update our subscription otherwise.
+		if requestHandle != config.expectedRequestHandle {
+			if err := conn.AddMatchSignal(dbus.WithMatchObjectPath(dbus.ObjectPath(requestHandle))); err != nil {
+				return fmt.Errorf("failed to subscribe to request: %w", err)
+			}
+			// Reset signal handling.
+			signals := make(chan *dbus.Signal, 1)
+			conn.Signal(signals)
+			config.signals = signals
+		}
+
+		// Wait for the response from the file dialog.
+		response := <-config.signals
+		uris := extractURIsFromSignal(response)
+
+		// Error if no files were selected.
+		if len(uris) < 1 {
+			return ErrUserDecline
+		}
+
+		filepaths = make([]string, len(uris))
+		for i, uri := range uris {
+			// Remove the protocol from the URI.
+			parsedURL, err := url.Parse(uri)
+			if err != nil {
+				return fmt.Errorf("failed parsing file path %s: %w", uri, err)
+			}
+			filepaths[i] = parsedURL.Path
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	rcs := make([]io.ReadCloser, 0, len(filepaths))
+	for _, fname := range filepaths {
+		rc, err := os.Open(fname)
+		if err != nil {
+			for _, rc := range rcs {
+				_ = rc.Close()
+			}
+			return nil, err
+		}
+		rcs = append(rcs, rc)
+	}
+	return rcs, nil
 }
