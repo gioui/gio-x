@@ -91,7 +91,7 @@ func (e *Explorer) ListenEvents(evt event.Event) {
 // Optionally, it's possible to define which file extensions is supported to
 // be selected (such as `.jpg`, `.png`).
 //
-// Example: ReadFile(".jpg", ".png") will only accept the selection of files with
+// Example: ChooseFile(".jpg", ".png") will only accept the selection of files with
 // .jpg or .png extensions.
 //
 // In some platforms the resulting `io.ReadCloser` is a `os.File`, but it's not
