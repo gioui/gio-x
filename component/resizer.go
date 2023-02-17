@@ -27,10 +27,15 @@ func (rs *Resize) Layout(gtx layout.Context, w1, w2, handle layout.Widget) layou
 	// Compute the first widget's max width/height.
 	rs.float.Length = rs.Axis.Convert(gtx.Constraints.Max).X
 	rs.float.Pos = int(rs.Ratio * float32(rs.float.Length))
+	oldPos := rs.float.Pos
 	m := op.Record(gtx.Ops)
 	dims := rs.float.Layout(gtx, rs.Axis, handle)
 	c := m.Stop()
-	rs.Ratio = float32(rs.float.Pos) / float32(rs.float.Length)
+	if rs.float.Pos != oldPos {
+		// We update rs.Ratio conditionally to avoid cumulating rounding errors when changing the constraints instead of
+		// dragging the handle.
+		rs.Ratio = float32(rs.float.Pos) / float32(rs.float.Length)
+	}
 	return layout.Flex{
 		Axis: rs.Axis,
 	}.Layout(gtx,
