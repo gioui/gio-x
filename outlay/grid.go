@@ -47,8 +47,8 @@ func (a *AxisPosition) normalize(gtx layout.Context, axis layout.Axis, elements 
 		a.Offset = 0
 	}
 	for a.Offset > dimensioner(axis, a.First, constraint) && a.First < elements-1 {
-		a.First++
 		dim := dimensioner(axis, a.First, constraint)
+		a.First++
 		a.Offset -= dim
 		a.OffsetAbs += dim
 	}
