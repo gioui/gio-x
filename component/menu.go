@@ -22,6 +22,8 @@ type SurfaceStyle struct {
 	// The CornerRadius and Elevation fields of the embedded shadow
 	// style also define the corner radius and elevation of the card.
 	ShadowStyle
+	// Theme background color will be used if empty.
+	Fill color.NRGBA
 }
 
 // Surface creates a Surface style for the provided theme with sensible default
@@ -40,7 +42,13 @@ func (c SurfaceStyle) Layout(gtx C, w layout.Widget) D {
 		layout.Expanded(func(gtx C) D {
 			c.ShadowStyle.Layout(gtx)
 			surface := clip.UniformRRect(image.Rectangle{Max: gtx.Constraints.Min}, gtx.Dp(c.ShadowStyle.CornerRadius))
-			paint.FillShape(gtx.Ops, c.Theme.Bg, surface.Op(gtx.Ops))
+			var fill color.NRGBA
+			if empty := (color.NRGBA{}); c.Fill == empty {
+				fill = c.Theme.Bg
+			} else {
+				fill = c.Fill
+			}
+			paint.FillShape(gtx.Ops, fill, surface.Op(gtx.Ops))
 			return D{Size: gtx.Constraints.Min}
 		}),
 		layout.Stacked(w),
