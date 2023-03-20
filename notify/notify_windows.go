@@ -4,7 +4,7 @@
 package notify
 
 import (
-	"github.com/go-toast/toast"
+	"git.sr.ht/~jackmordaunt/go-toast"
 )
 
 type windowsNotifier struct {
