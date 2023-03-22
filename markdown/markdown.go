@@ -104,11 +104,23 @@ func (g *gioNodeRenderer) AppendNewline() {
 	g.TextObjects[len(g.TextObjects)-1].Content += "\n"
 }
 
-// EnsureSeparationFromPrevious ensures that next text object will be
+// Make sure that there is at least a space separator from the previous text.
+func (g *gioNodeRenderer) EnsureTextSeparationFromPrevious() {
+	if len(g.TextObjects) < 1 {
+		return
+	}
+	last := g.TextObjects[len(g.TextObjects)-1]
+	if !strings.HasSuffix(last.Content, "\n") && !strings.HasSuffix(last.Content, " ") {
+		g.Current.Content = " "
+		g.CommitCurrent()
+	}
+}
+
+// EnsureLineSeparationFromPrevious ensures that next text object will be
 // visually separated from the previous by a blank line. It achieves
 // this by inserting a synthetic label containing only newlines if
 // necessary.
-func (g *gioNodeRenderer) EnsureSeparationFromPrevious() {
+func (g *gioNodeRenderer) EnsureLineSeparationFromPrevious() {
 	if len(g.TextObjects) < 1 {
 		return
 	}
@@ -157,7 +169,7 @@ func (g *gioNodeRenderer) renderDocument(w util.BufWriter, source []byte, node a
 func (g *gioNodeRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Heading)
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 		var sp unit.Sp
 		switch n.Level {
 		case 1:
@@ -186,7 +198,7 @@ func (g *gioNodeRenderer) renderBlockquote(w util.BufWriter, source []byte, node
 
 func (g *gioNodeRenderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 	} else {
 		g.Current.Font.Variant = ""
@@ -197,7 +209,7 @@ func (g *gioNodeRenderer) renderCodeBlock(w util.BufWriter, source []byte, node 
 func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 		lines := n.Lines()
 		for i := 0; i < lines.Len(); i++ {
@@ -213,7 +225,7 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 
 func (g *gioNodeRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 		g.Current.Font.Variant = "Mono"
 	} else {
 		g.Current.Font.Variant = ""
@@ -224,7 +236,7 @@ func (g *gioNodeRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node 
 func (g *gioNodeRenderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.List)
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 		g.OrderedList = n.IsOrdered()
 		g.OrderedIndex = 1
 	} else {
@@ -250,7 +262,7 @@ func (g *gioNodeRenderer) renderListItem(w util.BufWriter, source []byte, node a
 
 func (g *gioNodeRenderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		g.EnsureSeparationFromPrevious()
+		g.EnsureLineSeparationFromPrevious()
 	}
 	return ast.WalkContinue, nil
 }
@@ -317,6 +329,7 @@ const MetadataURL = "url"
 func (g *gioNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
+		g.EnsureTextSeparationFromPrevious()
 		g.Current.Color = g.Config.InteractiveColor
 		g.Current.Interactive = true
 		g.Current.Set(MetadataURL, string(n.Destination))
@@ -336,6 +349,7 @@ func (g *gioNodeRenderer) renderText(w util.BufWriter, source []byte, node ast.N
 	if !entering {
 		return ast.WalkContinue, nil
 	}
+	g.EnsureTextSeparationFromPrevious()
 	n := node.(*ast.Text)
 	segment := n.Segment
 	content := segment.Value(source)
