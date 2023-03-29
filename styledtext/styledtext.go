@@ -95,7 +95,9 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			Font:     span.Font,
 			PxPerEm:  fixed.I(gtx.Sp(span.Size)),
 			MaxLines: 1,
-		}, 0, maxWidth, gtx.Locale, span.Content)
+			MaxWidth: maxWidth,
+			Locale:   gtx.Locale,
+		}, span.Content)
 		ti := textIterator{
 			viewport: image.Rectangle{Max: gtx.Constraints.Max},
 			maxLines: 1,
