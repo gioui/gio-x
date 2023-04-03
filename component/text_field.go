@@ -307,7 +307,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 									}
 									return D{}
 								}),
-								layout.Rigid(func(gtx C) D {
+								layout.Flexed(1, func(gtx C) D {
 									return material.Editor(th, &in.Editor, "").Layout(gtx)
 								}),
 								layout.Rigid(func(gtx C) D {
