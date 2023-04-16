@@ -25,8 +25,6 @@ type TextField struct {
 	// click detects when the mouse pointer clicks or hovers
 	// within the textfield.
 	click gesture.Click
-	// Alignment specifies where to anchor the text.
-	Alignment layout.Alignment
 
 	// Helper text to give additional context to a field.
 	Helper string
@@ -289,16 +287,6 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 							return layout.Flex{
 								Axis:      layout.Horizontal,
 								Alignment: layout.Middle,
-								Spacing: func() layout.Spacing {
-									switch in.Alignment {
-									case layout.Middle:
-										return layout.SpaceSides
-									case layout.End:
-										return layout.SpaceStart
-									default: // layout.Start and all others
-										return layout.SpaceEnd
-									}
-								}(),
 							}.Layout(
 								gtx,
 								layout.Rigid(func(gtx C) D {
