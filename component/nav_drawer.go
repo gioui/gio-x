@@ -5,10 +5,10 @@ import (
 	"image/color"
 	"time"
 
+	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
-	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -112,7 +112,7 @@ func (n *renderNavItem) layoutContent(gtx layout.Context, th *material.Theme) la
 			layout.Rigid(func(gtx C) D {
 				label := material.Label(th, unit.Sp(14), n.Name)
 				label.Color = contentColor
-				label.Font.Weight = text.Bold
+				label.Font.Weight = font.Bold
 				return layout.Center.Layout(gtx, TruncatingLabelStyle(label).Layout)
 			}),
 		)
@@ -218,7 +218,7 @@ func (m *NavDrawer) LayoutContents(gtx layout.Context, th *material.Theme, anim 
 						gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(36))
 						gtx.Constraints.Min = gtx.Constraints.Max
 						title := material.Label(th, unit.Sp(18), m.Title)
-						title.Font.Weight = text.Bold
+						title.Font.Weight = font.Bold
 						return layout.SW.Layout(gtx, title.Layout)
 					}),
 					layout.Rigid(func(gtx C) D {

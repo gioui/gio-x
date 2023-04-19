@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gioui.org/text"
+	"gioui.org/font"
 	"gioui.org/unit"
 	"gioui.org/x/richtext"
 
@@ -26,7 +26,7 @@ import (
 
 // Config defines settings used by the renderer.
 type Config struct {
-	DefaultFont text.Font
+	DefaultFont font.Font
 	// Defaults to 12 if unset.
 	DefaultSize unit.Sp
 	// If unset, each level will be 1.2 times larger than the previous.
@@ -72,7 +72,7 @@ func (g *gioNodeRenderer) UpdateCurrentColor(c color.NRGBA) {
 // current text's corresponding attribute will be updated to match.
 // If the provided font is the zero value, the current font will be
 // reset to the zero value as well.
-func (g *gioNodeRenderer) UpdateCurrentFont(f text.Font) {
+func (g *gioNodeRenderer) UpdateCurrentFont(f font.Font) {
 	reset := true
 	if f.Style != 0 {
 		reset = false
@@ -292,15 +292,15 @@ func (g *gioNodeRenderer) renderEmphasis(w util.BufWriter, source []byte, node a
 
 	if entering {
 		if n.Level == 2 {
-			g.Current.Font.Weight = text.Bold
+			g.Current.Font.Weight = font.Bold
 		} else {
-			g.Current.Font.Style = text.Italic
+			g.Current.Font.Style = font.Italic
 		}
 	} else {
 		if n.Level == 2 {
-			g.Current.Font.Weight = text.Normal
+			g.Current.Font.Weight = font.Normal
 		} else {
-			g.Current.Font.Style = text.Regular
+			g.Current.Font.Style = font.Regular
 		}
 	}
 	return ast.WalkContinue, nil

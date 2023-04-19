@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"time"
 
+	"gioui.org/font"
 	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
@@ -138,7 +139,7 @@ func (i *InteractiveText) Events() (*InteractiveSpan, []Event) {
 
 // SpanStyle describes the appearance of a span of styled text.
 type SpanStyle struct {
-	Font           text.Font
+	Font           font.Font
 	Size           unit.Sp
 	Color          color.NRGBA
 	Content        string

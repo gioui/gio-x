@@ -64,9 +64,9 @@ func Discloser(th *material.Theme, state *DiscloserState) DiscloserStyle {
 //
 // The structure of the resulting discloser is:
 //
-//     control | summary
-//     -----------------
-//     detail
+//	control | summary
+//	-----------------
+//	detail
 //
 // If d.ControlSide is set to Right, the control will appear after the summary
 // instead of before it.

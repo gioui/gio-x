@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"unicode/utf8"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
@@ -16,7 +17,7 @@ import (
 
 // SpanStyle describes the appearance of a span of styled text.
 type SpanStyle struct {
-	Font    text.Font
+	Font    font.Font
 	Size    unit.Sp
 	Color   color.NRGBA
 	Content string
