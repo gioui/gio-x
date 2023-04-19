@@ -1,12 +1,12 @@
 // Package notify provides cross-platform notifications for Gio applications.
 //
-// 	   https://gioui.org
+//	https://gioui.org
 //
 // Sending a notification is easy:
 //
-//     notifier, _ := NewNotifier()
-//     notification, _ := notifier.CreateNotification("hello!", "I was sent from Gio!")
-//     notification.Cancel()
+//	notifier, _ := NewNotifier()
+//	notification, _ := notifier.CreateNotification("hello!", "I was sent from Gio!")
+//	notification.Cancel()
 package notify
 
 import "sync"

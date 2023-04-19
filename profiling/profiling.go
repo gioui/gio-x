@@ -4,33 +4,33 @@ Package profiling provides tools for recording frame timings for later analysis.
 The simplest usage is to construct a profilier at the start of your event loop
 function and to defer stopping it until the window is closed. Something like:
 
-    func loop(w *app.Window) error {
-        // log to a CSV file with a randomly-chosen name. The file's path will be
-        // logged to stderr.
-        recorder, err := NewRecorder(nil)
-        if err != nil {
-            // handle
-        }
-        defer recorder.Stop()
+	func loop(w *app.Window) error {
+	    // log to a CSV file with a randomly-chosen name. The file's path will be
+	    // logged to stderr.
+	    recorder, err := NewRecorder(nil)
+	    if err != nil {
+	        // handle
+	    }
+	    defer recorder.Stop()
 
-        var ops op.Ops
+	    var ops op.Ops
 
-        for event := range window.Events() {
-            switch event := event.(type) {
-                case system.DestroyEvent:
-                    // returning will execute the deferred call to Stop(), which
-                    // flushes the CSV file.
-                    return event.Err
-                case system.FrameEvent:
-                    gtx := layout.NewContext(&ops, event)
+	    for event := range window.Events() {
+	        switch event := event.(type) {
+	            case system.DestroyEvent:
+	                // returning will execute the deferred call to Stop(), which
+	                // flushes the CSV file.
+	                return event.Err
+	            case system.FrameEvent:
+	                gtx := layout.NewContext(&ops, event)
 
-                    // record the last frame's timing info and prepare the next one
-                    recorder.profile(gtx)
+	                // record the last frame's timing info and prepare the next one
+	                recorder.profile(gtx)
 
-                    // lay out your UI here
-            }
-        }
-    }
+	                // lay out your UI here
+	        }
+	    }
+	}
 
 The actual disk I/O is performed by a different goroutine and will not block the UI unless it gets more than 60 frames behind.
 */
