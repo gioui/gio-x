@@ -23,10 +23,10 @@ func newNotifier() (Notifier, error) {
 // Note; cancellation is not implemented.
 func (m *windowsNotifier) CreateNotification(title, text string) (Notification, error) {
 	return noop{}, (&toast.Notification{
-		AppID:   title,
-		Title:   title,
-		Message: text,
-		Icon:    m.icon,
+		AppID: title,
+		Title: title,
+		Body:  text,
+		Icon:  m.icon,
 	}).Push()
 }
 
