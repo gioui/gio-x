@@ -48,6 +48,7 @@ const (
 	segOpLineTo
 	segOpQuadTo
 	segOpCubeTo
+	segOpArcTo
 )
 
 // StrokeCap describes the head or tail of a stroked path.
@@ -124,6 +125,15 @@ func CubeTo(ctrl0, ctrl1, end f32.Point) Segment {
 	return s
 }
 
+func ArcTo(center f32.Point, angle float32) Segment {
+	s := Segment{
+		op: segOpArcTo,
+	}
+	s.args[0] = center
+	s.args[1].X = angle
+	return s
+}
+
 // Op returns a clip operation that approximates stroke.
 func (s Stroke) Op(ops *op.Ops) clip.Op {
 	if len(s.Path.Segments) == 0 {
@@ -152,6 +162,10 @@ func (s Stroke) Op(ops *op.Ops) clip.Op {
 		case segOpCubeTo:
 			contour = append(contour, stroke.Segment{stroke.Point(pen), stroke.Point(seg.args[0]), stroke.Point(seg.args[1]), stroke.Point(seg.args[2])})
 			pen = seg.args[2]
+		case segOpArcTo:
+			out := stroke.ArcSegment(stroke.Point(pen), stroke.Point(seg.args[0]), seg.args[1].X)
+			contour = append(contour, out)
+			pen = f32.Point(out.End)
 		}
 	}
 	if len(contour) > 0 {

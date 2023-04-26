@@ -327,6 +327,34 @@ func TestStrokedPathBalloon(t *testing.T) {
 	})
 }
 
+func TestStrokedPathArc(t *testing.T) {
+	run(t, func(o *op.Ops) {
+		p := Path{
+			Segments: []Segment{
+				MoveTo(f32.Pt(0, 65)),
+				LineTo(f32.Pt(20, 65)),
+				ArcTo(f32.Pt(70, 65), +math.Pi/3),
+				LineTo(f32.Pt(70, 65)),
+				LineTo(f32.Pt(20, 65)),
+				ArcTo(f32.Pt(70, 65), -math.Pi/2),
+				LineTo(f32.Pt(70, 65)),
+			},
+		}
+		cl := Stroke{
+			Path:  p,
+			Width: 2.83,
+			Cap:   RoundCap,
+			Join:  RoundJoin,
+		}.Op(o).Push(o)
+		paint.Fill(o, red)
+		cl.Pop()
+	}, func(r result) {
+		r.expect(0, 0, transparent)
+		r.expect(70, 65, colornames.Red)
+		r.expect(35, 65, colornames.Red)
+	})
+}
+
 var fruit = Path{
 	Segments: []Segment{
 		MoveTo(f32.Pt(10, 50)),
