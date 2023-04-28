@@ -4,6 +4,8 @@
 package stroke
 
 import (
+	"math"
+
 	"gioui.org/f32"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -163,9 +165,20 @@ func (s Stroke) Op(ops *op.Ops) clip.Op {
 			contour = append(contour, stroke.Segment{stroke.Point(pen), stroke.Point(seg.args[0]), stroke.Point(seg.args[1]), stroke.Point(seg.args[2])})
 			pen = seg.args[2]
 		case segOpArcTo:
-			out := stroke.ArcSegment(stroke.Point(pen), stroke.Point(seg.args[0]), seg.args[1].X)
-			contour = append(contour, out)
-			pen = f32.Point(out.End)
+			var (
+				start  = stroke.Point(pen)
+				center = stroke.Point(seg.args[0])
+				angle  = seg.args[1].X
+			)
+			switch {
+			case absF32(angle) > math.Pi:
+				contour = stroke.AppendArc(contour, start, center, angle)
+				pen = f32.Point(contour[len(contour)-1].End)
+			default:
+				out := stroke.ArcSegment(start, center, angle)
+				contour = append(contour, out)
+				pen = f32.Point(out.End)
+			}
 		}
 	}
 	if len(contour) > 0 {
@@ -218,4 +231,8 @@ func (s Stroke) Op(ops *op.Ops) clip.Op {
 	}
 
 	return clip.Outline{Path: outline.End()}.Op()
+}
+
+func absF32(x float32) float32 {
+	return math.Float32frombits(math.Float32bits(x) &^ (1 << 31))
 }

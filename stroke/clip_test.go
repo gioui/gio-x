@@ -333,11 +333,15 @@ func TestStrokedPathArc(t *testing.T) {
 			Segments: []Segment{
 				MoveTo(f32.Pt(0, 65)),
 				LineTo(f32.Pt(20, 65)),
-				ArcTo(f32.Pt(70, 65), +math.Pi/3),
+				ArcTo(f32.Pt(70, 65), +math.Pi/6),
 				LineTo(f32.Pt(70, 65)),
 				LineTo(f32.Pt(20, 65)),
-				ArcTo(f32.Pt(70, 65), -math.Pi/2),
+				ArcTo(f32.Pt(70, 65), -math.Pi/6),
 				LineTo(f32.Pt(70, 65)),
+				LineTo(f32.Pt(70, 115)),
+				ArcTo(f32.Pt(70, 65), -7*math.Pi/6),
+				LineTo(f32.Pt(70, 65)),
+				LineTo(f32.Pt(70, 15)),
 			},
 		}
 		cl := Stroke{
@@ -352,6 +356,7 @@ func TestStrokedPathArc(t *testing.T) {
 		r.expect(0, 0, transparent)
 		r.expect(70, 65, colornames.Red)
 		r.expect(35, 65, colornames.Red)
+		r.expect(120, 65, colornames.Red)
 	})
 }
 
