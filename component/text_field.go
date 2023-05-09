@@ -192,8 +192,8 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		spacing = 4
 	}
 	in.label.Smallest = layout.Inset{
-		Left:  unit.Dp(spacing),
-		Right: unit.Dp(spacing),
+		Left:  spacing,
+		Right: spacing,
 	}.Layout(gtx, func(gtx C) D {
 		return material.Label(th, textSmall, hint).Layout(gtx)
 	})
