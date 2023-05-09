@@ -187,9 +187,13 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	// Hack: Reset min constraint to 0 to avoid min == max.
 	gtx.Constraints.Min.X = 0
 	macro := op.Record(gtx.Ops)
+	var spacing unit.Dp
+	if len(hint) > 0 {
+		spacing = 4
+	}
 	in.label.Smallest = layout.Inset{
-		Left:  unit.Dp(4),
-		Right: unit.Dp(4),
+		Left:  unit.Dp(spacing),
+		Right: unit.Dp(spacing),
 	}.Layout(gtx, func(gtx C) D {
 		return material.Label(th, textSmall, hint).Layout(gtx)
 	})
