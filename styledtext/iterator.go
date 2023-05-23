@@ -53,6 +53,9 @@ type textIterator struct {
 // processGlyph checks whether the glyph is visible within the iterator's configured
 // viewport and (if so) updates the iterator's text dimensions to include the glyph.
 func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visibleOrBefore bool) {
+	if g.Flags&text.FlagTruncator != 0 {
+		return g, false
+	}
 	it.runes += int(g.Runes)
 	it.hasNewline = it.hasNewline || (g.Flags&text.FlagLineBreak > 0 && g.Flags&text.FlagParagraphBreak > 0)
 	if it.maxLines > 0 {
