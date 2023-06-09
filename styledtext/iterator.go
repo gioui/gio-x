@@ -54,6 +54,11 @@ type textIterator struct {
 // viewport and (if so) updates the iterator's text dimensions to include the glyph.
 func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visibleOrBefore bool) {
 	if g.Flags&text.FlagTruncator != 0 {
+		// If the truncator is the first glyph, force a newline.
+		if it.runes == 0 {
+			it.runes = 1
+			it.hasNewline = true
+		}
 		return g, false
 	}
 	it.runes += int(g.Runes)
