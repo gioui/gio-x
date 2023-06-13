@@ -235,7 +235,7 @@ func DividerSubheadingText(th *material.Theme, label string) material.LabelStyle
 // MenuState holds the state of a menu material design component
 // across frames.
 type MenuState struct {
-	OptionList layout.List
+	OptionList widget.List
 	Options    []func(gtx C) D
 }
 
@@ -246,6 +246,7 @@ type MenuStyle struct {
 	// Inset applied around the rendered contents of the state's Options field.
 	layout.Inset
 	SurfaceStyle
+	ListStyle material.ListStyle
 }
 
 // Menu constructs a menu with the provided state and a default Surface behind
@@ -259,7 +260,9 @@ func Menu(th *material.Theme, state *MenuState) MenuStyle {
 			Top:    unit.Dp(8),
 			Bottom: unit.Dp(8),
 		},
+		ListStyle: material.List(th, &state.OptionList),
 	}
+	m.ListStyle.AnchorStrategy = material.Overlay
 	m.OptionList.Axis = layout.Vertical
 	return m
 }
@@ -279,7 +282,7 @@ func (m MenuStyle) Layout(gtx C) D {
 	gtx.Ops = originalOps
 	return m.SurfaceStyle.Layout(gtx, func(gtx C) D {
 		return m.Inset.Layout(gtx, func(gtx C) D {
-			return m.OptionList.Layout(gtx, len(m.Options), func(gtx C, index int) D {
+			return m.ListStyle.Layout(gtx, len(m.Options), func(gtx C, index int) D {
 				gtx.Constraints.Min.X = maxWidth
 				gtx.Constraints.Max.X = maxWidth
 				return m.Options[index](gtx)
