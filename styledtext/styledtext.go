@@ -97,7 +97,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			PxPerEm:   fixed.I(gtx.Sp(span.Size)),
 			MaxLines:  1,
 			MaxWidth:  maxWidth,
-			Truncator: "​", // Unicode zero-width space.
+			Truncator: "\u200b", // Unicode zero-width space.
 			Locale:    gtx.Locale,
 		}, span.Content)
 		ti := textIterator{
