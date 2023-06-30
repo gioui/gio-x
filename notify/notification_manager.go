@@ -28,10 +28,15 @@ type IconNotifier interface {
 	UseIcon(path string)
 }
 
-// OnGoingNotifier is a notifier that can display an ongoing notification.
-type OnGoingNotifier interface {
+// OngoingNotifier is a notifier that can display an ongoing notification.
+// Some platforms (currently Android) support persistent notifications and
+// will implement this optional interface.
+type OngoingNotifier interface {
 	Notifier
-	SetOnGoing(ongoing bool)
+	// CreateOngoingNotification creates a notification that cannot be dismissed
+	// by the user. Callers must be careful to cancel this notification when it
+	// is no longer needed.
+	CreateOngoingNotification(title, text string) (Notification, error)
 }
 
 // NewNotifier creates a new Manager tailored to the current operating system.
