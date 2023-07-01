@@ -31,6 +31,15 @@ Send patches on the [gio patches mailing list](https://lists.sr.ht/~eliasnaur/gi
 
 All patches should be Signed-off to indicate conformance with the [LICENSE](https://git.sr.ht/~whereswaldon/gio-x/tree/main/LICENSE) of this repo.
 
+## Tags
+
+Pre-1.0 tags are provided for reference only, and do not designate releases with ongoing support. Bugfixes will not be backported to older tags.
+
+Tags follow semantic versioning. In particular, as the major version is zero:
+
+- breaking API or behavior changes will increment the *minor* version component.
+- non-breaking changes will increment the *patch* version component.
+
 ## Maintainers
 
 This repository is primarily maintained by Chris Waldon.
