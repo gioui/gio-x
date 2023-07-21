@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -225,6 +226,9 @@ type PickerStyle struct {
 	*State
 	*material.Theme
 	Label string
+	// MonospaceFace selects the typeface to use for monospace text fields.
+	// The zero value will use the generic family "monospace".
+	MonospaceFace font.Typeface
 }
 
 type (
@@ -284,6 +288,10 @@ func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 func (p PickerStyle) layoutLeftPane(gtx C) D {
+	monospaceFace := p.MonospaceFace
+	if len(p.MonospaceFace) == 0 {
+		monospaceFace = "monospace"
+	}
 	gtx.Constraints.Min.X = 0
 	inset := layout.UniformInset(unit.Dp(4))
 	dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -303,12 +311,12 @@ func (p PickerStyle) layoutLeftPane(gtx C) D {
 							return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
 								layout.Rigid(func(gtx C) D {
 									label := material.Body1(p.Theme, "#")
-									label.Font.Variant = "Mono"
+									label.Font.Typeface = monospaceFace
 									return label.Layout(gtx)
 								}),
 								layout.Rigid(func(gtx C) D {
 									editor := material.Editor(p.Theme, &p.Editor, "rrggbb")
-									editor.Font.Variant = "Mono"
+									editor.Font.Typeface = monospaceFace
 									return editor.Layout(gtx)
 								}),
 							)
@@ -355,12 +363,16 @@ func valueString(in uint8) string {
 }
 
 func (p PickerStyle) layoutSlider(gtx C, value *widget.Float, label, valueStr string) D {
+	monospaceFace := p.MonospaceFace
+	if len(p.MonospaceFace) == 0 {
+		monospaceFace = "monospace"
+	}
 	inset := layout.UniformInset(unit.Dp(2))
-	layoutDims := layout.Flex{}.Layout(gtx,
+	layoutDims := layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
 				label := material.Body1(p.Theme, label)
-				label.Font.Variant = "Mono"
+				label.Font.Typeface = monospaceFace
 				return label.Layout(gtx)
 			})
 		}),
@@ -371,7 +383,7 @@ func (p PickerStyle) layoutSlider(gtx C, value *widget.Float, label, valueStr st
 		layout.Rigid(func(gtx C) D {
 			return inset.Layout(gtx, func(gtx C) D {
 				label := material.Body1(p.Theme, valueStr)
-				label.Font.Variant = "Mono"
+				label.Font.Typeface = monospaceFace
 				return label.Layout(gtx)
 			})
 		}),

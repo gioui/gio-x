@@ -26,7 +26,8 @@ import (
 
 // Config defines settings used by the renderer.
 type Config struct {
-	DefaultFont font.Font
+	DefaultFont   font.Font
+	MonospaceFont font.Font
 	// Defaults to 12 if unset.
 	DefaultSize unit.Sp
 	// If unset, each level will be 1.2 times larger than the previous.
@@ -81,10 +82,6 @@ func (g *gioNodeRenderer) UpdateCurrentFont(f font.Font) {
 	if f.Typeface != "" {
 		reset = false
 		g.Current.Font.Typeface = f.Typeface
-	}
-	if f.Variant != "" {
-		reset = false
-		g.Current.Font.Variant = f.Variant
 	}
 	if f.Weight != 0 {
 		reset = false
@@ -187,9 +184,9 @@ func (g *gioNodeRenderer) renderBlockquote(w util.BufWriter, source []byte, node
 func (g *gioNodeRenderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		g.EnsureSeparationFromPrevious()
-		g.Current.Font.Variant = "Mono"
+		g.Current.Font = g.Config.MonospaceFont
 	} else {
-		g.Current.Font.Variant = ""
+		g.Current.Font = g.Config.DefaultFont
 	}
 	return ast.WalkContinue, nil
 }
@@ -198,7 +195,7 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 	n := node.(*ast.FencedCodeBlock)
 	if entering {
 		g.EnsureSeparationFromPrevious()
-		g.Current.Font.Variant = "Mono"
+		g.Current.Font = g.Config.MonospaceFont
 		lines := n.Lines()
 		for i := 0; i < lines.Len(); i++ {
 			line := lines.At(i)
@@ -206,7 +203,7 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 			g.CommitCurrent()
 		}
 	} else {
-		g.Current.Font.Variant = ""
+		g.Current.Font = g.Config.DefaultFont
 	}
 	return ast.WalkContinue, nil
 }
@@ -214,9 +211,9 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 func (g *gioNodeRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		g.EnsureSeparationFromPrevious()
-		g.Current.Font.Variant = "Mono"
+		g.Current.Font = g.Config.MonospaceFont
 	} else {
-		g.Current.Font.Variant = ""
+		g.Current.Font = g.Config.DefaultFont
 	}
 	return ast.WalkContinue, nil
 }
@@ -280,9 +277,9 @@ func (g *gioNodeRenderer) renderAutoLink(w util.BufWriter, source []byte, node a
 
 func (g *gioNodeRenderer) renderCodeSpan(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		g.Current.Font.Variant = "Mono"
+		g.Current.Font = g.Config.MonospaceFont
 	} else {
-		g.Current.Font.Variant = ""
+		g.Current.Font = g.Config.DefaultFont
 	}
 	return ast.WalkContinue, nil
 }
@@ -423,6 +420,13 @@ func (r *Renderer) Render(src []byte) ([]richtext.SpanStyle, error) {
 	}
 	if r.Config.DefaultColor == (color.NRGBA{}) {
 		r.Config.DefaultColor = color.NRGBA{A: 255}
+	}
+	if r.Config.MonospaceFont == (font.Font{}) {
+		r.Config.MonospaceFont = font.Font{
+			Typeface: "monospace",
+			Weight:   r.Config.DefaultFont.Weight,
+			Style:    r.Config.DefaultFont.Style,
+		}
 	}
 	if r.Config.InteractiveColor == (color.NRGBA{}) {
 		// Match the default material theme primary color.
