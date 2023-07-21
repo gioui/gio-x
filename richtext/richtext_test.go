@@ -9,6 +9,7 @@ import (
 	"gioui.org/io/router"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
@@ -17,7 +18,8 @@ import (
 // richtext with a nil state when none of the spans are
 // interactive.
 func TestNilInteractiveText(t *testing.T) {
-	th := material.NewTheme(gofont.Collection())
+	th := material.NewTheme()
+	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 	spans := []SpanStyle{
 		{
 			Size:    12,

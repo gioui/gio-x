@@ -10,21 +10,22 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"gioui.org/x/richtext"
 )
 
-var (
-	fonts = gofont.Collection()
-	th    = material.NewTheme(fonts)
-	black = color.NRGBA{A: 255}
-	green = color.NRGBA{G: 170, A: 255}
-	blue  = color.NRGBA{B: 170, A: 255}
-	red   = color.NRGBA{R: 170, A: 255}
-)
-
 func Example() {
+	var (
+		fonts = gofont.Collection()
+		th    = material.NewTheme()
+		black = color.NRGBA{A: 255}
+		green = color.NRGBA{G: 170, A: 255}
+		blue  = color.NRGBA{B: 170, A: 255}
+		red   = color.NRGBA{R: 170, A: 255}
+	)
+	th.Shaper = text.NewShaper(text.WithCollection(fonts))
 	go func() {
 		w := app.NewWindow()
 
