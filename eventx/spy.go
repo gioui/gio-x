@@ -43,7 +43,6 @@ func Enspy(gtx layout.Context) (*Spy, layout.Context) {
 	spy := &Spy{Queue: gtx.Queue}
 	gtx.Queue = spy
 	return spy, gtx
-
 }
 
 // Events returns the events for a given tag from the wrapped Queue.
@@ -76,8 +75,12 @@ func Combine(gtx layout.Context, queue event.Queue) layout.Context {
 }
 
 // Events returns the combined results of the two queues.
-func (u CombinedQueue) Events(tag event.Tag) []event.Event {
-	out := u.A.Events(tag)
-	out = append(out, u.B.Events(tag)...)
+func (u CombinedQueue) Events(tag event.Tag) (out []event.Event) {
+	if u.A != nil {
+		out = append(out, u.A.Events(tag)...)
+	}
+	if u.B != nil {
+		out = append(out, u.B.Events(tag)...)
+	}
 	return out
 }
