@@ -3,12 +3,11 @@
 package explorer
 
 import (
+	"gioui.org/app"
+	"gioui.org/io/event"
 	"io"
 	"strings"
 	"syscall/js"
-
-	"gioui.org/app"
-	"gioui.org/io/event"
 )
 
 type explorer struct{}
@@ -29,7 +28,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	// TODO: Replace with "File System Access API" when that becomes available on most browsers.
 	// BUG: Not work on iOS/Safari.
 
-	// It's not possible to know if the user closes the file-picker dialog, so an new channerl is needed.
+	// It's not possible to know if the user closes the file-picker dialog, so an new channel is needed.
 	r := make(chan result)
 
 	document := js.Global().Get("document")
@@ -57,7 +56,7 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 type FileReader struct {
 	buffer                   js.Value
 	isClosed                 bool
-	index                    uint32
+	index                    int
 	callback                 chan js.Value
 	successFunc, failureFunc js.Func
 }
@@ -85,17 +84,21 @@ func (f *FileReader) Read(b []byte) (n int, err error) {
 	}
 
 	go func() {
-		fileSlice(f.index, f.index+uint32(len(b)), f.buffer, f.successFunc, f.failureFunc)
+		fileSlice(f.index, f.index+len(b), f.buffer, f.successFunc, f.failureFunc)
 	}()
 
 	buffer := <-f.callback
-	n32 := fileRead(buffer, b)
-	if n32 == 0 {
+	if !buffer.Truthy() {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	n = fileRead(buffer, b)
+	if n == 0 {
 		return 0, io.EOF
 	}
-	f.index += n32
+	f.index += n
 
-	return int(n32), err
+	return n, err
 }
 
 func (f *FileReader) Close() error {
@@ -162,11 +165,17 @@ func (f *FileWriter) saveFile() error {
 	return nil
 }
 
-// fileRead and fileWrite calls the JS function directly (without syscall/js to avoid double copying).
-// The function is defined into explorer_js.s, which calls explorer_js.js.
-func fileRead(value js.Value, b []byte) uint32
-func fileWrite(value js.Value, b []byte)
-func fileSlice(start, end uint32, value js.Value, success, failure js.Func)
+func fileRead(value js.Value, b []byte) int {
+	return js.CopyBytesToGo(b, value)
+}
+
+func fileWrite(value js.Value, b []byte) int {
+	return js.CopyBytesToJS(value, b)
+}
+
+func fileSlice(start, end int, value js.Value, success, failure js.Func) {
+	value.Call("slice", start, end).Call("arrayBuffer").Call("then", success, failure)
+}
 
 func openCallback(r chan result) js.Func {
 	// There's no way to detect when the dialog is closed, so we can't re-use the callback.
