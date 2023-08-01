@@ -86,7 +86,7 @@ notify(char *id, char *title, char *content, unsigned char *errorCode) {
 		ret = req.identifier;
 		[ret retain];
 		NSLog(@"Requesting authorization");
-		[nc requestAuthorizationWithOptions: UNAuthorizationOptionBadge | UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionCriticalAlert completionHandler: ^(BOOL granted, NSError *error){
+		[nc requestAuthorizationWithOptions: UNAuthorizationOptionBadge | UNAuthorizationOptionSound | UNAuthorizationOptionAlert completionHandler: ^(BOOL granted, NSError *error){
 			NSLog(@"Granted = %s", granted?"true":"false");
 			NSLog(@"Error = %@", error);
 			enabled = granted;
