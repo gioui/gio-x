@@ -1,5 +1,5 @@
-//go:build !js && !windows && !android
-// +build !js,!windows,!android
+//go:build !js && !windows && !android && !linux
+// +build !js,!windows,!android,!linux
 
 package battery
 
