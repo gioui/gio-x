@@ -53,10 +53,10 @@ type FanItem struct {
 	Elevate bool
 }
 
-func Item(evelvate bool, w layout.Widget) FanItem {
+func Item(elevate bool, w layout.Widget) FanItem {
 	return FanItem{
 		W:       w,
-		Elevate: evelvate,
+		Elevate: elevate,
 	}
 }
 
