@@ -41,10 +41,35 @@ func (ss SpanStyle) Layout(gtx layout.Context, shape spanShape) layout.Dimension
 	return layout.Dimensions{Size: shape.size}
 }
 
+// WrapPolicy defines line wrapping policies for styledtext. Due to complexities
+// of the styledtext implementation, there are fewer options available than in
+// [gioui.org/text.WrapPolicy].
+type WrapPolicy uint8
+
+const (
+	// WrapWords implements behavior like [gioui.org/text/.WrapWords]. This is the default,
+	// as it prevents words from being split across lines.
+	WrapWords WrapPolicy = iota
+	// WrapWords implements behavior like [gioui.org/text/.WrapGraphemes]. This often gives
+	// unpleasant results, as it will choose to split words across lines whenever it can. Some
+	// use-cases may still want this, however.
+	WrapGraphemes
+)
+
+func (s WrapPolicy) textPolicy() text.WrapPolicy {
+	switch s {
+	case WrapWords:
+		return text.WrapWords
+	default:
+		return text.WrapGraphemes
+	}
+}
+
 // TextStyle presents rich text.
 type TextStyle struct {
-	Styles    []SpanStyle
-	Alignment text.Alignment
+	Styles     []SpanStyle
+	Alignment  text.Alignment
+	WrapPolicy WrapPolicy
 	*text.Shaper
 }
 
@@ -93,12 +118,13 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		macro := op.Record(gtx.Ops)
 		paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
 		t.Shaper.LayoutString(text.Parameters{
-			Font:      span.Font,
-			PxPerEm:   fixed.I(gtx.Sp(span.Size)),
-			MaxLines:  1,
-			MaxWidth:  maxWidth,
-			Truncator: "\u200b", // Unicode zero-width space.
-			Locale:    gtx.Locale,
+			Font:       span.Font,
+			PxPerEm:    fixed.I(gtx.Sp(span.Size)),
+			MaxLines:   1,
+			MaxWidth:   maxWidth,
+			Truncator:  "\u200b", // Unicode zero-width space.
+			Locale:     gtx.Locale,
+			WrapPolicy: t.WrapPolicy.textPolicy(),
 		}, span.Content)
 		ti := textIterator{
 			viewport: image.Rectangle{Max: gtx.Constraints.Max},
