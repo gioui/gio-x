@@ -182,9 +182,10 @@ func (ss SpanStyle) DeepCopy() SpanStyle {
 
 // TextStyle presents rich text.
 type TextStyle struct {
-	State     *InteractiveText
-	Styles    []SpanStyle
-	Alignment text.Alignment
+	State      *InteractiveText
+	Styles     []SpanStyle
+	Alignment  text.Alignment
+	WrapPolicy styledtext.WrapPolicy
 	*text.Shaper
 }
 
@@ -218,6 +219,7 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 	t.State.resize(numInteractive)
 
 	text := styledtext.Text(t.Shaper, styles...)
+	text.WrapPolicy = t.WrapPolicy
 	text.Alignment = t.Alignment
 	return text.Layout(gtx, func(gtx layout.Context, i int, _ layout.Dimensions) {
 		span := &t.Styles[i]
