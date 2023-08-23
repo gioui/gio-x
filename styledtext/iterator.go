@@ -53,12 +53,20 @@ type textIterator struct {
 // processGlyph checks whether the glyph is visible within the iterator's configured
 // viewport and (if so) updates the iterator's text dimensions to include the glyph.
 func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visibleOrBefore bool) {
+	logicalBounds := image.Rectangle{
+		Min: image.Pt(g.X.Floor(), int(g.Y)-g.Ascent.Ceil()),
+		Max: image.Pt((g.X + g.Advance).Ceil(), int(g.Y)+g.Descent.Ceil()),
+	}
 	if g.Flags&text.FlagTruncator != 0 {
 		// If the truncator is the first glyph, force a newline.
 		if it.runes == 0 {
 			it.runes = 1
 			it.hasNewline = true
 		}
+		// We always need to update the vertical bounds for the truncator glyph in case it's the only
+		// glyph on its line. Otherwise the line will seem to have zero size.
+		it.bounds.Min.Y = min(it.bounds.Min.Y, logicalBounds.Min.Y)
+		it.bounds.Max.Y = max(it.bounds.Max.Y, logicalBounds.Max.Y)
 		return g, false
 	}
 	it.runes += int(g.Runes)
@@ -78,10 +86,6 @@ func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visib
 	}
 	if d := (g.Bounds.Max.X - g.Advance).Ceil(); d > it.padding.Max.X {
 		it.padding.Max.X = d
-	}
-	logicalBounds := image.Rectangle{
-		Min: image.Pt(g.X.Floor(), int(g.Y)-g.Ascent.Ceil()),
-		Max: image.Pt((g.X + g.Advance).Ceil(), int(g.Y)+g.Descent.Ceil()),
 	}
 	if !it.first {
 		it.first = true
