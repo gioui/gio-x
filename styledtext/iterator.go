@@ -60,7 +60,6 @@ func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visib
 	if g.Flags&text.FlagTruncator != 0 {
 		// If the truncator is the first glyph, force a newline.
 		if it.runes == 0 {
-			it.runes = 1
 			it.hasNewline = true
 		}
 		// We always need to update the vertical bounds for the truncator glyph in case it's the only

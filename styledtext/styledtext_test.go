@@ -87,7 +87,7 @@ func TestStyledtextRegressions(t *testing.T) {
 func TestStyledtextNewlines(t *testing.T) {
 	gtx := layout.NewContext(new(op.Ops), system.FrameEvent{
 		Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
-		Size:   image.Point{X: 1000, Y: 1000},
+		Size:   image.Point{X: 40, Y: 1000},
 	})
 	gtx.Constraints.Min = image.Point{}
 	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
@@ -95,27 +95,67 @@ func TestStyledtextNewlines(t *testing.T) {
 	singleLineTxt := Text(shaper, SpanStyle{Size: 12, Content: "a"})
 	singleLineDims := singleLineTxt.Layout(gtx, func(gtx layout.Context, idx int, dims layout.Dimensions) {})
 
-	txt := Text(shaper,
-		SpanStyle{
-			Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Bold},
-			Size:    12,
-			Content: "a",
+	type testcase struct {
+		name          string
+		spans         []SpanStyle
+		expectedLines int
+	}
+	for _, tc := range []testcase{
+		{
+			name:          "double newline between simple letters",
+			expectedLines: 3,
+			spans: []SpanStyle{
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Bold},
+					Size:    16,
+					Content: "a",
+				},
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
+					Size:    16,
+					Content: "\n\n",
+				},
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
+					Size:    16,
+					Content: "b",
+				},
+			},
 		},
-		SpanStyle{
-			Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
-			Size:    12,
-			Content: "\n\n",
+		{
+			name:          "double newline after a too-long word",
+			expectedLines: 3,
+			spans: []SpanStyle{
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Bold},
+					Size:    16,
+					Content: "mmmmm a",
+				},
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
+					Size:    16,
+					Content: "\n\n",
+				},
+				{
+					Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
+					Size:    16,
+					Content: "b",
+				},
+			},
 		},
-		SpanStyle{
-			Font:    font.Font{Typeface: "Go", Style: font.Regular, Weight: font.Normal},
-			Size:    12,
-			Content: "b",
-		},
-	)
-	txtDims := txt.Layout(gtx, func(gtx layout.Context, idx int, dims layout.Dimensions) {})
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			txt := Text(shaper, tc.spans...)
+			txtDims := txt.Layout(gtx, func(gtx layout.Context, idx int, dims layout.Dimensions) {})
 
-	if expectedY := int(2.5 * float32(singleLineDims.Size.Y)); txtDims.Size.Y <= expectedY {
-		t.Errorf("expected double newline to create 3 lines, dimensions too small")
-		t.Logf("expected > %d, got %d (single line height is %d)", expectedY, txtDims.Size.Y, singleLineDims.Size.Y)
+			if expectedMinY := int((float32(tc.expectedLines) - .5) * float32(singleLineDims.Size.Y)); txtDims.Size.Y <= expectedMinY {
+				t.Errorf("expected double newline to create %d lines, dimensions too small", tc.expectedLines)
+				t.Logf("expected > %d, got %d (single line height is %d)", expectedMinY, txtDims.Size.Y, singleLineDims.Size.Y)
+			}
+			if expectedMaxY := int((float32(tc.expectedLines) + .5) * float32(singleLineDims.Size.Y)); txtDims.Size.Y <= expectedMaxY {
+				t.Errorf("expected double newline to create %d lines, dimensions too large", tc.expectedLines)
+				t.Logf("expected < %d, got %d (single line height is %d)", expectedMaxY, txtDims.Size.Y, singleLineDims.Size.Y)
+			}
+		})
 	}
 }

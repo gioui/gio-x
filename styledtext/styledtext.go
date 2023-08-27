@@ -81,6 +81,85 @@ func Text(shaper *text.Shaper, styles ...SpanStyle) TextStyle {
 	}
 }
 
+type spanResults struct {
+	call             op.CallOp
+	width            int
+	height           int
+	ascent           int
+	runes            int
+	multiLine        bool
+	endedWithNewline bool
+}
+
+func (t TextStyle) iterateSpan(gtx layout.Context, maxWidth int, span SpanStyle, truncate bool) (op.CallOp, textIterator) {
+	var glyphs [32]text.Glyph
+	maxLines := 0
+	if truncate {
+		maxLines = 1
+	}
+	// shape the text of the current span
+	macro := op.Record(gtx.Ops)
+	paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
+	t.Shaper.LayoutString(text.Parameters{
+		Font:       span.Font,
+		PxPerEm:    fixed.I(gtx.Sp(span.Size)),
+		MaxLines:   maxLines,
+		MaxWidth:   maxWidth,
+		Truncator:  "\u200b", // Unicode zero-width space.
+		Locale:     gtx.Locale,
+		WrapPolicy: t.WrapPolicy.textPolicy(),
+	}, span.Content)
+	ti := textIterator{
+		viewport: image.Rectangle{Max: gtx.Constraints.Max},
+		maxLines: 1,
+	}
+
+	line := glyphs[:0]
+	for g, ok := t.Shaper.NextGlyph(); ok; g, ok = t.Shaper.NextGlyph() {
+		line, ok = ti.paintGlyph(gtx, t.Shaper, g, line)
+		if !ok {
+			break
+		}
+	}
+	return macro.Stop(), ti
+}
+
+func (t TextStyle) layoutSpan(gtx layout.Context, maxWidth int, span SpanStyle) spanResults {
+	call, ti := t.iterateSpan(gtx, maxWidth, span, true)
+	runesDisplayed := ti.runes
+	multiLine := runesDisplayed < utf8.RuneCountInString(span.Content)
+	endedWithNewline := ti.hasNewline
+	if multiLine {
+		var i int
+		for i = 0; i < runesDisplayed; {
+			_, sz := utf8.DecodeRuneInString(span.Content[i:])
+			i += sz
+		}
+		firstTruncatedRune, _ := utf8.DecodeRuneInString(span.Content[i:])
+		if firstTruncatedRune == '\n' {
+			endedWithNewline = true
+			runesDisplayed++
+		} else if runesDisplayed == 0 && t.WrapPolicy == WrapWords {
+			// If we're only wrapping on word boundaries, we failed to display any runes whatsoever,
+			// and it wasn't due to a hard newline, we need to line-wrap without truncation to discover
+			// the word that doesn't fit on the line.
+			call, ti = t.iterateSpan(gtx, maxWidth, span, false)
+			runesDisplayed = ti.runes
+			multiLine = runesDisplayed < utf8.RuneCountInString(span.Content)
+			endedWithNewline = ti.hasNewline
+		}
+	}
+	return spanResults{
+		call:             call,
+		width:            ti.bounds.Dx(),
+		height:           ti.bounds.Dy(),
+		ascent:           ti.baseline,
+		runes:            runesDisplayed,
+		multiLine:        multiLine,
+		endedWithNewline: endedWithNewline,
+	}
+}
+
 // Layout renders the TextStyle.
 //
 // The spanFn function, if not nil, gets called for each span after it has been
@@ -104,7 +183,6 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		overallSize    image.Point
 		lineShapes     []spanShape
 		lineStartIndex int
-		glyphs         [32]text.Glyph
 	)
 
 	for i := 0; i < len(spans); i++ {
@@ -114,60 +192,29 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		// constrain the width of the line to the remaining space
 		maxWidth := gtx.Constraints.Max.X - lineDims.X
 
-		// shape the text of the current span
-		macro := op.Record(gtx.Ops)
-		paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
-		t.Shaper.LayoutString(text.Parameters{
-			Font:       span.Font,
-			PxPerEm:    fixed.I(gtx.Sp(span.Size)),
-			MaxLines:   1,
-			MaxWidth:   maxWidth,
-			Truncator:  "\u200b", // Unicode zero-width space.
-			Locale:     gtx.Locale,
-			WrapPolicy: t.WrapPolicy.textPolicy(),
-		}, span.Content)
-		ti := textIterator{
-			viewport: image.Rectangle{Max: gtx.Constraints.Max},
-			maxLines: 1,
-		}
-
-		line := glyphs[:0]
-		for g, ok := t.Shaper.NextGlyph(); ok; g, ok = t.Shaper.NextGlyph() {
-			line, ok = ti.paintGlyph(gtx, t.Shaper, g, line)
-			if !ok {
-				break
-			}
-		}
-		call := macro.Stop()
-		runesDisplayed := ti.runes
-		multiLine := runesDisplayed < utf8.RuneCountInString(span.Content)
-
-		// grab the first line of the result and compute its dimensions
-		spanWidth := ti.bounds.Dx()
-		spanHeight := ti.bounds.Dy()
-		spanAscent := ti.baseline
+		res := t.layoutSpan(gtx, maxWidth, span)
 
 		// forceToNextLine handles the case in which the first segment of the new span does not fit
 		// AND there is already content on the current line. If there is no content on the line,
 		// we should display the content that doesn't fit anyway, as it won't fit on the next
 		// line either.
-		forceToNextLine := lineDims.X > 0 && spanWidth > maxWidth
+		forceToNextLine := lineDims.X > 0 && res.width > maxWidth
 
 		if !forceToNextLine {
 			// store the text shaping results for the line
 			lineShapes = append(lineShapes, spanShape{
 				offset: image.Point{X: lineDims.X},
-				size:   image.Point{X: spanWidth, Y: spanHeight},
-				call:   call,
-				ascent: spanAscent,
+				size:   image.Point{X: res.width, Y: res.height},
+				call:   res.call,
+				ascent: res.ascent,
 			})
 			// update the dimensions of the current line
-			lineDims.X += spanWidth
-			if lineDims.Y < spanHeight {
-				lineDims.Y = spanHeight
+			lineDims.X += res.width
+			if lineDims.Y < res.height {
+				lineDims.Y = res.height
 			}
-			if lineAscent < spanAscent {
-				lineAscent = spanAscent
+			if lineAscent < res.ascent {
+				lineAscent = res.ascent
 			}
 
 			// update the width of the overall text
@@ -179,7 +226,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 
 		// if we are breaking the current span across lines or we are on the
 		// last span, lay out all of the spans for the line.
-		if multiLine || ti.hasNewline || i == len(spans)-1 || forceToNextLine {
+		if res.multiLine || res.endedWithNewline || i == len(spans)-1 || forceToNextLine {
 			lineMacro := op.Record(gtx.Ops)
 			for i, shape := range lineShapes {
 				// lay out this span
@@ -227,7 +274,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 		}
 
 		// if the current span breaks across lines
-		if multiLine && !forceToNextLine {
+		if res.multiLine && !forceToNextLine {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
 
@@ -239,7 +286,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			}
 			// synthesize and insert a new span
 			byteLen := 0
-			for i := 0; i < runesDisplayed; i++ {
+			for i := 0; i < res.runes; i++ {
 				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
 				byteLen += n
 			}
@@ -249,7 +296,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			// mark where the next line to be laid out starts
 			lineStartIndex = i
 			i--
-		} else if ti.hasNewline {
+		} else if res.endedWithNewline {
 			// mark where the next line to be laid out starts
 			lineStartIndex = i + 1
 		}
