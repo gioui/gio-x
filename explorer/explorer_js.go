@@ -3,11 +3,12 @@
 package explorer
 
 import (
-	"gioui.org/app"
-	"gioui.org/io/event"
 	"io"
 	"strings"
 	"syscall/js"
+
+	"gioui.org/app"
+	"gioui.org/io/event"
 )
 
 type explorer struct{}
@@ -166,7 +167,7 @@ func (f *FileWriter) saveFile() error {
 }
 
 func fileRead(value js.Value, b []byte) int {
-	return js.CopyBytesToGo(b, value)
+	return js.CopyBytesToGo(b, js.Global().Get("Uint8Array").New(value))
 }
 
 func fileWrite(value js.Value, b []byte) int {
