@@ -13,6 +13,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/outlay"
 )
 
 // SurfaceStyle defines the visual aspects of a material design surface
@@ -125,34 +126,34 @@ type MenuItemStyle struct {
 	State      *widget.Clickable
 	HoverColor color.NRGBA
 
-	LabelInset layout.Inset
+	LabelInset outlay.Inset
 	Label      material.LabelStyle
 
 	*widget.Icon
 	IconSize  unit.Dp
-	IconInset layout.Inset
+	IconInset outlay.Inset
 	IconColor color.NRGBA
 
 	Hint      material.LabelStyle
-	HintInset layout.Inset
+	HintInset outlay.Inset
 }
 
 // MenuItem constructs a default MenuItemStyle based on the theme, state, and label.
 func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuItemStyle {
 	return MenuItemStyle{
 		State: state,
-		LabelInset: layout.Inset{
-			Left:   unit.Dp(16),
+		LabelInset: outlay.Inset{
+			Start:   unit.Dp(16),
 			Right:  unit.Dp(16),
 			Top:    unit.Dp(8),
 			Bottom: unit.Dp(8),
 		},
 		IconSize: unit.Dp(24),
-		IconInset: layout.Inset{
-			Left: unit.Dp(16),
+		IconInset: outlay.Inset{
+			Start: unit.Dp(16),
 		},
 		IconColor: th.Fg,
-		HintInset: layout.Inset{
+		HintInset: outlay.Inset{
 			Right: unit.Dp(16),
 		},
 		Label:      material.Body1(th, label),
@@ -178,10 +179,10 @@ func (m MenuItemStyle) Layout(gtx C) D {
 			}),
 			layout.Stacked(func(gtx C) D {
 				gtx.Constraints.Min.X = min
-				return layout.Flex{
+				return outlay.Flex{
 					Alignment: layout.Middle,
 				}.Layout(gtx,
-					layout.Rigid(func(gtx C) D {
+					outlay.Rigid(func(gtx C) D {
 						if m.Icon == nil {
 							return D{}
 						}
@@ -191,18 +192,18 @@ func (m MenuItemStyle) Layout(gtx C) D {
 							return m.Icon.Layout(gtx, m.IconColor)
 						})
 					}),
-					layout.Rigid(func(gtx C) D {
+					outlay.Rigid(func(gtx C) D {
 						return m.LabelInset.Layout(gtx, func(gtx C) D {
 							return m.Label.Layout(gtx)
 						})
 					}),
-					layout.Flexed(1, func(gtx C) D {
+					outlay.Flexed(1, func(gtx C) D {
 						if compact {
 							return D{}
 						}
 						return D{Size: gtx.Constraints.Min}
 					}),
-					layout.Rigid(func(gtx C) D {
+					outlay.Rigid(func(gtx C) D {
 						if empty := (material.LabelStyle{}); m.Hint == empty {
 							return D{}
 						}
