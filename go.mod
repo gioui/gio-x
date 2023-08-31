@@ -3,7 +3,7 @@ module gioui.org/x
 go 1.18
 
 require (
-	gioui.org v0.2.1-0.20230823193131-cf5ae4aad92e
+	gioui.org v0.3.0
 	git.sr.ht/~jackmordaunt/go-toast v1.0.0
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/andybalholm/stroke v0.0.0-20221221101821-bd29b49d73f0
