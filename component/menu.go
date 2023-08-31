@@ -143,8 +143,8 @@ func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuIte
 	return MenuItemStyle{
 		State: state,
 		LabelInset: outlay.Inset{
-			Start:   unit.Dp(16),
-			Right:  unit.Dp(16),
+			Start:  unit.Dp(16),
+			End:    unit.Dp(16),
 			Top:    unit.Dp(8),
 			Bottom: unit.Dp(8),
 		},
@@ -154,7 +154,7 @@ func MenuItem(th *material.Theme, state *widget.Clickable, label string) MenuIte
 		},
 		IconColor: th.Fg,
 		HintInset: outlay.Inset{
-			Right: unit.Dp(16),
+			End: unit.Dp(16),
 		},
 		Label:      material.Body1(th, label),
 		HoverColor: WithAlpha(th.ContrastBg, 0x30),
