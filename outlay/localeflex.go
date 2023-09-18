@@ -2,7 +2,8 @@ package outlay
 
 import (
 	"image"
-	"slices"
+
+	"golang.org/x/exp/slices"
 
 	"gioui.org/io/system"
 	"gioui.org/layout"
