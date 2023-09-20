@@ -4,6 +4,7 @@ package debug
 import (
 	"image"
 	"image/color"
+	"sync"
 
 	"gioui.org/f32"
 	"gioui.org/gesture"
@@ -15,6 +16,47 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 )
+
+var (
+	mapLock  sync.RWMutex
+	stateMap map[any]*ConstraintEditor
+)
+
+func init() {
+	mapLock.Lock()
+	defer mapLock.Unlock()
+	stateMap = make(map[any]*ConstraintEditor)
+}
+
+func getTag(tag any) *ConstraintEditor {
+	var state *ConstraintEditor
+	func() {
+		mapLock.RLock()
+		defer mapLock.RUnlock()
+		state = stateMap[tag]
+	}()
+	if state == nil {
+		mapLock.Lock()
+		defer mapLock.Unlock()
+		state = &ConstraintEditor{}
+		stateMap[tag] = state
+	}
+	return state
+}
+
+// Wrap wraps w with a [debug.ConstraintEditor]. The state for the constraint
+// editor is stored automatically using the unique tag provided. Note: the state
+// will never be deleted.
+func Wrap(tag any, w layout.Widget) layout.Widget {
+	return getTag(tag).Wrap(w)
+}
+
+// Layout wraps w with a [debug.ConstraintEditor]. The state for the constraint
+// editor is stored automatically using the unique tag provided. Note: the state
+// will never be deleted.
+func Layout(gtx layout.Context, tag any, w layout.Widget) layout.Dimensions {
+	return getTag(tag).Layout(gtx, w)
+}
 
 // dragBox holds state for a draggable, hoverable rectangle with drag that can
 // accumulate.
@@ -30,6 +72,7 @@ type dragBox struct {
 func (d *dragBox) Add(ops *op.Ops) {
 	d.drag.Add(ops)
 	d.hover.Add(ops)
+	pointer.CursorSouthEastResize.Add(ops)
 }
 
 // Update processes events from the queue using the given metric and updates the
