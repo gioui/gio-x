@@ -31,7 +31,11 @@ type ContextArea struct {
 	// is zero, it will default to pointer.ButtonSecondary.
 	Activation pointer.Buttons
 	// AbsolutePosition will position the contextual widget in the
-	// same place no matter where the activating interaction occurred.
+	// relative to the position of the context area instead of relative
+	// to the position of the click event that triggered the activation.
+	// This is useful for controls (like button-activated menus) where
+	// the contextual content should not be precisely attached to the
+	// click position, but should instead be attached to the button.
 	AbsolutePosition bool
 	// PositionHint tells the ContextArea the closest edge/corner of the
 	// window to where it is being used in the layout. This helps it to
