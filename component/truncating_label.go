@@ -16,5 +16,5 @@ type TruncatingLabelStyle material.LabelStyle
 // Layout renders the label into the provided context.
 func (t TruncatingLabelStyle) Layout(gtx layout.Context) layout.Dimensions {
 	t.MaxLines = 1
-	return t.Layout(gtx)
+	return ((material.LabelStyle)(t)).Layout(gtx)
 }
