@@ -14,6 +14,7 @@ import (
 	"gioui.org/font/opentype"
 	"gioui.org/gesture"
 	"gioui.org/io/event"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -28,6 +29,7 @@ import (
 var (
 	mapLock    sync.RWMutex
 	stateMap   map[any]*ConstraintEditor
+	active     *ConstraintEditor
 	shaperLock sync.Mutex
 	shaper     *text.Shaper
 )
@@ -56,6 +58,18 @@ func getTag(tag any) *ConstraintEditor {
 		stateMap[tag] = state
 	}
 	return state
+}
+
+func getActiveEditor() *ConstraintEditor {
+	mapLock.RLock()
+	defer mapLock.RUnlock()
+	return active
+}
+
+func setActiveEditor(editor *ConstraintEditor) {
+	mapLock.Lock()
+	defer mapLock.Unlock()
+	active = editor
 }
 
 // Wrap wraps w with a [debug.ConstraintEditor]. The state for the constraint
@@ -124,8 +138,10 @@ func (d *dragBox) Reset() {
 
 // ConstraintEditor provides controls to edit layout constraints live.
 type ConstraintEditor struct {
-	maxBox dragBox
-	minBox dragBox
+	maxBox  dragBox
+	minBox  dragBox
+	click   gesture.Click
+	focused bool
 
 	// LineWidth is the width of debug overlay lines like those outlining the constraints
 	// and widget size.
@@ -254,6 +270,9 @@ func recorded(call op.CallOp, dims layout.Dimensions) layout.Widget {
 // Layout the constraint editor to debug the layout of w.
 func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	c.init()
+
+	active := c.focused
+
 	originalConstraints := gtx.Constraints
 	gtx.Constraints = gtx.Constraints.SubMax(c.maxBox.CurrentDrag())
 	gtx.Constraints = gtx.Constraints.AddMin(image.Point{}.Sub(c.minBox.CurrentDrag()))
@@ -264,70 +283,109 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 	}
 	dims := w(gtx)
 	lineWidth := gtx.Dp(c.LineWidth)
-	minSpec := outline(gtx.Ops, lineWidth, gtx.Constraints.Min)
-	maxSpec := outline(gtx.Ops, lineWidth, gtx.Constraints.Max)
 	sizeSpec := outline(gtx.Ops, lineWidth, dims.Size)
 	// Display the static widget size.
 	paint.FillShape(gtx.Ops, c.SizeColor, clip.Outline{Path: sizeSpec}.Op())
-	sizeFill := c.SizeColor
-	sizeFill.A = 50
-	paint.FillShape(gtx.Ops, sizeFill, clip.Rect{Max: dims.Size}.Op())
-
-	// Display textual overlays.
-	minText := fmt.Sprintf("(%d,%d) Min", gtx.Constraints.Min.X, gtx.Constraints.Min.Y)
-	minOp, minDims := labelOp(gtx, c.TextSize, c.MinColor, minText)
-	maxText := fmt.Sprintf("(%d,%d) Max", gtx.Constraints.Max.X, gtx.Constraints.Max.Y)
-	maxOp, maxDims := labelOp(gtx, c.TextSize, c.MaxColor, maxText)
-	szText := fmt.Sprintf("(%d,%d) Size", dims.Size.X, dims.Size.Y)
-	szOp, szDims := labelOp(gtx, c.TextSize, c.SizeColor, szText)
-	rec := op.Record(gtx.Ops)
-
-	flexAxis := layout.Vertical
-	if minDims.Size.Y+maxDims.Size.Y+szDims.Size.Y > gtx.Constraints.Max.Y {
-		flexAxis = layout.Horizontal
+	sizeClip := clip.Rect{Max: dims.Size}.Push(gtx.Ops)
+	if active || c.click.Hovered() {
+		sizeFill := c.SizeColor
+		sizeFill.A = 50
+		paint.FillShape(gtx.Ops, sizeFill, clip.Rect{Max: dims.Size}.Op())
 	}
-	layout.Stack{}.Layout(gtx,
-		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-			paint.FillShape(gtx.Ops, c.SurfaceColor, clip.Rect{Max: gtx.Constraints.Min}.Op())
-			return layout.Dimensions{Size: gtx.Constraints.Min}
-		}),
-		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			return layout.Flex{
-				Axis: flexAxis,
-			}.Layout(gtx,
-				layout.Rigid(recorded(minOp, minDims)),
-				layout.Rigid(recorded(maxOp, maxDims)),
-				layout.Rigid(recorded(szOp, szDims)),
-			)
-		}),
-	)
-	// Display the interactive max constraint controls.
-	paint.FillShape(gtx.Ops, c.MaxColor, clip.Outline{Path: maxSpec}.Op())
-	if c.maxBox.Active(gtx.Queue) {
-		maxFill := c.MaxColor
-		maxFill.A = 50
-		paint.FillShape(gtx.Ops, maxFill, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	c.click.Add(gtx.Ops)
+	key.InputOp{
+		Tag:  c,
+		Keys: key.NameEscape + "|R|M|Shift-M",
+	}.Add(gtx.Ops)
+	sizeClip.Pop()
+
+	if active {
+		minSpec := outline(gtx.Ops, lineWidth, gtx.Constraints.Min)
+		maxSpec := outline(gtx.Ops, lineWidth, gtx.Constraints.Max)
+		// Display textual overlays.
+		minText := fmt.Sprintf("(%d,%d) Min", gtx.Constraints.Min.X, gtx.Constraints.Min.Y)
+		minOp, minDims := labelOp(gtx, c.TextSize, c.MinColor, minText)
+		maxText := fmt.Sprintf("(%d,%d) Max", gtx.Constraints.Max.X, gtx.Constraints.Max.Y)
+		maxOp, maxDims := labelOp(gtx, c.TextSize, c.MaxColor, maxText)
+		szText := fmt.Sprintf("(%d,%d) Size", dims.Size.X, dims.Size.Y)
+		szOp, szDims := labelOp(gtx, c.TextSize, c.SizeColor, szText)
+		rec := op.Record(gtx.Ops)
+
+		flexAxis := layout.Vertical
+		if minDims.Size.Y+maxDims.Size.Y+szDims.Size.Y > gtx.Constraints.Max.Y {
+			flexAxis = layout.Horizontal
+		}
+		layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				paint.FillShape(gtx.Ops, c.SurfaceColor, clip.Rect{Max: gtx.Constraints.Min}.Op())
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			}),
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Axis: flexAxis,
+				}.Layout(gtx,
+					layout.Rigid(recorded(minOp, minDims)),
+					layout.Rigid(recorded(maxOp, maxDims)),
+					layout.Rigid(recorded(szOp, szDims)),
+				)
+			}),
+		)
+		// Display the interactive max constraint controls.
+		paint.FillShape(gtx.Ops, c.MaxColor, clip.Outline{Path: maxSpec}.Op())
+		if c.maxBox.Active(gtx.Queue) {
+			maxFill := c.MaxColor
+			maxFill.A = 50
+			paint.FillShape(gtx.Ops, maxFill, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		}
+
+		maxDragArea := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
+		c.maxBox.Add(gtx.Ops)
+		maxDragArea.Pop()
+
+		// Display the interactive min constraint controls.
+		paint.FillShape(gtx.Ops, c.MinColor, clip.Outline{Path: minSpec}.Op())
+		if c.minBox.Active(gtx.Queue) {
+			minFill := c.MinColor
+			minFill.A = 50
+			paint.FillShape(gtx.Ops, minFill, clip.Rect{Max: gtx.Constraints.Min}.Op())
+		}
+
+		minDragArea := clip.Rect{Max: gtx.Constraints.Min}.Push(gtx.Ops)
+		c.minBox.Add(gtx.Ops)
+		minDragArea.Pop()
+
+		op.Defer(gtx.Ops, rec.Stop())
 	}
-
-	maxDragArea := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
-	c.maxBox.Add(gtx.Ops)
-	maxDragArea.Pop()
-
-	// Display the interactive min constraint controls.
-	paint.FillShape(gtx.Ops, c.MinColor, clip.Outline{Path: minSpec}.Op())
-	if c.minBox.Active(gtx.Queue) {
-		minFill := c.MinColor
-		minFill.A = 50
-		paint.FillShape(gtx.Ops, minFill, clip.Rect{Max: gtx.Constraints.Min}.Op())
-	}
-
-	minDragArea := clip.Rect{Max: gtx.Constraints.Min}.Push(gtx.Ops)
-	c.minBox.Add(gtx.Ops)
-	minDragArea.Pop()
-
-	op.Defer(gtx.Ops, rec.Stop())
-
 	c.maxBox.Update(gtx.Metric, gtx.Queue)
 	c.minBox.Update(gtx.Metric, gtx.Queue)
+	for _, event := range c.click.Events(gtx.Queue) {
+		switch event.Type {
+		case gesture.TypeClick:
+			key.FocusOp{Tag: c}.Add(gtx.Ops)
+		}
+	}
+	for _, event := range gtx.Queue.Events(c) {
+		switch event := event.(type) {
+		case key.FocusEvent:
+			c.focused = event.Focus
+		case key.Event:
+			if event.State != key.Release {
+				continue
+			}
+			switch event.Name {
+			case key.NameEscape:
+				key.FocusOp{Tag: nil}.Add(gtx.Ops)
+			case "R":
+				c.maxBox.Reset()
+				c.minBox.Reset()
+			case "M":
+				if event.Modifiers.Contain(key.ModShift) {
+					c.minBox.committedDrag = originalConstraints.Min.Sub(gtx.Constraints.Max)
+				} else {
+					c.maxBox.committedDrag = originalConstraints.Max.Sub(gtx.Constraints.Min)
+				}
+			}
+		}
+	}
 	return dims
 }
