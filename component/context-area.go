@@ -79,7 +79,7 @@ func (r *ContextArea) Update(gtx C) {
 				}
 			}
 		}
-		if e.Buttons.Contain(r.Activation) && e.Type == pointer.Press {
+		if e.Buttons.Contain(r.Activation) && e.Kind == pointer.Press {
 			r.active = true
 			r.justActivated = true
 			if !r.AbsolutePosition {
@@ -94,7 +94,7 @@ func (r *ContextArea) Update(gtx C) {
 		if !ok {
 			continue
 		}
-		if e.Type == pointer.Press {
+		if e.Kind == pointer.Press {
 			r.Dismiss()
 		}
 	}
@@ -104,7 +104,7 @@ func (r *ContextArea) Update(gtx C) {
 		if !ok {
 			continue
 		}
-		if e.Type == pointer.Release {
+		if e.Kind == pointer.Release {
 			r.Dismiss()
 		}
 	}
@@ -164,7 +164,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 			pointer.InputOp{
 				Tag:   suppressionTag,
 				Grab:  false,
-				Types: pointer.Press,
+				Kinds: pointer.Press,
 			}.Add(gtx.Ops)
 			stack.Pop()
 			return macro2.Stop()
@@ -187,7 +187,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		pointer.InputOp{
 			Tag:   dismissTag,
 			Grab:  false,
-			Types: pointer.Release,
+			Kinds: pointer.Release,
 		}.Add(gtx.Ops)
 
 		stack.Pop()
@@ -202,7 +202,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 	pointer.InputOp{
 		Tag:   r,
 		Grab:  false,
-		Types: pointer.Press | pointer.Release,
+		Kinds: pointer.Press | pointer.Release,
 	}.Add(gtx.Ops)
 
 	return dims

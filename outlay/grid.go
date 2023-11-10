@@ -141,11 +141,11 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
 
 	// Update horizontal scroll position.
-	hScrollDelta := g.Hscroll.Scroll(gtx.Metric, gtx, gtx.Now, gesture.Horizontal)
+	hScrollDelta := g.Hscroll.Update(gtx.Metric, gtx, gtx.Now, gesture.Horizontal)
 	g.Horizontal.Offset += hScrollDelta
 
 	// Get vertical scroll info.
-	vScrollDelta := g.Vscroll.Scroll(gtx.Metric, gtx, gtx.Now, gesture.Vertical)
+	vScrollDelta := g.Vscroll.Update(gtx.Metric, gtx, gtx.Now, gesture.Vertical)
 	g.Vertical.Offset += vScrollDelta
 
 	g.Horizontal.update(gtx, layout.Horizontal, cols, gtx.Constraints.Max.X, dimensioner)

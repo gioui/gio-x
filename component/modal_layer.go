@@ -35,7 +35,7 @@ func (m *ModalLayer) Layout(gtx layout.Context, th *material.Theme) layout.Dimen
 	if !m.Visible() {
 		return D{}
 	}
-	if m.Scrim.Clicked() {
+	if m.Scrim.Clicked(gtx) {
 		m.Disappear(gtx.Now)
 	}
 	scrimDims := m.Scrim.Layout(gtx, th, &m.VisibilityAnimation)
@@ -78,7 +78,7 @@ func (m ModalStyle) Layout(gtx C) D {
 	if m.content == nil || !m.Visible() {
 		return D{}
 	}
-	if m.Clicked() {
+	if m.Clicked(gtx) {
 		m.Disappear(gtx.Now)
 	}
 	macro := op.Record(gtx.Ops)

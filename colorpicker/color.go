@@ -201,7 +201,7 @@ func (s State) Changed() bool {
 // Layout handles all state updates from the underlying widgets.
 func (s *State) Layout(gtx layout.Context) layout.Dimensions {
 	s.changed = false
-	if s.R.Changed() || s.G.Changed() || s.B.Changed() || s.A.Changed() {
+	if s.R.Update(gtx) || s.G.Update(gtx) || s.B.Update(gtx) || s.A.Update(gtx) {
 		s.updateEditor()
 	}
 	if events := s.Editor.Events(); len(events) != 0 {
@@ -377,7 +377,7 @@ func (p PickerStyle) layoutSlider(gtx C, value *widget.Float, label, valueStr st
 			})
 		}),
 		layout.Flexed(1, func(gtx C) D {
-			sliderDims := inset.Layout(gtx, material.Slider(p.Theme, value, 0, 1).Layout)
+			sliderDims := inset.Layout(gtx, material.Slider(p.Theme, value).Layout)
 			return sliderDims
 		}),
 		layout.Rigid(func(gtx C) D {

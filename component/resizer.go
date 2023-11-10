@@ -59,8 +59,8 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 	dims := w(gtx)
 
 	var de *pointer.Event
-	for _, e := range f.drag.Events(gtx.Metric, gtx, gesture.Axis(axis)) {
-		if e.Type == pointer.Drag {
+	for _, e := range f.drag.Update(gtx.Metric, gtx, gesture.Axis(axis)) {
+		if e.Kind == pointer.Drag {
 			de = &e
 		}
 	}

@@ -56,19 +56,19 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 
 	pointer.CursorPointer.Add(gtx.Ops)
 	i.click.Add(gtx.Ops)
-	for _, e := range i.click.Events(gtx) {
-		switch e.Type {
-		case gesture.TypeClick:
+	for _, e := range i.click.Update(gtx) {
+		switch e.Kind {
+		case gesture.KindClick:
 			if i.longPressed {
 				i.longPressed = false
 			} else {
 				i.events = append(i.events, Event{Type: Click, ClickData: e})
 			}
 			i.pressing = false
-		case gesture.TypePress:
+		case gesture.KindPress:
 			i.pressStarted = gtx.Now
 			i.pressing = true
-		case gesture.TypeCancel:
+		case gesture.KindCancel:
 			i.pressing = false
 			i.longPressed = false
 		}

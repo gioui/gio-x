@@ -179,7 +179,7 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 		if !ok {
 			continue
 		}
-		switch e.Type {
+		switch e.Kind {
 		case pointer.Enter:
 			t.Hover.SetTarget(gtx.Now.Add(t.HoverDelay))
 		case pointer.Leave:
@@ -211,7 +211,7 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 			defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 			pointer.InputOp{
 				Tag:   t,
-				Types: pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
+				Kinds: pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
 			}.Add(gtx.Ops)
 
 			originalMin := gtx.Constraints.Min

@@ -29,7 +29,7 @@ func (d *DiscloserState) Layout(gtx C) D {
 		d.Duration = time.Millisecond * 100
 		d.State = Invisible
 	}
-	if d.Clicked() {
+	if d.Clicked(gtx) {
 		d.ToggleVisibility(gtx.Now)
 	}
 	return D{}

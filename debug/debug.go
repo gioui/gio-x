@@ -106,8 +106,8 @@ func (d *dragBox) Add(ops *op.Ops) {
 // Update processes events from the queue using the given metric and updates the
 // drag position.
 func (d *dragBox) Update(metric unit.Metric, queue event.Queue) {
-	for _, ev := range d.drag.Events(metric, queue, gesture.Both) {
-		switch ev.Type {
+	for _, ev := range d.drag.Update(metric, queue, gesture.Both) {
+		switch ev.Kind {
 		case pointer.Press:
 			d.activeDragOrigin = ev.Position.Round()
 		case pointer.Cancel, pointer.Release:
@@ -128,7 +128,7 @@ func (d *dragBox) CurrentDrag() image.Point {
 
 // Active returns whether the user is hovering or interacting with the dragBox.
 func (d *dragBox) Active(queue event.Queue) bool {
-	return d.drag.Dragging() || d.drag.Pressed() || d.hover.Hovered(queue)
+	return d.drag.Dragging() || d.drag.Pressed() || d.hover.Update(queue)
 }
 
 // Reset clears all accumulated drag.
@@ -358,9 +358,9 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 	}
 	c.maxBox.Update(gtx.Metric, gtx.Queue)
 	c.minBox.Update(gtx.Metric, gtx.Queue)
-	for _, event := range c.click.Events(gtx.Queue) {
-		switch event.Type {
-		case gesture.TypeClick:
+	for _, event := range c.click.Update(gtx.Queue) {
+		switch event.Kind {
+		case gesture.KindClick:
 			key.FocusOp{Tag: c}.Add(gtx.Ops)
 		}
 	}

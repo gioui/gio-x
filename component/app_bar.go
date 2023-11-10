@@ -136,12 +136,12 @@ type overflowMenu struct {
 
 func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, barPos VerticalAnchorPosition, actions *actionGroup) {
 	o.selectedTag = nil
-	if o.Clicked() && !o.Visible() {
+	if o.Clicked(gtx) && !o.Visible() {
 		o.Appear(gtx.Now)
 		o.configureOverflow(gtx, th, barPos, actions)
 	}
 	for i := range actions.overflowState {
-		if actions.overflowState[i].Clicked() {
+		if actions.overflowState[i].Clicked(gtx) {
 			o.Disappear(gtx.Now)
 			o.selectedTag = o.actionForIndex(i, actions).Tag
 		}
@@ -480,7 +480,7 @@ func (a AppBarOverflowActionClicked) String() string {
 // Events returns a slice of all AppBarActions to occur since the last frame.
 func (a *AppBar) Events(gtx layout.Context) []AppBarEvent {
 	var out []AppBarEvent
-	if clicked := a.NavigationButton.Clicked(); clicked && a.contextualAnim.Visible() {
+	if clicked := a.NavigationButton.Clicked(gtx); clicked && a.contextualAnim.Visible() {
 		a.contextualAnim.Disappear(gtx.Now)
 		out = append(out, AppBarContextMenuDismissed{})
 	} else if clicked {

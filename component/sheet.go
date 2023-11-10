@@ -101,8 +101,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		if !anim.Visible() {
 			return D{}
 		}
-		for _, event := range s.drag.Events(gtx.Metric, gtx.Queue, gesture.Horizontal) {
-			switch event.Type {
+		for _, event := range s.drag.Update(gtx.Metric, gtx.Queue, gesture.Horizontal) {
+			switch event.Kind {
 			case pointer.Press:
 				s.dragStarted = event.Position
 				s.dragOffset = 0
@@ -132,7 +132,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		defer pr.Push(gtx.Ops).Pop()
 		pointer.InputOp{
 			Tag:   s,
-			Types: pointer.Press | pointer.Release,
+			Kinds: pointer.Press | pointer.Release,
 		}.Add(gtx.Ops)
 
 		// lay out widget

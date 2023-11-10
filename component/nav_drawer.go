@@ -45,8 +45,8 @@ type renderNavItem struct {
 	*AlphaPalette
 }
 
-func (n *renderNavItem) Clicked() bool {
-	return n.Clickable.Clicked()
+func (n *renderNavItem) Clicked(gtx C) bool {
+	return n.Clickable.Clicked(gtx)
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
@@ -54,7 +54,7 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 	for _, event := range events {
 		switch event := event.(type) {
 		case pointer.Event:
-			switch event.Type {
+			switch event.Kind {
 			case pointer.Enter:
 				n.hovering = true
 			case pointer.Leave:
@@ -70,7 +70,7 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 	}).Push(gtx.Ops).Pop()
 	pointer.InputOp{
 		Tag:   n,
-		Types: pointer.Enter | pointer.Leave,
+		Kinds: pointer.Enter | pointer.Leave,
 	}.Add(gtx.Ops)
 	return layout.Inset{
 		Top:    unit.Dp(4),
@@ -244,7 +244,7 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, th *material.Theme, anim *
 		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		dimensions := m.items[index].Layout(gtx, th)
-		if m.items[index].Clicked() {
+		if m.items[index].Clicked(gtx) {
 			m.changeSelected(index)
 		}
 		return dimensions

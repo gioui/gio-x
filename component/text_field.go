@@ -115,8 +115,7 @@ func (in *TextField) TextTooLong() bool {
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	disabled := gtx.Queue == nil
-	for range in.click.Events(gtx) {
-	}
+	in.click.Update(gtx)
 	if in.click.Pressed() {
 		in.Editor.Focus()
 	}
