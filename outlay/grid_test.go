@@ -134,7 +134,7 @@ func TestGridPointerEvents(t *testing.T) {
 		defer clip.Rect{Max: image.Pt(sideSize, sideSize)}.Push(gtx.Ops).Pop()
 		pointer.InputOp{
 			Tag:   t,
-			Types: pointer.Press,
+			Kinds: pointer.Press,
 		}.Add(gtx.Ops)
 		return layout.Dimensions{Size: image.Pt(sideSize, sideSize)}
 	}
@@ -152,14 +152,14 @@ func TestGridPointerEvents(t *testing.T) {
 			X: 50,
 			Y: 50,
 		},
-		Type: pointer.Press,
+		Kind: pointer.Press,
 	}
 	router.Queue(press)
 
 	events := router.Events(t)
 	if len(events) != 1 {
 		t.Errorf("expected %d events, got %d", 1, len(events))
-	} else if events[0].(pointer.Event).Type != press.Type {
+	} else if events[0].(pointer.Event).Kind != press.Kind {
 		t.Errorf("expected %#+v, got %#+v", press, events[0])
 	}
 }

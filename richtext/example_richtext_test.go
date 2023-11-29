@@ -38,7 +38,7 @@ func Example() {
 
 		var ops op.Ops
 		for {
-			e := <-w.Events()
+			e := w.NextEvent()
 			switch e := e.(type) {
 			case system.DestroyEvent:
 				panic(e.Err)
@@ -88,8 +88,8 @@ func Example() {
 						content, _ := span.Content()
 						switch event.Type {
 						case richtext.Click:
-							log.Println(event.ClickData.Type)
-							if event.ClickData.Type == gesture.TypeClick {
+							log.Println(event.ClickData.Kind)
+							if event.ClickData.Kind == gesture.KindClick {
 								interactColorIndex++
 								op.InvalidateOp{}.Add(gtx.Ops)
 							}
