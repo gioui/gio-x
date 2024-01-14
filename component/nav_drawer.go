@@ -243,10 +243,10 @@ func (m *NavDrawer) layoutNavList(gtx layout.Context, th *material.Theme, anim *
 	return m.navList.Layout(gtx, len(m.items), func(gtx C, index int) D {
 		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(48))
 		gtx.Constraints.Min = gtx.Constraints.Max
-		dimensions := m.items[index].Layout(gtx, th)
 		if m.items[index].Clicked(gtx) {
 			m.changeSelected(index)
 		}
+		dimensions := m.items[index].Layout(gtx, th)
 		return dimensions
 	})
 }
