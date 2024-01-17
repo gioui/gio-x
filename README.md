@@ -10,7 +10,6 @@ This table describes the current status of each package in `gioui.org/x`:
 | ----------- | ------------------------------------------- | ------------------ | ---------------------- | ------------- |
 | colorpicker | Widgets for choosing colors                 | uncertain          | no                     | unstable      |
 | component   | Material.io components                      | uncertain          | no                     | unstable      |
-| eventx      | Event management tools                      | yes                | no                     | unstable      |
 | haptic      | Haptic feedback for mobile devices          | no                 | yes                    | unstable      |
 | notify      | Background notifications                    | no                 | yes                    | unstable      |
 | outlay      | Extra layouts                               | yes                | no                     | unstable      |
