@@ -14,7 +14,6 @@ This table describes the current status of each package in `gioui.org/x`:
 | notify      | Background notifications                    | no                 | yes                    | unstable      |
 | outlay      | Extra layouts                               | yes                | no                     | unstable      |
 | pref        | Query user/device preferences               | no                 | yes                    | unstable      |
-| profiling   | Gio render performance recording tools      | uncertain          | no                     | unstable      |
 | richtext    | Printing text objects with different styles | uncertain          | no                     | unstable      |
 | explorer    | Opening a native file dialog                | uncertain          | yes                    | unstable      |
 | markdown    | Rendering markdown text as richtext         | uncertain          | yes                    | unstable      |
