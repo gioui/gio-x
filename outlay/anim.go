@@ -24,7 +24,7 @@ func (n *Animation) Progress(gtx layout.Context) float32 {
 	if progressDur > n.Duration {
 		return 1
 	}
-	op.InvalidateOp{}.Add(gtx.Ops)
+	gtx.Execute(op.InvalidateCmd{})
 	progress := float32(progressDur.Milliseconds()) / float32(n.Duration.Milliseconds())
 	return progress
 }
