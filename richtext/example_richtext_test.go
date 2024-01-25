@@ -83,7 +83,7 @@ func Example() {
 				}
 
 				// process any interactions with the text since the last frame.
-				for span, events := state.Events(); span != nil; span, events = state.Events() {
+				for span, events := state.Update(gtx); span != nil; span, events = state.Update(gtx) {
 					for _, event := range events {
 						content, _ := span.Content()
 						switch event.Type {
@@ -95,6 +95,8 @@ func Example() {
 							}
 						case richtext.Hover:
 							w.Option(app.Title("Hovered: " + content))
+						case richtext.Unhover:
+							w.Option(app.Title("Unhovered: " + content))
 						case richtext.LongPress:
 							w.Option(app.Title("Long-pressed: " + content))
 						}

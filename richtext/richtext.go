@@ -25,6 +25,7 @@ type EventType uint8
 
 const (
 	Hover EventType = iota
+	Unhover
 	LongPress
 	Click
 )
@@ -42,6 +43,7 @@ type Event struct {
 type InteractiveSpan struct {
 	click        gesture.Click
 	pressing     bool
+	hovering     bool
 	longPressed  bool
 	pressStarted time.Time
 	contents     string
@@ -49,13 +51,8 @@ type InteractiveSpan struct {
 	events       []Event
 }
 
-// Layout adds the pointer input op for this interactive span and updates its
-// state. It uses the most recent pointer.AreaOp as its input area.
-func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
-	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
-
-	pointer.CursorPointer.Add(gtx.Ops)
-	i.click.Add(gtx.Ops)
+func (i *InteractiveSpan) Update(gtx layout.Context) []Event {
+	i.events = i.events[:0]
 	for _, e := range i.click.Update(gtx) {
 		switch e.Kind {
 		case gesture.KindClick:
@@ -73,8 +70,13 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 			i.longPressed = false
 		}
 	}
-	if i.click.Hovered() {
-		i.events = append(i.events, Event{Type: Hover})
+	if isHovered := i.click.Hovered(); isHovered != i.hovering {
+		i.hovering = isHovered
+		if isHovered {
+			i.events = append(i.events, Event{Type: Hover})
+		} else {
+			i.events = append(i.events, Event{Type: Unhover})
+		}
 	}
 
 	if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > LongPressDuration {
@@ -82,17 +84,21 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 		i.longPressed = true
 	}
 
+	return i.events
+}
+
+// Layout adds the pointer input op for this interactive span and updates its
+// state. It uses the most recent pointer.AreaOp as its input area.
+func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
+	i.Update(gtx)
+	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
+
+	pointer.CursorPointer.Add(gtx.Ops)
+	i.click.Add(gtx.Ops)
 	if i.pressing && !i.longPressed {
 		op.InvalidateOp{}.Add(gtx.Ops)
 	}
 	return layout.Dimensions{}
-}
-
-// Events returns click event information for this span.
-func (i *InteractiveSpan) Events() []Event {
-	out := i.events
-	i.events = i.events[:0]
-	return out
 }
 
 // Content returns the text content of the interactive span as well as the
@@ -125,12 +131,12 @@ func (i *InteractiveText) resize(n int) {
 	}
 }
 
-// Events returns the first span with unprocessed events and the events that
+// Update returns the first span with unprocessed events and the events that
 // need processing for it.
-func (i *InteractiveText) Events() (*InteractiveSpan, []Event) {
+func (i *InteractiveText) Update(gtx layout.Context) (*InteractiveSpan, []Event) {
 	for k := range i.Spans {
 		span := &i.Spans[k]
-		if events := span.Events(); len(events) > 0 {
+		if events := span.Update(gtx); len(events) > 0 {
 			return span, events
 		}
 	}
