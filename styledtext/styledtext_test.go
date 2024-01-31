@@ -4,9 +4,9 @@ import (
 	"image"
 	"testing"
 
+	"gioui.org/app"
 	"gioui.org/font"
 	"gioui.org/font/gofont"
-	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/text"
@@ -73,7 +73,7 @@ func TestStyledtextRegressions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			txt := Text(text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection())), tc.spans...)
 			var ops op.Ops
-			gtx := layout.NewContext(&ops, system.FrameEvent{
+			gtx := app.NewContext(&ops, app.FrameEvent{
 				Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
 				Size:   tc.space,
 			})
@@ -85,7 +85,7 @@ func TestStyledtextRegressions(t *testing.T) {
 
 // TestStyledtextNewlines ensures that newlines create appropriate gaps between text.
 func TestStyledtextNewlines(t *testing.T) {
-	gtx := layout.NewContext(new(op.Ops), system.FrameEvent{
+	gtx := app.NewContext(new(op.Ops), app.FrameEvent{
 		Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Size:   image.Point{X: 40, Y: 1000},
 	})
