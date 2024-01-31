@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
+	"gioui.org/io/input"
 	"gioui.org/io/pointer"
-	"gioui.org/io/router"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -21,7 +22,7 @@ func TestGridLockedRows(t *testing.T) {
 	var gtx layout.Context = layout.Context{
 		Constraints: layout.Exact(image.Pt(100, 100)),
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
-		Queue:       &router.Router{},
+		Source:      (&input.Router{}).Source(),
 		Now:         time.Time{},
 		Locale:      system.Locale{},
 		Ops:         &ops,
@@ -74,7 +75,7 @@ func TestGridSize(t *testing.T) {
 			Max: image.Pt(1000, 1000),
 		},
 		Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
-		Queue:  &router.Router{},
+		Source: (&input.Router{}).Source(),
 		Now:    time.Time{},
 		Locale: system.Locale{},
 		Ops:    &ops,
@@ -115,11 +116,11 @@ func TestGridSize(t *testing.T) {
 func TestGridPointerEvents(t *testing.T) {
 	var grid Grid
 	var ops op.Ops
-	router := &router.Router{}
+	router := &input.Router{}
 	var gtx layout.Context = layout.Context{
 		Constraints: layout.Exact(image.Pt(100, 100)),
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
-		Queue:       router,
+		Source:      router.Source(),
 		Now:         time.Time{},
 		Locale:      system.Locale{},
 		Ops:         &ops,
@@ -132,10 +133,7 @@ func TestGridPointerEvents(t *testing.T) {
 	}
 	layoutCell := func(gtx layout.Context, x, y int) layout.Dimensions {
 		defer clip.Rect{Max: image.Pt(sideSize, sideSize)}.Push(gtx.Ops).Pop()
-		pointer.InputOp{
-			Tag:   t,
-			Kinds: pointer.Press,
-		}.Add(gtx.Ops)
+		event.Op(gtx.Ops, t)
 		return layout.Dimensions{Size: image.Pt(sideSize, sideSize)}
 	}
 
@@ -144,7 +142,10 @@ func TestGridPointerEvents(t *testing.T) {
 	router.Frame(gtx.Ops)
 
 	// Drain the initial cancel event:
-	_ = router.Events(t)
+	_, _ = router.Event(pointer.Filter{
+		Target: t,
+		Kinds:  pointer.Press,
+	})
 
 	// Queue up a press.
 	press := pointer.Event{
@@ -156,10 +157,13 @@ func TestGridPointerEvents(t *testing.T) {
 	}
 	router.Queue(press)
 
-	events := router.Events(t)
-	if len(events) != 1 {
-		t.Errorf("expected %d events, got %d", 1, len(events))
-	} else if events[0].(pointer.Event).Kind != press.Kind {
-		t.Errorf("expected %#+v, got %#+v", press, events[0])
+	event, ok := router.Event(pointer.Filter{
+		Target: t,
+		Kinds:  pointer.Press,
+	})
+	if !ok {
+		t.Errorf("expected an event, got none")
+	} else if event.(pointer.Event).Kind != press.Kind {
+		t.Errorf("expected %#+v, got %#+v", press, event)
 	}
 }

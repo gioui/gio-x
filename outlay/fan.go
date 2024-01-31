@@ -124,7 +124,7 @@ func (f *Fan) Layout(gtx layout.Context, items ...FanItem) layout.Dimensions {
 		f.animatedLastFrame = false
 		if f.Animating(gtx) {
 			f.animatedLastFrame = true
-			op.InvalidateOp{}.Add(gtx.Ops)
+			gtx.Execute(op.InvalidateCmd{})
 		}
 		current.arc = f.last.arc - (f.last.arc-current.arc)*progress
 		current.radius = f.last.radius - (f.last.radius-current.radius)*progress

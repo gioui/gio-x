@@ -129,33 +129,40 @@ func (g *Grid) drawRow(gtx layout.Context, row, rowHeight int, dimensioner Dimen
 	}
 }
 
+func (g *Grid) Update(gtx layout.Context, rows, cols int, dimensioner Dimensioner) {
+	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
+
+	// Update horizontal scroll position.
+	hScrollDelta := g.Hscroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Horizontal, image.Rect(-gtx.Constraints.Max.X/2, 0, gtx.Constraints.Max.X/2, 0))
+	g.Horizontal.Offset += hScrollDelta
+
+	// Get vertical scroll info.
+	vScrollDelta := g.Vscroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical, image.Rect(0, -gtx.Constraints.Max.Y/2, 0, gtx.Constraints.Max.Y/2))
+	g.Vertical.Offset += vScrollDelta
+
+	g.Horizontal.update(gtx, layout.Horizontal, cols, gtx.Constraints.Max.X, dimensioner)
+
+	lockedHeight := rowHeight * g.LockedRows
+	g.Vertical.update(gtx, layout.Vertical, rows-g.LockedRows, gtx.Constraints.Max.Y-lockedHeight, dimensioner)
+}
+
 // Layout the Grid.
 //
 // BUG(whereswaldon): all rows are set to the height returned by dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y).
 // Support for variable-height rows is welcome as a patch.
 func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensioner, cellFunc Cell) layout.Dimensions {
+	g.Update(gtx, rows, cols, dimensioner)
 	if rows == 0 || cols == 0 {
 		return layout.Dimensions{Size: gtx.Constraints.Min}
 	}
-
 	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
-
-	// Update horizontal scroll position.
-	hScrollDelta := g.Hscroll.Update(gtx.Metric, gtx, gtx.Now, gesture.Horizontal)
-	g.Horizontal.Offset += hScrollDelta
-
-	// Get vertical scroll info.
-	vScrollDelta := g.Vscroll.Update(gtx.Metric, gtx, gtx.Now, gesture.Vertical)
-	g.Vertical.Offset += vScrollDelta
-
-	g.Horizontal.update(gtx, layout.Horizontal, cols, gtx.Constraints.Max.X, dimensioner)
+	lockedHeight := rowHeight * g.LockedRows
 
 	contentMacro := op.Record(gtx.Ops)
 
 	// Draw locked rows in a macro.
 	macro := op.Record(gtx.Ops)
 	clp := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
-	lockedHeight := 0
 	yOffset := 0
 	listDims := image.Point{}
 	for row := 0; row < g.LockedRows && row < rows; row++ {
@@ -163,14 +170,11 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
 		offset.Pop()
-		lockedHeight += rowDims.Size.Y
 		listDims.X = max(listDims.X, rowDims.Size.X)
 		listDims.Y += rowDims.Size.Y
 	}
 	clp.Pop()
 	lockedRows := macro.Stop()
-
-	g.Vertical.update(gtx, layout.Vertical, rows-g.LockedRows, gtx.Constraints.Max.Y-lockedHeight, dimensioner)
 
 	// Draw normal rows, then place locked rows on top.
 	clp = clip.Rect{
@@ -196,10 +200,9 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	content := contentMacro.Stop()
 
 	// Enable scroll wheel within the grid.
-	c := listDims
-	cl := clip.Rect{Max: c}.Push(gtx.Ops)
-	g.Vscroll.Add(gtx.Ops, image.Rect(0, -c.Y/2, 0, c.Y/2))
-	g.Hscroll.Add(gtx.Ops, image.Rect(-c.X, 0, c.X, 0))
+	cl := clip.Rect{Max: listDims}.Push(gtx.Ops)
+	g.Vscroll.Add(gtx.Ops)
+	g.Hscroll.Add(gtx.Ops)
 
 	// We draw into a macro, and call the macro inside the clip set up for scrolling, so that cells in the grid are
 	// children of the clip area, not siblings. This ensures cells can receive pointer events.
