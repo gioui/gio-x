@@ -14,6 +14,7 @@ import (
 	"gioui.org/font/opentype"
 	"gioui.org/gesture"
 	"gioui.org/io/event"
+	"gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
@@ -94,6 +95,7 @@ type dragBox struct {
 	activeDragOrigin image.Point
 	drag             gesture.Drag
 	hover            gesture.Hover
+	hovering         bool
 }
 
 // Add inserts the dragBox's input operations into the ops list.
@@ -105,8 +107,12 @@ func (d *dragBox) Add(ops *op.Ops) {
 
 // Update processes events from the queue using the given metric and updates the
 // drag position.
-func (d *dragBox) Update(metric unit.Metric, queue event.Queue) {
-	for _, ev := range d.drag.Update(metric, queue, gesture.Both) {
+func (d *dragBox) Update(metric unit.Metric, queue input.Source) {
+	for {
+		ev, ok := d.drag.Update(metric, queue, gesture.Both)
+		if !ok {
+			break
+		}
 		switch ev.Kind {
 		case pointer.Press:
 			d.activeDragOrigin = ev.Position.Round()
@@ -118,6 +124,7 @@ func (d *dragBox) Update(metric unit.Metric, queue event.Queue) {
 			d.activeDrag = d.activeDragOrigin.Sub(ev.Position.Round())
 		}
 	}
+	d.hovering = d.hover.Update(queue)
 }
 
 // CurrentDrag returns the current accumulated drag (both drag from previous events
@@ -127,8 +134,9 @@ func (d *dragBox) CurrentDrag() image.Point {
 }
 
 // Active returns whether the user is hovering or interacting with the dragBox.
-func (d *dragBox) Active(queue event.Queue) bool {
-	return d.drag.Dragging() || d.drag.Pressed() || d.hover.Update(queue)
+// It assumes Update() has already been invoked for the current frame.
+func (d *dragBox) Active() bool {
+	return d.drag.Dragging() || d.drag.Pressed() || d.hovering
 }
 
 // Reset clears all accumulated drag.
@@ -271,9 +279,68 @@ func recorded(call op.CallOp, dims layout.Dimensions) layout.Widget {
 func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	c.init()
 
+	originalConstraints := gtx.Constraints
+	c.maxBox.Update(gtx.Metric, gtx.Source)
+	c.minBox.Update(gtx.Metric, gtx.Source)
+
+	for {
+		event, ok := c.click.Update(gtx.Source)
+		if !ok {
+			break
+		}
+		switch event.Kind {
+		case gesture.KindClick:
+			gtx.Execute(key.FocusCmd{
+				Tag: c,
+			})
+		}
+	}
+	for {
+		event, ok := gtx.Source.Event(
+			key.FocusFilter{
+				Target: c,
+			},
+			key.Filter{
+				Focus:    c,
+				Optional: key.ModShift,
+				Name:     "M",
+			},
+			key.Filter{
+				Focus: c,
+				Name:  "R",
+			},
+			key.Filter{
+				Focus: c,
+				Name:  key.NameEscape,
+			},
+		)
+		if !ok {
+			break
+		}
+		switch event := event.(type) {
+		case key.FocusEvent:
+			c.focused = event.Focus
+		case key.Event:
+			if event.State != key.Release {
+				continue
+			}
+			switch event.Name {
+			case key.NameEscape:
+				gtx.Execute(key.FocusCmd{Tag: nil})
+			case "R":
+				c.maxBox.Reset()
+				c.minBox.Reset()
+			case "M":
+				if event.Modifiers.Contain(key.ModShift) {
+					c.minBox.committedDrag = originalConstraints.Min.Sub(gtx.Constraints.Max)
+				} else {
+					c.maxBox.committedDrag = originalConstraints.Max.Sub(gtx.Constraints.Min)
+				}
+			}
+		}
+	}
 	active := c.focused
 
-	originalConstraints := gtx.Constraints
 	gtx.Constraints = gtx.Constraints.SubMax(c.maxBox.CurrentDrag())
 	gtx.Constraints = gtx.Constraints.AddMin(image.Point{}.Sub(c.minBox.CurrentDrag()))
 	if minSize := gtx.Dp(c.MinSize); gtx.Constraints.Max.X < minSize || gtx.Constraints.Max.Y < minSize {
@@ -293,10 +360,7 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 		paint.FillShape(gtx.Ops, sizeFill, clip.Rect{Max: dims.Size}.Op())
 	}
 	c.click.Add(gtx.Ops)
-	key.InputOp{
-		Tag:  c,
-		Keys: key.NameEscape + "|R|M|Shift-M",
-	}.Add(gtx.Ops)
+	event.Op(gtx.Ops, c)
 	sizeClip.Pop()
 
 	if active {
@@ -332,7 +396,7 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 		)
 		// Display the interactive max constraint controls.
 		paint.FillShape(gtx.Ops, c.MaxColor, clip.Outline{Path: maxSpec}.Op())
-		if c.maxBox.Active(gtx.Queue) {
+		if c.maxBox.Active() {
 			maxFill := c.MaxColor
 			maxFill.A = 50
 			paint.FillShape(gtx.Ops, maxFill, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -344,7 +408,7 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 
 		// Display the interactive min constraint controls.
 		paint.FillShape(gtx.Ops, c.MinColor, clip.Outline{Path: minSpec}.Op())
-		if c.minBox.Active(gtx.Queue) {
+		if c.minBox.Active() {
 			minFill := c.MinColor
 			minFill.A = 50
 			paint.FillShape(gtx.Ops, minFill, clip.Rect{Max: gtx.Constraints.Min}.Op())
@@ -356,36 +420,6 @@ func (c *ConstraintEditor) Layout(gtx layout.Context, w layout.Widget) layout.Di
 
 		op.Defer(gtx.Ops, rec.Stop())
 	}
-	c.maxBox.Update(gtx.Metric, gtx.Queue)
-	c.minBox.Update(gtx.Metric, gtx.Queue)
-	for _, event := range c.click.Update(gtx.Queue) {
-		switch event.Kind {
-		case gesture.KindClick:
-			key.FocusOp{Tag: c}.Add(gtx.Ops)
-		}
-	}
-	for _, event := range gtx.Queue.Events(c) {
-		switch event := event.(type) {
-		case key.FocusEvent:
-			c.focused = event.Focus
-		case key.Event:
-			if event.State != key.Release {
-				continue
-			}
-			switch event.Name {
-			case key.NameEscape:
-				key.FocusOp{Tag: nil}.Add(gtx.Ops)
-			case "R":
-				c.maxBox.Reset()
-				c.minBox.Reset()
-			case "M":
-				if event.Modifiers.Contain(key.ModShift) {
-					c.minBox.committedDrag = originalConstraints.Min.Sub(gtx.Constraints.Max)
-				} else {
-					c.maxBox.committedDrag = originalConstraints.Max.Sub(gtx.Constraints.Min)
-				}
-			}
-		}
-	}
+
 	return dims
 }
