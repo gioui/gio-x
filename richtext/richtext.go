@@ -48,18 +48,23 @@ type InteractiveSpan struct {
 	pressStarted time.Time
 	contents     string
 	metadata     map[string]interface{}
-	events       []Event
 }
 
-func (i *InteractiveSpan) Update(gtx layout.Context) []Event {
-	i.events = i.events[:0]
-	for _, e := range i.click.Update(gtx) {
+func (i *InteractiveSpan) Update(gtx layout.Context) (Event, bool) {
+	if i == nil {
+		return Event{}, false
+	}
+	for {
+		e, ok := i.click.Update(gtx.Source)
+		if !ok {
+			break
+		}
 		switch e.Kind {
 		case gesture.KindClick:
 			if i.longPressed {
 				i.longPressed = false
 			} else {
-				i.events = append(i.events, Event{Type: Click, ClickData: e})
+				return Event{Type: Click, ClickData: e}, true
 			}
 			i.pressing = false
 		case gesture.KindPress:
@@ -73,31 +78,35 @@ func (i *InteractiveSpan) Update(gtx layout.Context) []Event {
 	if isHovered := i.click.Hovered(); isHovered != i.hovering {
 		i.hovering = isHovered
 		if isHovered {
-			i.events = append(i.events, Event{Type: Hover})
+			return Event{Type: Hover}, true
 		} else {
-			i.events = append(i.events, Event{Type: Unhover})
+			return Event{Type: Unhover}, true
 		}
 	}
 
 	if !i.longPressed && i.pressing && gtx.Now.Sub(i.pressStarted) > LongPressDuration {
-		i.events = append(i.events, Event{Type: LongPress})
 		i.longPressed = true
+		return Event{Type: LongPress}, true
 	}
-
-	return i.events
+	return Event{}, false
 }
 
 // Layout adds the pointer input op for this interactive span and updates its
 // state. It uses the most recent pointer.AreaOp as its input area.
 func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
-	i.Update(gtx)
+	for {
+		_, ok := i.Update(gtx)
+		if !ok {
+			break
+		}
+	}
+	if i.pressing && !i.longPressed {
+		gtx.Execute(op.InvalidateCmd{})
+	}
 	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
 
 	pointer.CursorPointer.Add(gtx.Ops)
 	i.click.Add(gtx.Ops)
-	if i.pressing && !i.longPressed {
-		op.InvalidateOp{}.Add(gtx.Ops)
-	}
 	return layout.Dimensions{}
 }
 
@@ -115,7 +124,9 @@ func (i *InteractiveSpan) Get(key string) interface{} {
 // InteractiveText holds persistent state for a block of text containing
 // spans that may be interactive.
 type InteractiveText struct {
-	Spans []InteractiveSpan
+	Spans       []InteractiveSpan
+	lastUpdate  time.Time
+	updateIndex int
 }
 
 // resize makes sure that there are exactly n interactive spans.
@@ -133,14 +144,26 @@ func (i *InteractiveText) resize(n int) {
 
 // Update returns the first span with unprocessed events and the events that
 // need processing for it.
-func (i *InteractiveText) Update(gtx layout.Context) (*InteractiveSpan, []Event) {
-	for k := range i.Spans {
+func (i *InteractiveText) Update(gtx layout.Context) (*InteractiveSpan, Event, bool) {
+	if i == nil {
+		return nil, Event{}, false
+	}
+	if i.lastUpdate != gtx.Now {
+		i.lastUpdate = gtx.Now
+		i.updateIndex = 0
+	}
+	for k := i.updateIndex; k < len(i.Spans); k++ {
+		i.updateIndex = k
 		span := &i.Spans[k]
-		if events := span.Update(gtx); len(events) > 0 {
-			return span, events
+		for {
+			ev, ok := span.Update(gtx)
+			if !ok {
+				break
+			}
+			return span, ev, true
 		}
 	}
-	return nil, nil
+	return nil, Event{}, false
 }
 
 // SpanStyle describes the appearance of a span of styled text.
@@ -206,6 +229,12 @@ func Text(state *InteractiveText, shaper *text.Shaper, styles ...SpanStyle) Text
 
 // Layout renders the TextStyle.
 func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
+	for {
+		_, _, ok := t.State.Update(gtx)
+		if !ok {
+			break
+		}
+	}
 	// OPT(dh): it'd be nice to avoid this allocation
 	styles := make([]styledtext.SpanStyle, len(t.Styles))
 	numInteractive := 0

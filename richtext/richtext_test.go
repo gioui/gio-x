@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gioui.org/font/gofont"
-	"gioui.org/io/router"
+	"gioui.org/io/input"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/text"
@@ -37,9 +37,9 @@ func TestNilInteractiveText(t *testing.T) {
 			PxPerDp: 1,
 			PxPerSp: 1,
 		},
-		Queue: &router.Router{},
-		Now:   time.Now(),
-		Ops:   &ops,
+		Source: input.Source{},
+		Now:    time.Now(),
+		Ops:    &ops,
 	}
 
 	Text(nil, th.Shaper, spans...).Layout(gtx)
