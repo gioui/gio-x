@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gioui.org/font"
+	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -50,16 +51,20 @@ func (n *renderNavItem) Clicked(gtx C) bool {
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
-	events := gtx.Events(n)
-	for _, event := range events {
+	for {
+		event, ok := gtx.Event(pointer.Filter{
+			Target: n,
+			Kinds:  pointer.Enter | pointer.Leave,
+		})
+		if !ok {
+			break
+		}
 		switch event := event.(type) {
 		case pointer.Event:
 			switch event.Kind {
 			case pointer.Enter:
 				n.hovering = true
-			case pointer.Leave:
-				n.hovering = false
-			case pointer.Cancel:
+			case pointer.Leave, pointer.Cancel:
 				n.hovering = false
 			}
 		}
@@ -68,10 +73,7 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 	defer clip.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,
 	}).Push(gtx.Ops).Pop()
-	pointer.InputOp{
-		Tag:   n,
-		Kinds: pointer.Enter | pointer.Leave,
-	}.Add(gtx.Ops)
+	event.Op(gtx.Ops, n)
 	return layout.Inset{
 		Top:    unit.Dp(4),
 		Bottom: unit.Dp(4),

@@ -59,7 +59,11 @@ func (f *float) Layout(gtx layout.Context, axis layout.Axis, w layout.Widget) la
 	dims := w(gtx)
 
 	var de *pointer.Event
-	for _, e := range f.drag.Update(gtx.Metric, gtx, gesture.Axis(axis)) {
+	for {
+		e, ok := f.drag.Update(gtx.Metric, gtx.Source, gesture.Axis(axis))
+		if !ok {
+			break
+		}
 		if e.Kind == pointer.Drag {
 			de = &e
 		}

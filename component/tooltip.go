@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"time"
 
+	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -113,7 +114,7 @@ func (i *InvalidateDeadline) Process(gtx C) bool {
 		return false
 	}
 	if gtx.Now.Before(i.Target) {
-		op.InvalidateOp{At: i.Target}.Add(gtx.Ops)
+		gtx.Execute(op.InvalidateCmd{At: i.Target})
 		return false
 	}
 	i.Active = false
@@ -174,8 +175,15 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 		}
 		t.VisibilityAnimation.Duration = t.FadeDuration
 	}
-	for _, e := range gtx.Events(t) {
-		e, ok := e.(pointer.Event)
+	for {
+		ev, ok := gtx.Event(pointer.Filter{
+			Target: t,
+			Kinds:  pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
+		})
+		if !ok {
+			break
+		}
+		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
 		}
@@ -209,10 +217,7 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 		layout.Expanded(func(gtx C) D {
 			defer pointer.PassOp{}.Push(gtx.Ops).Pop()
 			defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
-			pointer.InputOp{
-				Tag:   t,
-				Kinds: pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
-			}.Add(gtx.Ops)
+			event.Op(gtx.Ops, t)
 
 			originalMin := gtx.Constraints.Min
 			gtx.Constraints.Min = image.Point{}

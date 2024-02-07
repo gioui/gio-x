@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/gesture"
+	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -101,7 +102,11 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		if !anim.Visible() {
 			return D{}
 		}
-		for _, event := range s.drag.Update(gtx.Metric, gtx.Queue, gesture.Horizontal) {
+		for {
+			event, ok := s.drag.Update(gtx.Metric, gtx.Source, gesture.Horizontal)
+			if !ok {
+				break
+			}
 			switch event.Kind {
 			case pointer.Press:
 				s.dragStarted = event.Position
@@ -118,11 +123,22 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 				s.dragging = false
 			}
 		}
+		for {
+			// Beneath sheet content, listen for tap events. This prevents taps in the
+			// empty sheet area from passing downward to the scrim underneath it.
+			_, ok := gtx.Event(pointer.Filter{
+				Target: s,
+				Kinds:  pointer.Press | pointer.Release,
+			})
+			if !ok {
+				break
+			}
+		}
 		// Ensure any transformation is undone on return.
 		defer op.Offset(image.Point{}).Push(gtx.Ops).Pop()
 		if s.dragOffset != 0 || anim.Animating() {
 			s.drawerTransform(gtx, anim).Add(gtx.Ops)
-			op.InvalidateOp{}.Add(gtx.Ops)
+			gtx.Execute(op.InvalidateCmd{})
 		}
 		gtx.Constraints.Max.X = s.sheetWidth(gtx)
 
@@ -130,11 +146,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		// empty sheet area from passing downward to the scrim underneath it.
 		pr := clip.Rect(image.Rectangle{Max: gtx.Constraints.Max})
 		defer pr.Push(gtx.Ops).Pop()
-		pointer.InputOp{
-			Tag:   s,
-			Kinds: pointer.Press | pointer.Release,
-		}.Add(gtx.Ops)
-
+		event.Op(gtx.Ops, s)
 		// lay out widget
 		dims := s.Sheet.Layout(gtx, th, anim, func(gtx C) D {
 			return contents(gtx, th, anim)

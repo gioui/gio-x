@@ -30,7 +30,7 @@ type VisibilityAnimation struct {
 // promptly.
 func (v *VisibilityAnimation) Revealed(gtx layout.Context) float32 {
 	if v.Animating() {
-		op.InvalidateOp{}.Add(gtx.Ops)
+		gtx.Execute(op.InvalidateCmd{})
 	}
 	if v.Duration == time.Duration(0) {
 		v.Duration = time.Second

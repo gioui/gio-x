@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -60,8 +61,15 @@ func (r *ContextArea) Update(gtx C) {
 
 	r.startedActive = r.active
 	// Summon the contextual widget if the area recieved a secondary click.
-	for _, e := range gtx.Events(r) {
-		e, ok := e.(pointer.Event)
+	for {
+		ev, ok := gtx.Event(pointer.Filter{
+			Target: r,
+			Kinds:  pointer.Press | pointer.Release,
+		})
+		if !ok {
+			break
+		}
+		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
 		}
@@ -89,8 +97,15 @@ func (r *ContextArea) Update(gtx C) {
 	}
 
 	// Dismiss the contextual widget if the user clicked outside of it.
-	for _, e := range gtx.Events(suppressionTag) {
-		e, ok := e.(pointer.Event)
+	for {
+		ev, ok := gtx.Event(pointer.Filter{
+			Target: suppressionTag,
+			Kinds:  pointer.Press,
+		})
+		if !ok {
+			break
+		}
+		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
 		}
@@ -99,8 +114,15 @@ func (r *ContextArea) Update(gtx C) {
 		}
 	}
 	// Dismiss the contextual widget if the user released a click within it.
-	for _, e := range gtx.Events(dismissTag) {
-		e, ok := e.(pointer.Event)
+	for {
+		ev, ok := gtx.Event(pointer.Filter{
+			Target: dismissTag,
+			Kinds:  pointer.Release,
+		})
+		if !ok {
+			break
+		}
+		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
 		}
@@ -161,11 +183,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 			macro2 := op.Record(gtx.Ops)
 			pr := clip.Rect(image.Rectangle{Min: image.Point{-1e6, -1e6}, Max: image.Point{1e6, 1e6}})
 			stack := pr.Push(gtx.Ops)
-			pointer.InputOp{
-				Tag:   suppressionTag,
-				Grab:  false,
-				Kinds: pointer.Press,
-			}.Add(gtx.Ops)
+			event.Op(gtx.Ops, suppressionTag)
 			stack.Pop()
 			return macro2.Stop()
 		}()
@@ -184,11 +202,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 		// completed interactions with it (that should dismiss it).
 		pt := pointer.PassOp{}.Push(gtx.Ops)
 		stack := clip.Rect(image.Rectangle{Max: r.dims.Size}).Push(gtx.Ops)
-		pointer.InputOp{
-			Tag:   dismissTag,
-			Grab:  false,
-			Kinds: pointer.Release,
-		}.Add(gtx.Ops)
+		event.Op(gtx.Ops, dismissTag)
 
 		stack.Pop()
 		pt.Pop()
@@ -199,11 +213,7 @@ func (r *ContextArea) Layout(gtx C, w layout.Widget) D {
 	// Capture pointer events in the contextual area.
 	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
 	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
-	pointer.InputOp{
-		Tag:   r,
-		Grab:  false,
-		Kinds: pointer.Press | pointer.Release,
-	}.Add(gtx.Ops)
+	event.Op(gtx.Ops, r)
 
 	return dims
 }

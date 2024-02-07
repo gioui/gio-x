@@ -8,6 +8,8 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/gesture"
+	"gioui.org/io/input"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -114,10 +116,16 @@ func (in *TextField) TextTooLong() bool {
 }
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
-	disabled := gtx.Queue == nil
-	in.click.Update(gtx)
-	if in.click.Pressed() {
-		in.Editor.Focus()
+	disabled := gtx.Source == (input.Source{})
+	for {
+		ev, ok := in.click.Update(gtx.Source)
+		if !ok {
+			break
+		}
+		switch ev.Kind {
+		case gesture.KindPress:
+			gtx.Execute(key.FocusCmd{Tag: &in.Editor})
+		}
 	}
 	in.state = inactive
 	if in.click.Hovered() && !disabled {
@@ -126,7 +134,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	if in.Editor.Len() > 0 {
 		in.state = activated
 	}
-	if in.Editor.Focused() && !disabled {
+	if gtx.Source.Focused(&in.Editor) && !disabled {
 		in.state = focused
 	}
 	const (
@@ -145,7 +153,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 		in.anim.Start(gtx.Now, Reverse, duration)
 	}
 	if in.anim.Started() {
-		op.InvalidateOp{}.Add(gtx.Ops)
+		gtx.Execute(op.InvalidateCmd{})
 	}
 	in.anim.Update(gtx.Now)
 	var (
@@ -243,7 +251,7 @@ func (in *TextField) Layout(gtx C, th *material.Theme, hint string) D {
 						Width:        unit.Dp(in.border.Thickness),
 						CornerRadius: cornerRadius,
 					}
-					if in.Editor.Focused() || in.Editor.Len() > 0 {
+					if gtx.Source.Focused(&in.Editor) || in.Editor.Len() > 0 {
 						visibleBorder := clip.Path{}
 						visibleBorder.Begin(gtx.Ops)
 						// Move from the origin to the beginning of the
