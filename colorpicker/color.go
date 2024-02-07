@@ -193,32 +193,31 @@ func (s State) Alpha() uint8 {
 	return uint8(s.A.Value * 255)
 }
 
-// Changed returns whether the color has changed since last frame.
-func (s State) Changed() bool {
-	return s.changed
-}
-
-// Layout handles all state updates from the underlying widgets.
-func (s *State) Layout(gtx layout.Context) layout.Dimensions {
-	s.changed = false
+// Update handles all state updates from the underlying widgets.
+func (s *State) Update(gtx layout.Context) bool {
+	changed := false
 	if s.R.Update(gtx) || s.G.Update(gtx) || s.B.Update(gtx) || s.A.Update(gtx) {
 		s.updateEditor()
+		changed = true
 	}
-	if events := s.Editor.Events(); len(events) != 0 {
+	for {
+		_, ok := s.Editor.Update(gtx)
+		if !ok {
+			break
+		}
 		out, err := hex.DecodeString(s.Editor.Text())
 		if err == nil && len(out) == 3 {
 			s.R.Value = (float32(out[0]) / 255.0)
 			s.G.Value = (float32(out[1]) / 255.0)
 			s.B.Value = (float32(out[2]) / 255.0)
-			s.changed = true
+			changed = true
 		}
 	}
-	return layout.Dimensions{}
+	return changed
 }
 
 func (s *State) updateEditor() {
 	s.Editor.SetText(hex.EncodeToString([]byte{s.Red(), s.Green(), s.Blue()}))
-	s.changed = true
 }
 
 // PickerStyle renders a color picker using material widgets.
@@ -247,7 +246,7 @@ func Picker(th *material.Theme, state *State, label string) PickerStyle {
 
 // Layout renders the PickerStyle into the provided context.
 func (p PickerStyle) Layout(gtx layout.Context) layout.Dimensions {
-	p.State.Layout(gtx)
+	p.State.Update(gtx)
 
 	// lay out the label and editor to compute their width
 	leftSide := op.Record(gtx.Ops)
