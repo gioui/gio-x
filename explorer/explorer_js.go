@@ -35,6 +35,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	document := js.Global().Get("document")
 	input := document.Call("createElement", "input")
 	input.Call("addEventListener", "change", openCallback(r))
+	input.Call("addEventListener", "cancel", openCallback(r))
 	input.Set("type", "file")
 	input.Set("style", "display:none;")
 	if len(extensions) > 0 {
