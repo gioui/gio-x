@@ -25,7 +25,7 @@ func Example() {
 	)
 	th.Shaper = text.NewShaper(text.WithCollection(fonts))
 	go func() {
-		w := app.NewWindow()
+		w := new(app.Window)
 
 		// allocate persistent state for interactive text. This
 		// needs to be persisted across frames.
@@ -36,7 +36,7 @@ func Example() {
 
 		var ops op.Ops
 		for {
-			e := w.NextEvent()
+			e := w.Event()
 			switch e := e.(type) {
 			case app.DestroyEvent:
 				panic(e.Err)
