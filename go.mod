@@ -1,9 +1,9 @@
 module gioui.org/x
 
-go 1.18
+go 1.21
 
 require (
-	gioui.org v0.6.0
+	gioui.org v0.7.0
 	git.sr.ht/~jackmordaunt/go-toast v1.0.0
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/andybalholm/stroke v0.0.0-20221221101821-bd29b49d73f0
