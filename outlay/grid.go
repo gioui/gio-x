@@ -154,9 +154,6 @@ func (g *Grid) Update(gtx layout.Context, rows, cols int, dimensioner Dimensione
 }
 
 // Layout the Grid.
-//
-// BUG(whereswaldon): all rows are set to the height returned by dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y).
-// Support for variable-height rows is welcome as a patch.
 func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensioner, cellFunc Cell) layout.Dimensions {
 	g.Update(gtx, rows, cols, dimensioner)
 	if rows == 0 || cols == 0 {
