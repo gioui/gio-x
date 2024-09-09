@@ -159,8 +159,7 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	if rows == 0 || cols == 0 {
 		return layout.Dimensions{Size: gtx.Constraints.Min}
 	}
-	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
-	lockedHeight := rowHeight * g.LockedRows
+	lockedHeight := 0
 
 	contentMacro := op.Record(gtx.Ops)
 
@@ -170,6 +169,9 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	yOffset := 0
 	listDims := image.Point{}
 	for row := 0; row < g.LockedRows && row < rows; row++ {
+		rowHeight := dimensioner(layout.Vertical, row, gtx.Constraints.Max.Y)
+		lockedHeight += rowHeight
+
 		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
@@ -189,6 +191,8 @@ func (g *Grid) Layout(gtx layout.Context, rows, cols int, dimensioner Dimensione
 	firstRow := g.Vertical.First + g.LockedRows
 	lastRow := g.Vertical.Last + g.LockedRows
 	for row := firstRow; row <= lastRow && row < rows; row++ {
+		rowHeight := dimensioner(layout.Vertical, row, gtx.Constraints.Max.Y)
+
 		offset := op.Offset(image.Pt(0, yOffset)).Push(gtx.Ops)
 		rowDims := g.drawRow(gtx, row, rowHeight, dimensioner, cellFunc)
 		yOffset += rowDims.Size.Y
