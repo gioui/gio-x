@@ -19,6 +19,10 @@ func getLanguage() string {
 	if len(langs) < 1 {
 		return ""
 	}
+	if langs[0] == "C" {
+		// Fall back to English rather than an "unsupported" error.
+		return "en"
+	}
 
 	return langs[0]
 }
