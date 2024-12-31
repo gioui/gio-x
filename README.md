@@ -8,6 +8,7 @@ This table describes the current status of each package in `gioui.org/x`:
 
 | Name        | Purpose                                     | Intended for core? | Non-core dependencies? | API Stability |
 | ----------- | ------------------------------------------- | ------------------ | ---------------------- | ------------- |
+| browser     | Open browser url                            | no                 | yes                    | unstable      |
 | colorpicker | Widgets for choosing colors                 | uncertain          | no                     | unstable      |
 | component   | Material.io components                      | uncertain          | no                     | unstable      |
 | haptic      | Haptic feedback for mobile devices          | no                 | yes                    | unstable      |
