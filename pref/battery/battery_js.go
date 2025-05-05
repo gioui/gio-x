@@ -6,9 +6,7 @@ import (
 	"syscall/js"
 )
 
-var (
-	_GetBattery = js.Global().Get("navigator").Get("getBattery")
-)
+var _GetBattery = js.Global().Get("navigator").Get("getBattery")
 
 func batteryLevel() (uint8, error) {
 	value, err := do("level")

@@ -117,7 +117,6 @@ func NewChannel(importance Importance, id, name, description string) (*Notificat
 				fieldID := jni.GetStaticFieldID(env, managerClass, name, "I")
 				importances[index] = jni.GetStaticIntField(env, managerClass, fieldID)
 			}
-
 		})
 		newChannelMethod := jni.GetStaticMethodID(env, notifyClass, "newChannel", "(Landroid/content/Context;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
 		jname := jni.Value(jni.JavaString(env, name))

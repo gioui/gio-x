@@ -24,7 +24,7 @@ type NavItem struct {
 	// Tag is an externally-provided identifier for the view
 	// that this item should navigate to. It's value is
 	// opaque to navigation elements.
-	Tag  interface{}
+	Tag  any
 	Name string
 
 	// Icon, if set, renders the provided icon to the left of the
@@ -270,7 +270,7 @@ func (m *NavDrawer) changeSelected(newIndex int) {
 
 // SetNavDestination changes the selected navigation item to the item with
 // the provided tag. If the provided tag does not exist, it has no effect.
-func (m *NavDrawer) SetNavDestination(tag interface{}) {
+func (m *NavDrawer) SetNavDestination(tag any) {
 	for i, item := range m.items {
 		if item.Tag == tag {
 			m.changeSelected(i)
@@ -281,7 +281,7 @@ func (m *NavDrawer) SetNavDestination(tag interface{}) {
 
 // CurrentNavDestination returns the tag of the navigation destination
 // selected in the drawer.
-func (m *NavDrawer) CurrentNavDestination() interface{} {
+func (m *NavDrawer) CurrentNavDestination() any {
 	return m.items[m.selectedItem].Tag
 }
 

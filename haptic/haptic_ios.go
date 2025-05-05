@@ -24,8 +24,7 @@ import (
 
 // Buzzer provides methods to trigger haptic feedback. On OSes other than android,
 // all methods are no-ops.
-type Buzzer struct {
-}
+type Buzzer struct{}
 
 // Buzz attempts to trigger a haptic vibration without blocking. It returns whether
 // or not it was successful. If it returns false, it is safe to retry. On unsupported

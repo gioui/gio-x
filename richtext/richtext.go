@@ -3,6 +3,7 @@ package richtext
 
 import (
 	"image/color"
+	"maps"
 	"time"
 
 	"gioui.org/font"
@@ -47,7 +48,7 @@ type InteractiveSpan struct {
 	longPressed  bool
 	pressStarted time.Time
 	contents     string
-	metadata     map[string]interface{}
+	metadata     map[string]any
 }
 
 func (i *InteractiveSpan) Update(gtx layout.Context) (Event, bool) {
@@ -112,12 +113,12 @@ func (i *InteractiveSpan) Layout(gtx layout.Context) layout.Dimensions {
 
 // Content returns the text content of the interactive span as well as the
 // metadata associated with it.
-func (i *InteractiveSpan) Content() (string, map[string]interface{}) {
+func (i *InteractiveSpan) Content() (string, map[string]any) {
 	return i.contents, i.metadata
 }
 
 // Get looks up a metadata property on the interactive span.
-func (i *InteractiveSpan) Get(key string) interface{} {
+func (i *InteractiveSpan) Get(key string) any {
 	return i.metadata[key]
 }
 
@@ -173,14 +174,14 @@ type SpanStyle struct {
 	Color          color.NRGBA
 	Content        string
 	Interactive    bool
-	metadata       map[string]interface{}
+	metadata       map[string]any
 	interactiveIdx int
 }
 
 // Set configures a metadata key-value pair on the span that can be
 // retrieved if the span is interacted with. If the provided value
 // is empty, the key will be deleted from the metadata.
-func (ss *SpanStyle) Set(key string, value interface{}) {
+func (ss *SpanStyle) Set(key string, value any) {
 	if value == "" {
 		if ss.metadata != nil {
 			delete(ss.metadata, key)
@@ -191,7 +192,7 @@ func (ss *SpanStyle) Set(key string, value interface{}) {
 		return
 	}
 	if ss.metadata == nil {
-		ss.metadata = make(map[string]interface{})
+		ss.metadata = make(map[string]any)
 	}
 	ss.metadata[key] = value
 }
@@ -200,10 +201,8 @@ func (ss *SpanStyle) Set(key string, value interface{}) {
 func (ss SpanStyle) DeepCopy() SpanStyle {
 	out := ss
 	if len(ss.metadata) > 0 {
-		md := make(map[string]interface{})
-		for k, v := range ss.metadata {
-			md[k] = v
-		}
+		md := make(map[string]any)
+		maps.Copy(md, ss.metadata)
 		out.metadata = md
 	}
 	return out

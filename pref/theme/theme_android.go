@@ -7,9 +7,7 @@ import (
 	"gioui.org/x/pref/internal/xjni"
 )
 
-var (
-	_Lib = "org/gioui/x/pref/theme/theme_android"
-)
+var _Lib = "org/gioui/x/pref/theme/theme_android"
 
 func isDark() (bool, error) {
 	i, err := xjni.DoInt(_Lib, "isDark", "()I")
