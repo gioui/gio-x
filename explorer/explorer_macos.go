@@ -15,6 +15,7 @@ extern void exportFile(CFTypeRef viewRef, char * name, int32_t id);
 extern void importFile(CFTypeRef viewRef, char * ext, int32_t id);
 */
 import "C"
+
 import (
 	"io"
 	"net/url"
@@ -51,7 +52,6 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 		return nil, resp.error
 	}
 	return resp.file.(io.WriteCloser), resp.error
-
 }
 
 func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {

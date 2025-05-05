@@ -197,7 +197,7 @@ func (g *gioNodeRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte,
 		g.EnsureSeparationFromPrevious()
 		g.Current.Font = g.Config.MonospaceFont
 		lines := n.Lines()
-		for i := 0; i < lines.Len(); i++ {
+		for i := range lines.Len() {
 			line := lines.At(i)
 			g.Current.Content = string(line.Value(source))
 			g.CommitCurrent()

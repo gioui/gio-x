@@ -286,7 +286,7 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 			}
 			// synthesize and insert a new span
 			byteLen := 0
-			for i := 0; i < res.runes; i++ {
+			for range res.runes {
 				_, n := utf8.DecodeRuneInString(span.Content[byteLen:])
 				byteLen += n
 			}

@@ -52,7 +52,6 @@ func newFile(env jni.Env, stream jni.Object) (*File, error) {
 	f.getError = jni.GetMethodID(env, f.libClass, "getError", "()Ljava/lang/String;")
 
 	return f, nil
-
 }
 
 func (f *File) Read(b []byte) (n int, err error) {

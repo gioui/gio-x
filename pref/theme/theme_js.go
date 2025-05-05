@@ -4,9 +4,7 @@ import (
 	"syscall/js"
 )
 
-var (
-	_MatchMedia = js.Global().Get("matchMedia")
-)
+var _MatchMedia = js.Global().Get("matchMedia")
 
 func isDark() (bool, error) {
 	return do("(prefers-color-scheme: dark)")
