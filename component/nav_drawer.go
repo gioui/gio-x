@@ -51,14 +51,10 @@ func (n *renderNavItem) Clicked(gtx C) bool {
 }
 
 func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
-	for {
-		event, ok := gtx.Event(pointer.Filter{
-			Target: n,
-			Kinds:  pointer.Enter | pointer.Leave,
-		})
-		if !ok {
-			break
-		}
+	for event := range gtx.Events(pointer.Filter{
+		Target: n,
+		Kinds:  pointer.Enter | pointer.Leave,
+	}) {
 		switch event := event.(type) {
 		case pointer.Event:
 			switch event.Kind {
@@ -69,6 +65,7 @@ func (n *renderNavItem) Layout(gtx layout.Context, th *material.Theme) layout.Di
 			}
 		}
 	}
+
 	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
 	defer clip.Rect(image.Rectangle{
 		Max: gtx.Constraints.Max,

@@ -102,11 +102,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 		if !anim.Visible() {
 			return D{}
 		}
-		for {
-			event, ok := s.drag.Update(gtx.Metric, gtx.Source, gesture.Horizontal)
-			if !ok {
-				break
-			}
+
+		for event := range s.drag.Update(gtx.Metric, gtx.Source, gesture.Horizontal) {
 			switch event.Kind {
 			case pointer.Press:
 				s.dragStarted = event.Position
@@ -123,16 +120,8 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 				s.dragging = false
 			}
 		}
-		for {
-			// Beneath sheet content, listen for tap events. This prevents taps in the
-			// empty sheet area from passing downward to the scrim underneath it.
-			_, ok := gtx.Event(pointer.Filter{
-				Target: s,
-				Kinds:  pointer.Press | pointer.Release,
-			})
-			if !ok {
-				break
-			}
+
+		for range gtx.Events(pointer.Filter{Target: s, Kinds: pointer.Press | pointer.Release}) {
 		}
 		// Ensure any transformation is undone on return.
 		defer op.Offset(image.Point{}).Push(gtx.Ops).Pop()

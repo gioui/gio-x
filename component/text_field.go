@@ -117,11 +117,7 @@ func (in *TextField) TextTooLong() bool {
 
 func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	disabled := gtx.Source == (input.Source{})
-	for {
-		ev, ok := in.click.Update(gtx.Source)
-		if !ok {
-			break
-		}
+	for ev := range in.click.Update(gtx.Source) {
 		switch ev.Kind {
 		case gesture.KindPress:
 			gtx.Execute(key.FocusCmd{Tag: &in.Editor})
