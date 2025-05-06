@@ -13,9 +13,11 @@ import "sync"
 
 // impl is a package global notifier initialized to the current platform
 // implementation.
-var impl Notifier
-var implErr error
-var implLock sync.Mutex
+var (
+	impl     Notifier
+	implErr  error
+	implLock sync.Mutex
+)
 
 // Notifier provides methods for creating and managing notifications.
 type Notifier interface {

@@ -104,7 +104,6 @@ func (it *textIterator) processGlyph(g text.Glyph, ok bool) (_ text.Glyph, visib
 		it.bounds.Max.Y = max(it.bounds.Max.Y, logicalBounds.Max.Y)
 	}
 	return g, ok && !below
-
 }
 
 func min[T constraints.Ordered](a, b T) T {

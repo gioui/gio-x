@@ -20,6 +20,7 @@ extern const char* getURL(CFTypeRef url_ref);
 
 */
 import "C"
+
 import (
 	"errors"
 	"io"

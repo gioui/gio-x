@@ -1,9 +1,10 @@
 package theme
 
 import (
+	"unsafe"
+
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
-	"unsafe"
 )
 
 var (

@@ -9,6 +9,7 @@ package explorer
 #include <stdlib.h>
 */
 import "C"
+
 import (
 	"errors"
 	"io"
@@ -88,7 +89,6 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 				jni.Value(e.id),
 			)
 		})
-
 		if err != nil {
 			e.result <- result{error: err}
 		}
@@ -119,7 +119,6 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 				jni.Value(e.id),
 			)
 		})
-
 		if err != nil {
 			e.result <- result{error: err}
 		}
