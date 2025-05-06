@@ -200,11 +200,7 @@ func (s *State) Update(gtx layout.Context) bool {
 		s.updateEditor()
 		changed = true
 	}
-	for {
-		_, ok := s.Editor.Update(gtx)
-		if !ok {
-			break
-		}
+	for range s.Editor.Update(gtx) {
 		out, err := hex.DecodeString(s.Editor.Text())
 		if err == nil && len(out) == 3 {
 			s.R.Value = (float32(out[0]) / 255.0)

@@ -55,11 +55,7 @@ func (i *InteractiveSpan) Update(gtx layout.Context) (Event, bool) {
 	if i == nil {
 		return Event{}, false
 	}
-	for {
-		e, ok := i.click.Update(gtx.Source)
-		if !ok {
-			break
-		}
+	for e := range i.click.Update(gtx.Source) {
 		switch e.Kind {
 		case gesture.KindClick:
 			i.pressing = false
