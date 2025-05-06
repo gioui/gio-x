@@ -133,7 +133,7 @@ func (g *Grid) drawRow(gtx layout.Context, row, rowHeight int, dimensioner Dimen
 func (g *Grid) Update(gtx layout.Context, rows, cols int, dimensioner Dimensioner) {
 	rowHeight := dimensioner(layout.Vertical, 0, gtx.Constraints.Max.Y)
 
-	// Update horizontal scroll position.
+	// Events horizontal scroll position.
 	hScrollDelta := g.Hscroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Horizontal,
 		pointer.ScrollRange{Min: -gtx.Constraints.Max.X / 2, Max: gtx.Constraints.Max.X / 2},
 		pointer.ScrollRange{},

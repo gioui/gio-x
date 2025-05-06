@@ -16,7 +16,7 @@ func (b *Buzzer) Buzz() bool {
 	return true
 }
 
-// Update does nothing on platforms other than Android. See the documentation with
+// Events does nothing on platforms other than Android. See the documentation with
 // GOOS=android for information on using this method correctly on that platform.
 func (b *Buzzer) SetView(_ uintptr) {
 }

@@ -103,7 +103,7 @@ func (s *ModalSheet) LayoutModal(contents func(gtx layout.Context, th *material.
 			return D{}
 		}
 
-		for event := range s.drag.Update(gtx.Metric, gtx.Source, gesture.Horizontal) {
+		for event := range s.drag.Events(gtx.Metric, gtx.Source, gesture.Horizontal) {
 			switch event.Kind {
 			case pointer.Press:
 				s.dragStarted = event.Position
