@@ -474,7 +474,7 @@ func (a AppBarOverflowActionClicked) String() string {
 	return fmt.Sprintf("clicked app bar overflow action with tag %v", a.Tag)
 }
 
-// Events returns a slice of all AppBarActions to occur since the last frame.
+// Update returns a slice of all AppBarActions to occur since the last frame.
 func (a *AppBar) Events(gtx layout.Context) []AppBarEvent {
 	var out []AppBarEvent
 	if clicked := a.NavigationButton.Clicked(gtx); clicked && a.contextualAnim.Visible() {
