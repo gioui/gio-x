@@ -25,7 +25,7 @@ func NewModal() *ModalLayer {
 	m := ModalLayer{}
 	m.VisibilityAnimation.State = Invisible
 	m.VisibilityAnimation.Duration = defaultModalAnimationDuration
-	m.Scrim.FinalAlpha = 82 //default
+	m.Scrim.FinalAlpha = 82 // default
 	return &m
 }
 

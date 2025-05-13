@@ -108,11 +108,7 @@ func (d *dragBox) Add(ops *op.Ops) {
 // Update processes events from the queue using the given metric and updates the
 // drag position.
 func (d *dragBox) Update(metric unit.Metric, queue input.Source) {
-	for {
-		ev, ok := d.drag.Update(metric, queue, gesture.Both)
-		if !ok {
-			break
-		}
+	for ev := range d.drag.Events(metric, queue, gesture.Both) {
 		switch ev.Kind {
 		case pointer.Press:
 			d.activeDragOrigin = ev.Position.Round()

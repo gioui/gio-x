@@ -61,14 +61,10 @@ func (r *ContextArea) Update(gtx C) {
 
 	r.startedActive = r.active
 	// Summon the contextual widget if the area recieved a secondary click.
-	for {
-		ev, ok := gtx.Event(pointer.Filter{
-			Target: r,
-			Kinds:  pointer.Press | pointer.Release,
-		})
-		if !ok {
-			break
-		}
+	for ev := range gtx.Events(pointer.Filter{
+		Target: r,
+		Kinds:  pointer.Press | pointer.Release,
+	}) {
 		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
@@ -97,14 +93,10 @@ func (r *ContextArea) Update(gtx C) {
 	}
 
 	// Dismiss the contextual widget if the user clicked outside of it.
-	for {
-		ev, ok := gtx.Event(pointer.Filter{
-			Target: suppressionTag,
-			Kinds:  pointer.Press,
-		})
-		if !ok {
-			break
-		}
+	for ev := range gtx.Events(pointer.Filter{
+		Target: suppressionTag,
+		Kinds:  pointer.Press,
+	}) {
 		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
@@ -112,16 +104,14 @@ func (r *ContextArea) Update(gtx C) {
 		if e.Kind == pointer.Press {
 			r.Dismiss()
 		}
+
 	}
+
 	// Dismiss the contextual widget if the user released a click within it.
-	for {
-		ev, ok := gtx.Event(pointer.Filter{
-			Target: dismissTag,
-			Kinds:  pointer.Release,
-		})
-		if !ok {
-			break
-		}
+	for ev := range gtx.Events(pointer.Filter{
+		Target: dismissTag,
+		Kinds:  pointer.Release,
+	}) {
 		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue

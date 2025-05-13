@@ -5,10 +5,8 @@ import (
 	"errors"
 )
 
-var (
-	// ErrNotAvailableAPI indicates that the current device doesn't support such function.
-	ErrNotAvailableAPI = errors.New("pref: not available api")
-)
+// ErrNotAvailableAPI indicates that the current device doesn't support such function.
+var ErrNotAvailableAPI = errors.New("pref: not available api")
 
 // IsDarkMode returns "true" if the end-user prefers dark-mode theme.
 func IsDarkMode() (bool, error) {

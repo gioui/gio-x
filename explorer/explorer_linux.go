@@ -86,7 +86,7 @@ func (e *Explorer) exportFile(fileName string) (io.WriteCloser, error) {
 			return fmt.Errorf("failed to call OpenFile: %w", err)
 		}
 
-		// Make sure we got the request object's path right. Update our subscription otherwise.
+		// Make sure we got the request object's path right. Events our subscription otherwise.
 		if requestHandle != config.expectedRequestHandle {
 			if err := conn.AddMatchSignal(dbus.WithMatchObjectPath(dbus.ObjectPath(requestHandle))); err != nil {
 				return fmt.Errorf("failed to subscribe to request: %w", err)
@@ -277,7 +277,7 @@ func (e *Explorer) open(cfg configOpen) ([]io.ReadCloser, error) {
 			return fmt.Errorf("failed to call OpenFile: %w", err)
 		}
 
-		// Make sure we got the request object's path right. Update our subscription otherwise.
+		// Make sure we got the request object's path right. Events our subscription otherwise.
 		if requestHandle != config.expectedRequestHandle {
 			if err := conn.AddMatchSignal(dbus.WithMatchObjectPath(dbus.ObjectPath(requestHandle))); err != nil {
 				return fmt.Errorf("failed to subscribe to request: %w", err)

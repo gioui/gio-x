@@ -86,10 +86,7 @@ func (a *actionGroup) layout(gtx C, th *material.Theme, overflowBtn *widget.Clic
 	overflowedActions := len(a.actions)
 	gtx.Constraints.Min.Y = 0
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
-	visibleActionItems := int((widthDp / 48) - 1)
-	if visibleActionItems < 0 {
-		visibleActionItems = 0
-	}
+	visibleActionItems := max(int((widthDp/48)-1), 0)
 	visibleActionItems = min(visibleActionItems, len(a.actions))
 	overflowedActions -= visibleActionItems
 	var actions []layout.FlexChild
@@ -131,7 +128,7 @@ type overflowMenu struct {
 	list layout.List
 	// the button that triggers the overflow menu
 	widget.Clickable
-	selectedTag interface{}
+	selectedTag any
 }
 
 func (o *overflowMenu) updateState(gtx layout.Context, th *material.Theme, barPos VerticalAnchorPosition, actions *actionGroup) {
@@ -329,7 +326,7 @@ var overflowButtonInset = layout.Inset{
 // OverflowAction holds information about an action available in an overflow menu
 type OverflowAction struct {
 	Name string
-	Tag  interface{}
+	Tag  any
 }
 
 func Interpolate(a, b color.NRGBA, progress float32) color.NRGBA {
@@ -468,7 +465,7 @@ func (a AppBarContextMenuDismissed) String() string {
 // AppBarOverflowActionClicked indicates that an action in the app bar overflow
 // menu was clicked during the last frame.
 type AppBarOverflowActionClicked struct {
-	Tag interface{}
+	Tag any
 }
 
 func (a AppBarOverflowActionClicked) AppBarEvent() {}
@@ -477,7 +474,7 @@ func (a AppBarOverflowActionClicked) String() string {
 	return fmt.Sprintf("clicked app bar overflow action with tag %v", a.Tag)
 }
 
-// Events returns a slice of all AppBarActions to occur since the last frame.
+// Update returns a slice of all AppBarActions to occur since the last frame.
 func (a *AppBar) Events(gtx layout.Context) []AppBarEvent {
 	var out []AppBarEvent
 	if clicked := a.NavigationButton.Clicked(gtx); clicked && a.contextualAnim.Visible() {

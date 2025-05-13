@@ -175,14 +175,10 @@ func (t *TipArea) Layout(gtx C, tip Tooltip, w layout.Widget) D {
 		}
 		t.VisibilityAnimation.Duration = t.FadeDuration
 	}
-	for {
-		ev, ok := gtx.Event(pointer.Filter{
-			Target: t,
-			Kinds:  pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
-		})
-		if !ok {
-			break
-		}
+	for ev := range gtx.Events(pointer.Filter{
+		Target: t,
+		Kinds:  pointer.Press | pointer.Release | pointer.Enter | pointer.Leave,
+	}) {
 		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
