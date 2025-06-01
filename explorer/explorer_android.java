@@ -10,6 +10,8 @@ import android.content.pm.PackageManager;
 import android.os.Handler.Callback;
 import android.os.Handler;
 import android.net.Uri;
+import android.os.Build;
+import android.provider.DocumentsContract;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
@@ -30,10 +32,12 @@ public class explorer_android {
     // List of requestCode used in the callback, to identify the caller.
     static List<Integer> import_codes = new ArrayList<Integer>();
     static List<Integer> export_codes = new ArrayList<Integer>();
+    static List<Integer> directory_codes = new ArrayList<Integer>();
 
     // Functions defined on Golang.
     static public native void ImportCallback(InputStream f, int id, String err);
     static public native void ExportCallback(OutputStream f, int id, String err);
+    static public native void DirectoryCallback(Uri path, int id, String err);
 
     public static class explorer_android_fragment extends Fragment {
         Context context;
@@ -81,6 +85,29 @@ public class explorer_android {
                             return;
                         }
                     }
+
+                    if (directory_codes.contains(Integer.valueOf(requestCode))) {
+                        directory_codes.remove(Integer.valueOf(requestCode));
+                        if (resultCode != Activity.RESULT_OK) {
+                            explorer_android.DirectoryCallback(null, requestCode, "");
+                            activity.getFragmentManager().popBackStack();
+                            return;
+                        }
+                        try {
+                            Uri treeUri = data.getData();
+
+                            int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            activity.getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
+
+
+                            Uri folderUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri));
+
+                            explorer_android.DirectoryCallback(folderUri, requestCode, "");
+
+                        } catch (Exception e) {
+                            explorer_android.DirectoryCallback(null, requestCode, e.toString());
+                        }
+                    }
                 }
             });
 
@@ -121,6 +148,29 @@ public class explorer_android {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimes);
                     }
                 }
+                frag.startActivityForResult(Intent.createChooser(intent, ""), id);
+            }
+        });
+    }
+
+    public void openDirectory(View view, int id) {
+        askPermission(view);
+
+        ((Activity) view.getContext()).runOnUiThread(new Runnable() {
+            public void run() {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                    Log.e("explorer_android", "openDirectory requires Android Lollipop or higher.");
+                    explorer_android.DirectoryCallback(null, id, "Android version too low");
+                    return;
+                }
+
+                registerFrag(view);
+                directory_codes.add(Integer.valueOf(id));
+
+                final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                intent.addCategory(Intent.CATEGORY_DEFAULT);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+
                 frag.startActivityForResult(Intent.createChooser(intent, ""), id);
             }
         });
