@@ -165,6 +165,19 @@ func (e *Explorer) CreateFile(name string) (io.WriteCloser, error) {
 	return e.exportFile(name)
 }
 
+func (e *Explorer) OpenDirectory() (*Directory, error) {
+	if e == nil {
+		return nil, ErrNotAvailable
+	}
+
+	if runtime.GOOS != "js" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
+
+	return e.openDirectory()
+}
+
 var (
 	DefaultExplorer *Explorer
 )

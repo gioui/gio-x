@@ -25,6 +25,8 @@ import (
 //go:generate javac -source 8 -target 8  -bootclasspath $ANDROID_HOME/platforms/android-30/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java
 //go:generate jar cf explorer_android.jar -C $TEMP/explorer_explorer_android/classes .
 
+var _View uintptr
+
 type explorer struct {
 	window *app.Window
 	view   uintptr
@@ -32,8 +34,9 @@ type explorer struct {
 	libObject jni.Object
 	libClass  jni.Class
 
-	importFile jni.MethodID
-	exportFile jni.MethodID
+	importFile    jni.MethodID
+	exportFile    jni.MethodID
+	openDirectory jni.MethodID
 
 	result chan result
 }
@@ -65,6 +68,7 @@ func (e *explorer) init(env jni.Env) error {
 	e.libClass = jni.Class(jni.NewGlobalRef(env, jni.Object(class)))
 	e.importFile = jni.GetMethodID(env, e.libClass, "importFile", "(Landroid/view/View;Ljava/lang/String;I)V")
 	e.exportFile = jni.GetMethodID(env, e.libClass, "exportFile", "(Landroid/view/View;Ljava/lang/String;I)V")
+	e.openDirectory = jni.GetMethodID(env, e.libClass, "openDirectory", "(Landroid/view/View;I)V")
 
 	return nil
 }
@@ -72,6 +76,7 @@ func (e *explorer) init(env jni.Env) error {
 func (e *Explorer) listenEvents(evt event.Event) {
 	if evt, ok := evt.(app.AndroidViewEvent); ok {
 		e.view = evt.View
+		_View = evt.View
 	}
 }
 
@@ -136,17 +141,47 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) openDirectory() (*Directory, error) {
+	go e.window.Run(func() {
+		err := jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
+			if err := e.init(env); err != nil {
+				return err
+			}
+
+			return jni.CallVoidMethod(env, e.libObject, e.explorer.openDirectory,
+				jni.Value(e.view),
+				jni.Value(e.id),
+			)
+		})
+
+		if err != nil {
+			e.result <- result{error: err}
+		}
+	})
+
+	dir := <-e.result
+	if dir.error != nil {
+		return nil, dir.error
+	}
+	return dir.file.(*Directory), nil
+}
+
 //export Java_org_gioui_x_explorer_explorer_1android_ImportCallback
 func Java_org_gioui_x_explorer_explorer_1android_ImportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, err C.jstring) {
-	fileCallback(env, stream, id, err)
+	fileCallback(env, stream, id, err, newFile)
 }
 
 //export Java_org_gioui_x_explorer_explorer_1android_ExportCallback
 func Java_org_gioui_x_explorer_explorer_1android_ExportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, err C.jstring) {
-	fileCallback(env, stream, id, err)
+	fileCallback(env, stream, id, err, newFile)
 }
 
-func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, err C.jstring) {
+//export Java_org_gioui_x_explorer_explorer_1android_DirectoryCallback
+func Java_org_gioui_x_explorer_explorer_1android_DirectoryCallback(env *C.JNIEnv, _ C.jclass, url C.jobject, id C.jint, err C.jstring) {
+	fileCallback(env, url, id, err, newDirectory)
+}
+
+func fileCallback[T any](env *C.JNIEnv, stream C.jobject, id C.jint, err C.jstring, fn func(env jni.Env, stream jni.Object) (T, error)) {
 	var res result
 	if v, ok := active.Load(int32(id)); ok {
 		env := jni.EnvFor(uintptr(unsafe.Pointer(env)))
@@ -158,7 +193,7 @@ func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, err C.jstring) {
 				}
 			}
 		} else {
-			res.file, res.error = newFile(env, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+			res.file, res.error = fn(env, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
 		}
 		v.(*explorer).result <- res
 	}
