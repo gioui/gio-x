@@ -40,10 +40,11 @@ type TextField struct {
 
 	// Animation state.
 	state
-	label  label
-	border border
-	helper helper
-	anim   *Progress
+	focused bool
+	label   label
+	border  border
+	helper  helper
+	anim    *Progress
 
 	// errored tracks whether the input is in an errored state.
 	// This is orthogonal to the other states: the input can be both errored
@@ -146,12 +147,16 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	}
 	if in.state == activated || hasContents {
 		in.anim.Start(gtx.Now, Forward, 0)
+		in.focused = true
 	}
 	if in.state == focused && !hasContents && !in.anim.Started() {
 		in.anim.Start(gtx.Now, Forward, duration)
+		in.focused = true
 	}
-	if in.state == inactive && !hasContents && in.anim.Finished() {
+	focusLost := in.state == inactive && in.focused
+	if focusLost && !hasContents && in.anim.Finished() {
 		in.anim.Start(gtx.Now, Reverse, duration)
+		in.focused = false
 	}
 	if in.anim.Started() {
 		gtx.Execute(op.InvalidateCmd{})
