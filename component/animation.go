@@ -200,13 +200,17 @@ func (p Progress) Finished() bool {
 
 // Start the progress in the given direction over the given duration.
 func (p *Progress) Start(began time.Time, direction ProgressDirection, duration time.Duration) {
-	if !p.active {
-		p.active = true
-		p.began = began
-		p.direction = direction
-		p.duration = duration
-		p.Update(began)
+	if p.active {
+		return
 	}
+	p.active = true
+	p.began = began
+	p.direction = direction
+	p.duration = duration
+	if direction == Reverse {
+		p.progress = 1.0
+	}
+	p.Update(began)
 }
 
 // Stop the progress.
