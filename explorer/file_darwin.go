@@ -93,6 +93,10 @@ func (f *File) Name() string {
 	return parsed.Path
 }
 
+func (f *File) Size() int64 {
+	return 0
+}
+
 func (f *File) Close() error {
 	if ok := bool(C.fileClose(f.file)); !ok {
 		return getError(f.file)

@@ -3,27 +3,27 @@ package org.gioui.x.explorer;
 import android.content.Context;
 import android.util.Log;
 import android.content.Intent;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
 import android.view.View;
 import android.app.Activity;
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.os.Handler.Callback;
-import android.os.Handler;
 import android.net.Uri;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.os.Looper;
-import android.content.ContentResolver;
+
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+
 import android.webkit.MimeTypeMap;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.Flushable;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 public class explorer_android {
     final Fragment frag = new explorer_android_fragment();
 
@@ -32,8 +32,18 @@ public class explorer_android {
     static List<Integer> export_codes = new ArrayList<Integer>();
 
     // Functions defined on Golang.
-    static public native void ImportCallback(InputStream f, int id, String err);
-    static public native void ExportCallback(OutputStream f, int id, String err);
+    static public native void ImportCallback(InputStream f, int id, FileInfo fileInfo, String err);
+    static public native void ExportCallback(OutputStream f, int id, FileInfo fileInfo, String err);
+
+    public static class FileInfo {
+        FileInfo(String displayName, long size) {
+            this.displayName = displayName;
+            this.size = size;
+        }
+
+        String displayName;
+        long size;
+    }
 
     public static class explorer_android_fragment extends Fragment {
         Context context;
@@ -53,15 +63,16 @@ public class explorer_android {
                     if (import_codes.contains(Integer.valueOf(requestCode))) {
                         import_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ImportCallback(null, requestCode, "");
+                            explorer_android.ImportCallback(null, requestCode, null, "");
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
-                            InputStream f = activity.getApplicationContext().getContentResolver().openInputStream(data.getData());
-                            explorer_android.ImportCallback(f, requestCode, "");
+                            Uri uri = data.getData();
+                            InputStream f = activity.getApplicationContext().getContentResolver().openInputStream(uri);
+                            explorer_android.ImportCallback(f, requestCode, getFileInfoFromContentUri(uri), "");
                         } catch (Exception e) {
-                            explorer_android.ImportCallback(null, requestCode, e.toString());
+                            explorer_android.ImportCallback(null, requestCode, null, e.toString());
                             return;
                         }
                     }
@@ -69,15 +80,15 @@ public class explorer_android {
                     if (export_codes.contains(Integer.valueOf(requestCode))) {
                         export_codes.remove(Integer.valueOf(requestCode));
                         if (resultCode != Activity.RESULT_OK) {
-                            explorer_android.ExportCallback(null, requestCode, "");
+                            explorer_android.ExportCallback(null, requestCode, null, "");
                             activity.getFragmentManager().popBackStack();
                             return;
                         }
                         try {
                             OutputStream f = activity.getApplicationContext().getContentResolver().openOutputStream(data.getData(), "wt");
-                            explorer_android.ExportCallback(f, requestCode, "");
+                            explorer_android.ExportCallback(f, requestCode, null, "");
                         } catch (Exception e) {
-                            explorer_android.ExportCallback(null, requestCode, e.toString());
+                            explorer_android.ExportCallback(null, requestCode, null, e.toString());
                             return;
                         }
                     }
@@ -85,19 +96,35 @@ public class explorer_android {
             });
 
         }
+
+        private FileInfo getFileInfoFromContentUri(Uri uri) {
+            String[] projection = {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE};
+            try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    String displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                    long size = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+                    return new FileInfo(displayName, size);
+                }
+            } catch (Exception e) {
+               Log.w("explorer", "get file info failed, " + e.getMessage());
+            }
+            return null;
+        }
     }
 
-    public void exportFile(View view, String ext, int id) {
+    public void exportFile(View view, String filename, int id) {
         askPermission(view);
 
         ((Activity) view.getContext()).runOnUiThread(new Runnable() {
             public void run() {
                 registerFrag(view);
                 export_codes.add(Integer.valueOf(id));
-                
+                int extIndex = filename.lastIndexOf(".") + 1;
+                String ext = extIndex < filename.length() ? filename.substring(extIndex) : filename;
                 final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
+                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase()));
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.putExtra(Intent.EXTRA_TITLE, filename);
                 frag.startActivityForResult(Intent.createChooser(intent, ""), id);
             }
         });

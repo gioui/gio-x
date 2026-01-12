@@ -8,11 +8,13 @@ import (
 	"git.wow.st/gmp/jni"
 )
 
-//go:generate javac -source 8 -target 8  -bootclasspath $ANDROID_HOME/platforms/android-30/android.jar -d $TEMP/explorer_file_android/classes file_android.java
+//go:generate javac -source 8 -target 8 -bootclasspath $ANDROID_HOME/platforms/android-36/android.jar -d $TEMP/explorer_file_android/classes file_android.java
 //go:generate jar cf file_android.jar -C $TEMP/explorer_file_android/classes .
 
 type File struct {
 	stream    jni.Object
+	name      string
+	size      int64
 	libObject jni.Object
 	libClass  jni.Class
 
@@ -26,8 +28,8 @@ type File struct {
 	isClosed        bool
 }
 
-func newFile(env jni.Env, stream jni.Object) (*File, error) {
-	f := &File{stream: stream}
+func newFile(env jni.Env, name string, size int64, stream jni.Object) (*File, error) {
+	f := &File{stream: stream, name: name, size: size}
 
 	class, err := jni.LoadClass(env, jni.ClassLoaderFor(env, jni.Object(app.AppContext())), "org/gioui/x/explorer/file_android")
 	if err != nil {
@@ -54,6 +56,10 @@ func newFile(env jni.Env, stream jni.Object) (*File, error) {
 	return f, nil
 
 }
+
+func (f *File) Name() string { return f.name }
+
+func (f *File) Size() int64 { return f.size }
 
 func (f *File) Read(b []byte) (n int, err error) {
 	if f == nil || f.isClosed {

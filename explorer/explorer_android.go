@@ -22,7 +22,7 @@ import (
 	"git.wow.st/gmp/jni"
 )
 
-//go:generate javac -source 8 -target 8  -bootclasspath $ANDROID_HOME/platforms/android-30/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java
+//go:generate javac -source 8 -target 8 -bootclasspath $ANDROID_HOME/platforms/android-36/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java
 //go:generate jar cf explorer_android.jar -C $TEMP/explorer_explorer_android/classes .
 
 type explorer struct {
@@ -66,6 +66,10 @@ func (e *explorer) init(env jni.Env) error {
 	e.importFile = jni.GetMethodID(env, e.libClass, "importFile", "(Landroid/view/View;Ljava/lang/String;I)V")
 	e.exportFile = jni.GetMethodID(env, e.libClass, "exportFile", "(Landroid/view/View;Ljava/lang/String;I)V")
 
+	fileInfoClass, err := jni.LoadClass(env, jni.ClassLoaderFor(env, jni.Object(app.AppContext())), "org/gioui/x/explorer/explorer_android$FileInfo")
+	displayNameId = jni.GetFieldID(env, fileInfoClass, "displayName", "Ljava/lang/String;")
+	sizeId = jni.GetFieldID(env, fileInfoClass, "size", "J")
+
 	return nil
 }
 
@@ -84,7 +88,7 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 
 			return jni.CallVoidMethod(env, e.libObject, e.explorer.exportFile,
 				jni.Value(e.view),
-				jni.Value(jni.JavaString(env, strings.TrimPrefix(strings.ToLower(filepath.Ext(name)), "."))),
+				jni.Value(jni.JavaString(env, filepath.Base(name))),
 				jni.Value(e.id),
 			)
 		})
@@ -137,16 +141,16 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 }
 
 //export Java_org_gioui_x_explorer_explorer_1android_ImportCallback
-func Java_org_gioui_x_explorer_explorer_1android_ImportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, err C.jstring) {
-	fileCallback(env, stream, id, err)
+func Java_org_gioui_x_explorer_explorer_1android_ImportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, fileInfo C.jobject, err C.jstring) {
+	fileCallback(env, stream, id, fileInfo, err)
 }
 
 //export Java_org_gioui_x_explorer_explorer_1android_ExportCallback
-func Java_org_gioui_x_explorer_explorer_1android_ExportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, err C.jstring) {
-	fileCallback(env, stream, id, err)
+func Java_org_gioui_x_explorer_explorer_1android_ExportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, fileInfo C.jobject, err C.jstring) {
+	fileCallback(env, stream, id, fileInfo, err)
 }
 
-func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, err C.jstring) {
+func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, fileInfo C.jobject, err C.jstring) {
 	var res result
 	if v, ok := active.Load(int32(id)); ok {
 		env := jni.EnvFor(uintptr(unsafe.Pointer(env)))
@@ -158,13 +162,21 @@ func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, err C.jstring) {
 				}
 			}
 		} else {
-			res.file, res.error = newFile(env, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+			if unsafe.Pointer(fileInfo) == nil {
+				res.file, res.error = newFile(env, "", 0, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+			} else {
+				name := jni.GoString(env, jni.String(uintptr(jni.GetObjectField(env, jni.Object(uintptr(fileInfo)), displayNameId))))
+				size := jni.GetLongField(env, jni.Object(uintptr(fileInfo)), sizeId)
+				res.file, res.error = newFile(env, name, size, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+			}
 		}
 		v.(*explorer).result <- res
 	}
 }
 
 var (
-	_ io.ReadCloser  = (*File)(nil)
-	_ io.WriteCloser = (*File)(nil)
+	displayNameId jni.FieldID
+	sizeId        jni.FieldID
+	_             io.ReadCloser  = (*File)(nil)
+	_             io.WriteCloser = (*File)(nil)
 )
