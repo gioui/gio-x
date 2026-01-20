@@ -8,7 +8,7 @@ require (
 	gioui.org v0.9.0
 	git.sr.ht/~jackmordaunt/go-toast v1.0.0
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
-	github.com/andybalholm/stroke v0.0.0-20221221101821-bd29b49d73f0
+	github.com/andybalholm/stroke v0.0.0-20251027184313-5126dd7227a1
 	github.com/esiqveland/notify v0.11.0
 	github.com/godbus/dbus/v5 v5.0.6
 	github.com/yuin/goldmark v1.4.13
