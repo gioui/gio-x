@@ -215,6 +215,12 @@ type TextStyle struct {
 	Styles     []SpanStyle
 	Alignment  text.Alignment
 	WrapPolicy styledtext.WrapPolicy
+	// LineHeight controls the distance between the baselines of lines of text.
+	// If zero, a sensible default will be used.
+	LineHeight unit.Sp
+	// LineHeightScale applies a scaling factor to the LineHeight. If zero, a
+	// sensible default will be used.
+	LineHeightScale float32
 	*text.Shaper
 }
 
@@ -256,6 +262,8 @@ func (t TextStyle) Layout(gtx layout.Context) layout.Dimensions {
 	text := styledtext.Text(t.Shaper, styles...)
 	text.WrapPolicy = t.WrapPolicy
 	text.Alignment = t.Alignment
+	text.LineHeight = t.LineHeight
+	text.LineHeightScale = t.LineHeightScale
 	return text.Layout(gtx, func(gtx layout.Context, i int, _ layout.Dimensions) {
 		span := &t.Styles[i]
 		if !span.Interactive {

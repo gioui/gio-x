@@ -70,6 +70,13 @@ type TextStyle struct {
 	Styles     []SpanStyle
 	Alignment  text.Alignment
 	WrapPolicy WrapPolicy
+	// LineHeight controls the distance between the baselines of lines of text.
+	// If zero, a sensible default will be used.
+	LineHeight unit.Sp
+	// LineHeightScale applies a scaling factor to the LineHeight. If zero, a
+	// sensible default will be used.
+	LineHeightScale float32
+
 	*text.Shaper
 }
 
@@ -97,6 +104,7 @@ func (t TextStyle) iterateSpan(gtx layout.Context, maxWidth int, span SpanStyle,
 	if truncate {
 		maxLines = 1
 	}
+	lineHeight := fixed.I(gtx.Sp(t.LineHeight))
 	// shape the text of the current span
 	macro := op.Record(gtx.Ops)
 	paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
@@ -108,6 +116,8 @@ func (t TextStyle) iterateSpan(gtx layout.Context, maxWidth int, span SpanStyle,
 		Truncator:  "\u200b", // Unicode zero-width space.
 		Locale:     gtx.Locale,
 		WrapPolicy: t.WrapPolicy.textPolicy(),
+		LineHeight: lineHeight,
+		LineHeightScale: t.LineHeightScale,
 	}, span.Content)
 	ti := textIterator{
 		viewport: image.Rectangle{Max: gtx.Constraints.Max},
@@ -175,6 +185,16 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 	copy(spans, t.Styles)
 	for i := range spans {
 		spans[i].idx = i
+	}
+
+	// Compute the effective line height following the same logic as
+	// text.Shaper.layoutParagraph: use LineHeight if set, otherwise
+	// fall back to the largest span size, then scale by LineHeightScale
+	// (defaulting to 1.2 if zero).
+	lineHeightScale := t.LineHeightScale
+	lineHeightPx := gtx.Sp(t.LineHeight)
+	if lineHeightScale == 0 {
+		lineHeightScale = 1.2
 	}
 
 	var (
@@ -268,7 +288,14 @@ func (t TextStyle) Layout(gtx layout.Context, spanFn func(gtx layout.Context, id
 
 			// reset line shaping data and update overall vertical dimensions
 			lineShapes = lineShapes[:0]
-			overallSize.Y += lineDims.Y
+			// When we have lineHeight set, use it as the line height.
+			// Otherwise, use the largest span size, then scale by LineHeightScale.
+			effectiveLineHeight := lineDims.Y
+			if t.LineHeight != 0 {
+				effectiveLineHeight = lineHeightPx
+			}
+			effectiveLineHeight = int(float32(effectiveLineHeight) * lineHeightScale)
+			overallSize.Y += effectiveLineHeight
 			lineDims = image.Point{}
 			lineAscent = 0
 		}
