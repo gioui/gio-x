@@ -1,5 +1,5 @@
-//go:build !js && !windows && !android
-// +build !js,!windows,!android
+//go:build !js && !windows && !android && !darwin
+// +build !js,!windows,!android,!darwin
 
 package theme
 
