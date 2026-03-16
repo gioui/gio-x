@@ -109,14 +109,14 @@ func (t TextStyle) iterateSpan(gtx layout.Context, maxWidth int, span SpanStyle,
 	macro := op.Record(gtx.Ops)
 	paint.ColorOp{Color: span.Color}.Add(gtx.Ops)
 	t.Shaper.LayoutString(text.Parameters{
-		Font:       span.Font,
-		PxPerEm:    fixed.I(gtx.Sp(span.Size)),
-		MaxLines:   maxLines,
-		MaxWidth:   maxWidth,
-		Truncator:  "\u200b", // Unicode zero-width space.
-		Locale:     gtx.Locale,
-		WrapPolicy: t.WrapPolicy.textPolicy(),
-		LineHeight: lineHeight,
+		Font:            span.Font,
+		PxPerEm:         fixed.I(gtx.Sp(span.Size)),
+		MaxLines:        maxLines,
+		MaxWidth:        maxWidth,
+		Truncator:       "\u200b", // Unicode zero-width space.
+		Locale:          gtx.Locale,
+		WrapPolicy:      t.WrapPolicy.textPolicy(),
+		LineHeight:      lineHeight,
 		LineHeightScale: t.LineHeightScale,
 	}, span.Content)
 	ti := textIterator{
