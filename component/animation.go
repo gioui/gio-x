@@ -135,7 +135,7 @@ func (v VisibilityAnimationState) String() string {
 // Progress is an animation primitive that tracks progress of time over a fixed
 // duration as a float between [0, 1].
 //
-// Progress is reversable.
+// Progress is reversible.
 //
 // Widgets map async UI events to state changes: stop, forward, reverse.
 // Widgets then interpolate visual data based on progress value.
@@ -207,15 +207,21 @@ func (p *Progress) Start(began time.Time, direction ProgressDirection, duration 
 	p.began = began
 	p.direction = direction
 	p.duration = duration
-	if direction == Reverse {
-		p.progress = 1.0
-	}
+	p.Reset()
 	p.Update(began)
 }
 
 // Stop the progress.
 func (p *Progress) Stop() {
 	p.active = false
+}
+
+func (p *Progress) Reset() {
+	if p.direction == Forward {
+		p.progress = 0.0
+	} else {
+		p.progress = 1.0
+	}
 }
 
 func (p *Progress) Update(now time.Time) {
