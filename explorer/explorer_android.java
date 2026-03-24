@@ -28,12 +28,13 @@ public class explorer_android {
     final Fragment frag = new explorer_android_fragment();
 
     // List of requestCode used in the callback, to identify the caller.
-    static List<Integer> import_codes = new ArrayList<Integer>();
-    static List<Integer> export_codes = new ArrayList<Integer>();
+    static List<Integer> import_codes = new ArrayList<>();
+    static List<Integer> export_codes = new ArrayList<>();
 
     // Functions defined on Golang.
     static public native void ImportCallback(InputStream f, int id, FileInfo fileInfo, String err);
     static public native void ExportCallback(OutputStream f, int id, FileInfo fileInfo, String err);
+
 
     public static class FileInfo {
         FileInfo(String displayName, long size) {
@@ -48,12 +49,14 @@ public class explorer_android {
     public static class explorer_android_fragment extends Fragment {
         Context context;
 
-        @Override public void onAttach(Context ctx) {
+        @Override
+        public void onAttach(Context ctx) {
             context = ctx;
             super.onAttach(ctx);
         }
 
-        @Override public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        @Override
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
 
             Activity activity = this.getActivity();
@@ -106,7 +109,7 @@ public class explorer_android {
                     return new FileInfo(displayName, size);
                 }
             } catch (Exception e) {
-               Log.w("explorer", "get file info failed, " + e.getMessage());
+                Log.w("explorer", "get file info failed, " + e.getMessage());
             }
             return null;
         }
@@ -177,11 +180,11 @@ public class explorer_android {
         Activity activity = (Activity) view.getContext();
 
         if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, 255);
+            activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 255);
         }
 
         if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE }, 254);
+            activity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 254);
         }
     }
 }
