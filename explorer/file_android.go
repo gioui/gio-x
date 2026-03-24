@@ -57,6 +57,10 @@ func newFile(env jni.Env, name string, size int64, stream jni.Object) (*File, er
 
 }
 
+func (f *File) Seek(offset int64, whence int) (int64, error) {
+	return 0, ErrNotAvailable
+}
+
 func (f *File) Name() string { return f.name }
 
 func (f *File) Size() int64 { return f.size }

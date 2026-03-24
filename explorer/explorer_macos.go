@@ -69,6 +69,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return resp.file.(io.ReadCloser), resp.error
 }
 
+func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
+	return os.Open(uri)
+}
+
 func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }

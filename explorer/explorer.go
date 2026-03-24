@@ -114,6 +114,51 @@ func (e *Explorer) ChooseFile(extensions ...string) (io.ReadCloser, error) {
 	return e.importFile(extensions...)
 }
 
+// ReadFile opens and returns a reader for the file at the given URI.
+//
+// The URI should be obtained from Explorer.ChooseFile().
+// This method properly handles Android's Storage Access Framework (SAF) URIs,
+// iOS document picker URIs, and standard file paths on desktop platforms.
+//
+// Example usage:
+//
+//	// Let user choose a file.
+//	file, err := explorer.ChooseFile(".txt", ".pdf")
+//	if err != nil {
+//	    return err
+//	}
+//	defer file.Close()
+//
+//	// Read the file content
+//	content, err := io.ReadAll(file)
+//
+// To persist and reuse the URI across app restarts:
+//
+//	// After choosing a file, get its URI
+//	if f, ok := file.(*explorer.File); ok {
+//	    uri := f.URI() // Save this URI for later use.
+//
+//	    // Later, read the same file using the saved URI.
+//	    reader, err := explorer.ReadFile(uri)
+//	    if err != nil {
+//	        return err
+//	    }
+//	    defer reader.Close()
+//	}
+//
+func (e *Explorer) ReadFile(uri string) (r io.ReadCloser, err error) {
+	if e == nil {
+		return nil, ErrNotAvailable
+	}
+
+	if runtime.GOOS != "js" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
+
+	return e.readFile(uri)
+}
+
 // ChooseFiles shows the files selector, allowing the user to select multiple files.
 // Optionally, it's possible to define which file extensions is supported to
 // be selected (such as `.jpg`, `.png`).

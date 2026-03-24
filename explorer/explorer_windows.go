@@ -120,6 +120,10 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
+func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
+	return os.Open(uri)
+}
+
 func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 	pathUTF16 := make([]uint16, _FilePathLength)
 

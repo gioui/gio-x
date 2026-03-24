@@ -97,6 +97,8 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return file.file.(io.ReadCloser), nil
 }
 
+func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
+
 func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }

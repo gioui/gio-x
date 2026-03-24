@@ -105,6 +105,8 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 	return file.file.(io.WriteCloser), nil
 }
 
+func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
+
 func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	for i, ext := range extensions {
 		extensions[i] = mime.TypeByExtension(ext)

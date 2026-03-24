@@ -259,6 +259,10 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 	return vs, nil
 }
 
+func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
+	return os.Open(uri)
+}
+
 func (e *Explorer) open(cfg configOpen) ([]io.ReadCloser, error) {
 	var filepaths []string
 	if err := e.withDesktopPortal(func(conn *dbus.Conn, desktopPortal dbus.BusObject, config config) error {

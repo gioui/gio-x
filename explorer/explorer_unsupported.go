@@ -20,6 +20,8 @@ func newExplorer(w *app.Window) *explorer {
 
 func (e *Explorer) listenEvents(_ event.Event) {}
 
+func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
+
 func (e *Explorer) exportFile(_ string) (io.WriteCloser, error) {
 	return nil, ErrNotAvailable
 }

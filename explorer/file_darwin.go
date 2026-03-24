@@ -84,6 +84,10 @@ func (f *File) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
+func (f *File) Seek(offset int64, whence int) (int64, error) {
+	return 0, ErrNotAvailable
+}
+
 func (f *File) Name() string {
 	parsed, err := url.Parse(f.url)
 	if err != nil {
@@ -93,9 +97,9 @@ func (f *File) Name() string {
 	return parsed.Path
 }
 
-func (f *File) Size() int64 {
-	return 0
-}
+func (f *File) Size() int64 { return 0 }
+
+func (f *File) URI() string { return f.url }
 
 func (f *File) Close() error {
 	if ok := bool(C.fileClose(f.file)); !ok {

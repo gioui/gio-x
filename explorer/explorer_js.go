@@ -29,7 +29,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	// TODO: Replace with "File System Access API" when that becomes available on most browsers.
 	// BUG: Not work on iOS/Safari.
 
-	// It's not possible to know if the user closes the file-picker dialog, so an new channel is needed.
+	// It's not possible to know if the user closes the file-picker dialog, so a new channel is needed.
 	r := make(chan result)
 
 	document := js.Global().Get("document")
@@ -50,6 +50,8 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	}
 	return file.file.(io.ReadCloser), nil
 }
+
+func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
 
 func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
