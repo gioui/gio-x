@@ -5,7 +5,7 @@
 
 #include "_cgo_export.h"
 #import <Foundation/Foundation.h>
-#import <Appkit/AppKit.h>
+#import <AppKit/AppKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 void exportFile(CFTypeRef viewRef, char * name, int32_t id) {
