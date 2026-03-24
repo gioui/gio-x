@@ -25,6 +25,8 @@ static const uint64_t EXPORT_MODE = 2;
 extern CFTypeRef createPicker(CFTypeRef controllerRef, int32_t id);
 extern bool exportFile(CFTypeRef expl, char * name);
 extern bool importFile(CFTypeRef expl, char * ext);
+extern CFTypeRef createURLFromPath(const char* path);
+extern void releaseURL(CFTypeRef url);
 */
 import "C"
 import (
@@ -32,6 +34,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unsafe"
 
 	"gioui.org/app"
 	"gioui.org/io/event"
@@ -97,7 +100,16 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	return file.file.(io.ReadCloser), nil
 }
 
-func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
+func (e *Explorer) readFile(url string) (io.ReadCloser, error) {
+	cPath := C.CString(url)
+	defer C.free(unsafe.Pointer(cPath))
+	nsUrl := C.createURLFromPath(cPath)
+	file, err := newFile(nsUrl)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
 
 func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable

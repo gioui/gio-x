@@ -33,6 +33,42 @@ uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len) {
     return 0; // Impossible condition since newFileReader will return 0.
 }
 
+uint64_t fileSeek(CFTypeRef file, uint64_t offset, int whence) {
+    explorer_file *f = (__bridge explorer_file *)file;
+
+    if (@available(iOS 13, macOS 10.15, *)) {
+        NSError *err = nil;
+        unsigned long long newOffset = 0;
+
+        switch (whence) {
+            case 0: // SEEK_SET
+                [f.handler seekToOffset:offset error:&err];
+                if (!err) newOffset = offset;
+                break;
+
+            case 1: // SEEK_CUR
+                newOffset = [f.handler offsetInFile];
+                [f.handler seekToOffset:newOffset + offset error:&err];
+                if (!err) newOffset = newOffset + offset;
+                break;
+
+            case 2: // SEEK_END
+                [f.handler seekToEndOfFile];
+                unsigned long long fileSize = [f.handler offsetInFile];
+                [f.handler seekToOffset:fileSize + offset error:&err];
+                if (!err) newOffset = fileSize + offset;
+                break;
+        }
+
+        if (err) {
+            return 0;
+        }
+
+        return newOffset;
+    }
+    return 0;
+}
+
 bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len) {
     explorer_file *f = (__bridge explorer_file *)file;
     if (@available(iOS 13, macOS 10.15, *)) {
@@ -79,4 +115,19 @@ const char* getURL(CFTypeRef url_ref) {
     const char *unsafe_cstr = [str UTF8String];
     char *safe_cstr = strdup(unsafe_cstr);
     return safe_cstr;
+}
+
+unsigned long long getSize(CFTypeRef url_ref) {
+    NSURL *url = (__bridge NSURL *)url_ref;
+    NSError *error = nil;
+    NSNumber *fileSize = nil;
+
+    [url getResourceValue:&fileSize forKey:NSURLFileSizeKey error:&error];
+
+    if (error) {
+        NSLog(@"Get file size failed: %@", error.localizedDescription);
+        return 0;
+    }
+
+    return [fileSize unsignedLongLongValue];
 }

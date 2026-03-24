@@ -13,10 +13,12 @@ package explorer
 
 extern CFTypeRef newFile(CFTypeRef url);
 extern uint64_t fileRead(CFTypeRef file, uint8_t *b, uint64_t len);
+extern uint64_t fileSeek(CFTypeRef file, uint64_t offset, int whence);
 extern bool fileWrite(CFTypeRef file, uint8_t *b, uint64_t len);
 extern bool fileClose(CFTypeRef file);
 extern char* getError(CFTypeRef file);
 extern const char* getURL(CFTypeRef url_ref);
+extern unsigned long long getSize(CFTypeRef url_ref);
 
 */
 import "C"
@@ -24,11 +26,13 @@ import (
 	"errors"
 	"io"
 	"net/url"
+	"path/filepath"
 	"unsafe"
 )
 
 type File struct {
 	file   C.CFTypeRef
+	size   uint64
 	url    string
 	closed bool
 }
@@ -42,9 +46,11 @@ func newFile(url C.CFTypeRef) (*File, error) {
 	cstr := C.getURL(url)
 	urlStr := C.GoString(cstr)
 	C.free(unsafe.Pointer(cstr))
+	size := uint64(C.getSize(url))
 
 	ret := &File{
 		file: file,
+		size: size,
 		url:  urlStr,
 	}
 	return ret, nil
@@ -85,10 +91,20 @@ func (f *File) Write(b []byte) (n int, err error) {
 }
 
 func (f *File) Seek(offset int64, whence int) (int64, error) {
-	return 0, ErrNotAvailable
+	if f.file == 0 || f.closed {
+		return 0, io.ErrClosedPipe
+	}
+
+	return int64(C.fileSeek(f.file, C.uint64_t(offset), C.int(whence))), nil
 }
 
 func (f *File) Name() string {
+	return filepath.Base(f.URI())
+}
+
+func (f *File) Size() int64 { return int64(f.size) }
+
+func (f *File) URI() string {
 	parsed, err := url.Parse(f.url)
 	if err != nil {
 		return ""
@@ -96,10 +112,6 @@ func (f *File) Name() string {
 
 	return parsed.Path
 }
-
-func (f *File) Size() int64 { return 0 }
-
-func (f *File) URI() string { return f.url }
 
 func (f *File) Close() error {
 	if ok := bool(C.fileClose(f.file)); !ok {
