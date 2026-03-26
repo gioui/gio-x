@@ -22,7 +22,7 @@ import (
 	"git.wow.st/gmp/jni"
 )
 
-//go:generate javac -source 8 -target 8 -bootclasspath $ANDROID_HOME/platforms/android-36/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java
+//go:generate javac --release 8 -classpath $ANDROID_HOME/platforms/android-36/android.jar -d $TEMP/explorer_explorer_android/classes explorer_android.java
 //go:generate jar cf explorer_android.jar -C $TEMP/explorer_explorer_android/classes .
 
 type explorer struct {
@@ -32,8 +32,9 @@ type explorer struct {
 	libObject jni.Object
 	libClass  jni.Class
 
-	importFile jni.MethodID
-	exportFile jni.MethodID
+	importFile          jni.MethodID
+	exportFile          jni.MethodID
+	openFileInputStream jni.MethodID
 
 	result chan result
 }
@@ -65,10 +66,12 @@ func (e *explorer) init(env jni.Env) error {
 	e.libClass = jni.Class(jni.NewGlobalRef(env, jni.Object(class)))
 	e.importFile = jni.GetMethodID(env, e.libClass, "importFile", "(Landroid/view/View;Ljava/lang/String;I)V")
 	e.exportFile = jni.GetMethodID(env, e.libClass, "exportFile", "(Landroid/view/View;Ljava/lang/String;I)V")
+	e.openFileInputStream = jni.GetMethodID(env, e.libClass, "openFileInputStream", "(Landroid/view/View;Ljava/lang/String;)Ljava/io/FileInputStream;")
 
 	fileInfoClass, err := jni.LoadClass(env, jni.ClassLoaderFor(env, jni.Object(app.AppContext())), "org/gioui/x/explorer/explorer_android$FileInfo")
 	displayNameId = jni.GetFieldID(env, fileInfoClass, "displayName", "Ljava/lang/String;")
 	sizeId = jni.GetFieldID(env, fileInfoClass, "size", "J")
+	uriId = jni.GetFieldID(env, fileInfoClass, "uri", "Ljava/lang/String;")
 
 	return nil
 }
@@ -105,8 +108,6 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 	return file.file.(io.WriteCloser), nil
 }
 
-func (e *Explorer) readFile(_ string) (io.ReadCloser, error) { return nil, ErrNotAvailable }
-
 func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 	for i, ext := range extensions {
 		extensions[i] = mime.TypeByExtension(ext)
@@ -124,6 +125,40 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 				jni.Value(jni.JavaString(env, mimes)),
 				jni.Value(e.id),
 			)
+		})
+
+		if err != nil {
+			e.result <- result{error: err}
+		}
+	})
+
+	file := <-e.result
+	if file.error != nil {
+		return nil, file.error
+	}
+	return file.file.(io.ReadCloser), nil
+}
+
+func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
+	go e.window.Run(func() {
+		err := jni.Do(jni.JVMFor(app.JavaVM()), func(env jni.Env) error {
+			if err := e.init(env); err != nil {
+				return err
+			}
+
+			stream, err := jni.CallObjectMethod(env, e.libObject, e.explorer.openFileInputStream,
+				jni.Value(e.view),
+				jni.Value(jni.JavaString(env, uri)),
+			)
+			if err != nil {
+				return err
+			}
+			file, err := newFile(env, "", 0, uri, stream)
+			if err != nil {
+				return err
+			}
+			e.result <- result{file: file}
+			return nil
 		})
 
 		if err != nil {
@@ -165,11 +200,12 @@ func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, fileInfo C.jobject
 			}
 		} else {
 			if unsafe.Pointer(fileInfo) == nil {
-				res.file, res.error = newFile(env, "", 0, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+				res.file, res.error = newFile(env, "", 0, "", jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
 			} else {
 				name := jni.GoString(env, jni.String(uintptr(jni.GetObjectField(env, jni.Object(uintptr(fileInfo)), displayNameId))))
 				size := jni.GetLongField(env, jni.Object(uintptr(fileInfo)), sizeId)
-				res.file, res.error = newFile(env, name, size, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
+				uri := jni.GoString(env, jni.String(uintptr(jni.GetObjectField(env, jni.Object(uintptr(fileInfo)), uriId))))
+				res.file, res.error = newFile(env, name, size, uri, jni.NewGlobalRef(env, jni.Object(uintptr(stream))))
 			}
 		}
 		v.(*explorer).result <- res
@@ -179,6 +215,7 @@ func fileCallback(env *C.JNIEnv, stream C.jobject, id C.jint, fileInfo C.jobject
 var (
 	displayNameId jni.FieldID
 	sizeId        jni.FieldID
+	uriId         jni.FieldID
 	_             io.ReadCloser  = (*File)(nil)
 	_             io.WriteCloser = (*File)(nil)
 )
