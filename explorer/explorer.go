@@ -145,7 +145,6 @@ func (e *Explorer) ChooseFile(extensions ...string) (io.ReadCloser, error) {
 //	    }
 //	    defer reader.Close()
 //	}
-//
 func (e *Explorer) ReadFile(uri string) (r io.ReadCloser, err error) {
 	if e == nil {
 		return nil, ErrNotAvailable
