@@ -145,7 +145,7 @@ func (in *TextField) Update(gtx C, th *material.Theme, hint string) {
 	if in.anim == nil {
 		in.anim = &Progress{}
 	}
-	if in.state == activated || hasContents {
+	if in.state == activated || hasContents && !in.focused {
 		in.anim.Start(gtx.Now, Forward, 0)
 		in.focused = true
 	}
