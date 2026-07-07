@@ -235,9 +235,17 @@ func (p *Progress) Update(now time.Time) {
 	)
 	switch p.direction {
 	case Forward:
-		p.progress = float32(elapsed) / float32(total)
+		if total == 0 {
+			p.progress = 1.0
+		} else {
+			p.progress = float32(elapsed) / float32(total)
+		}
 	case Reverse:
-		p.progress = 1 - float32(elapsed)/float32(total)
+		if total == 0 {
+			p.progress = 0.0
+		} else {
+			p.progress = 1 - float32(elapsed)/float32(total)
+		}
 	}
 }
 
