@@ -28,6 +28,11 @@ var (
 	_FlagDisableLinks     = uint32(0x00100000)
 	_FlagAllowMultiSelect = uint32(0x00000200)
 	_FlagExplorer         = uint32(0x00080000)
+	// OFN_NOCHANGEDIR. The common dialogs change the calling process's
+	// working directory to the directory of the selected file unless
+	// this is set, which silently breaks every relative path the
+	// application resolves after the dialog closes.
+	_FlagNoChangeDir = uint32(0x00000008)
 
 	_FilePathLength       = uint32(65535)
 	_OpenFileStructLength = uint32(unsafe.Sizeof(_OpenFileName{}))
@@ -81,7 +86,7 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 		MaxFile:       _FilePathLength,
 		Filter:        buildFilter([]string{filepath.Ext(name)}),
 		FileExtension: uint16(strings.Index(name, filepath.Ext(name))),
-		Flags:         _FlagOverwritePrompt,
+		Flags:         _FlagOverwritePrompt | _FlagNoChangeDir,
 		StructSize:    _OpenFileStructLength,
 	}
 
@@ -104,7 +109,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 		File:       &pathUTF16[0],
 		MaxFile:    _FilePathLength,
 		Filter:     buildFilter(extensions),
-		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks,
+		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagNoChangeDir,
 		StructSize: _OpenFileStructLength,
 	}
 
@@ -131,7 +136,7 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 		File:       &pathUTF16[0],
 		MaxFile:    _FilePathLength,
 		Filter:     buildFilter(extensions),
-		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagAllowMultiSelect | _FlagExplorer,
+		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagAllowMultiSelect | _FlagExplorer | _FlagNoChangeDir,
 		StructSize: _OpenFileStructLength,
 	}
 
