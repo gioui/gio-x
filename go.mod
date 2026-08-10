@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.3
 
 require (
-	gioui.org v0.10.0
+	gioui.org v0.10.2
 	git.sr.ht/~jackmordaunt/go-toast v1.0.0
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/andybalholm/stroke v0.0.0-20251027184313-5126dd7227a1
@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	gioui.org/shader v1.0.8 // indirect
+	gioui.org/shader v1.0.9 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	golang.org/x/net v0.48.0 // indirect
