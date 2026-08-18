@@ -3,6 +3,7 @@
 package explorer
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -36,12 +37,9 @@ var (
 	_FlagDisableLinks     = uint32(0x00100000)
 	_FlagAllowMultiSelect = uint32(0x00000200)
 	_FlagExplorer         = uint32(0x00080000)
-	// OFN_NOCHANGEDIR. The common dialogs change the calling process's
-	// working directory to the directory of the selected file unless
-	// this is set, which silently breaks every relative path the
-	// application resolves after the dialog closes.
-	_FlagNoChangeDir         = uint32(0x00000008)
-	_FOSNoChangeDir          = uint32(0x00000008)
+	// OFN_NOCHANGEDIR and FOS_NOCHANGEDIR have the same value.
+	// Without it, the dialogs can change the process working directory.
+	_NoChangeDir             = uint32(0x00000008)
 	_FOSPickFolders          = uint32(0x00000020)
 	_FOSForceFileSystem      = uint32(0x00000040)
 	_FOSPathMustExist        = uint32(0x00000800)
@@ -113,7 +111,7 @@ func (e *Explorer) exportFile(name string) (io.WriteCloser, error) {
 		MaxFile:       _FilePathLength,
 		Filter:        buildFilter([]string{filepath.Ext(name)}),
 		FileExtension: uint16(strings.Index(name, filepath.Ext(name))),
-		Flags:         _FlagOverwritePrompt | _FlagNoChangeDir,
+		Flags:         _FlagOverwritePrompt | _NoChangeDir,
 		StructSize:    _OpenFileStructLength,
 	}
 
@@ -136,7 +134,7 @@ func (e *Explorer) importFile(extensions ...string) (io.ReadCloser, error) {
 		File:       &pathUTF16[0],
 		MaxFile:    _FilePathLength,
 		Filter:     buildFilter(extensions),
-		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagNoChangeDir,
+		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _NoChangeDir,
 		StructSize: _OpenFileStructLength,
 	}
 
@@ -163,7 +161,7 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 		File:       &pathUTF16[0],
 		MaxFile:    _FilePathLength,
 		Filter:     buildFilter(extensions),
-		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagAllowMultiSelect | _FlagExplorer | _FlagNoChangeDir,
+		Flags:      _FlagFileMustExist | _FlagForceShowHidden | _FlagDisableLinks | _FlagAllowMultiSelect | _FlagExplorer | _NoChangeDir,
 		StructSize: _OpenFileStructLength,
 	}
 
@@ -214,6 +212,11 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 }
 
 func (e *Explorer) chooseFolder() (string, error) {
+	owner := e.owner.Load()
+	if owner == 0 {
+		return "", errors.New("explorer: window handle is unavailable")
+	}
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -234,12 +237,12 @@ func (e *Explorer) chooseFolder() (string, error) {
 	if _, err := fileDialogCall(dialog, _iFileDialogGetOptions, uintptr(unsafe.Pointer(&options))); err != nil {
 		return "", err
 	}
-	options |= _FOSNoChangeDir | _FOSPickFolders | _FOSForceFileSystem | _FOSPathMustExist
+	options |= _NoChangeDir | _FOSPickFolders | _FOSForceFileSystem | _FOSPathMustExist
 	if _, err := fileDialogCall(dialog, _iFileDialogSetOptions, uintptr(options)); err != nil {
 		return "", err
 	}
 
-	hr, err := fileDialogCall(dialog, _iModalWindowShow, e.owner.Load())
+	hr, err := fileDialogCall(dialog, _iModalWindowShow, owner)
 	if hr == _HResultCancelled {
 		return "", ErrUserDecline
 	}
