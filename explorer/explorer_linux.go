@@ -260,7 +260,14 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 }
 
 func (e *Explorer) chooseFolder() (string, error) {
-	return "", ErrNotAvailable
+	paths, err := e.selectPaths(configOpen{
+		label: "Choose Folder",
+		dir:   true,
+	})
+	if err != nil {
+		return "", err
+	}
+	return paths[0], nil
 }
 
 func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
@@ -268,7 +275,28 @@ func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
 }
 
 func (e *Explorer) open(cfg configOpen) ([]io.ReadCloser, error) {
-	var filepaths []string
+	filepaths, err := e.selectPaths(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	rcs := make([]io.ReadCloser, 0, len(filepaths))
+	for _, fname := range filepaths {
+		rc, err := os.Open(fname)
+		if err != nil {
+			for _, rc := range rcs {
+				_ = rc.Close()
+			}
+			return nil, err
+		}
+		rcs = append(rcs, rc)
+	}
+
+	return rcs, nil
+}
+
+func (e *Explorer) selectPaths(cfg configOpen) ([]string, error) {
+	var paths []string
 	if err := e.withDesktopPortal(func(conn *dbus.Conn, desktopPortal dbus.BusObject, config config) error {
 		// Invoke the OpenFile method.
 		requestHandle := ""
@@ -305,31 +333,18 @@ func (e *Explorer) open(cfg configOpen) ([]io.ReadCloser, error) {
 			return ErrUserDecline
 		}
 
-		filepaths = make([]string, len(uris))
+		paths = make([]string, len(uris))
 		for i, uri := range uris {
 			// Remove the protocol from the URI.
 			parsedURL, err := url.Parse(uri)
 			if err != nil {
 				return fmt.Errorf("failed parsing file path %s: %w", uri, err)
 			}
-			filepaths[i] = parsedURL.Path
+			paths[i] = parsedURL.Path
 		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-
-	rcs := make([]io.ReadCloser, 0, len(filepaths))
-	for _, fname := range filepaths {
-		rc, err := os.Open(fname)
-		if err != nil {
-			for _, rc := range rcs {
-				_ = rc.Close()
-			}
-			return nil, err
-		}
-		rcs = append(rcs, rc)
-	}
-
-	return rcs, nil
+	return paths, nil
 }
