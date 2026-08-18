@@ -187,7 +187,7 @@ func (e *Explorer) ChooseFiles(extensions ...string) ([]io.ReadCloser, error) {
 
 // ChooseFolder opens a native folder picker and returns the selected path.
 //
-// It is available on Windows. On other platforms it returns ErrNotAvailable.
+// It is available on Windows and macOS. On other platforms it returns ErrNotAvailable.
 // ChooseFolder blocks until the dialog closes.
 func (e *Explorer) ChooseFolder() (string, error) {
 	if e == nil {
