@@ -177,6 +177,10 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}
+
 //export Java_org_gioui_x_explorer_explorer_1android_ImportCallback
 func Java_org_gioui_x_explorer_explorer_1android_ImportCallback(env *C.JNIEnv, _ C.jclass, stream C.jobject, id C.jint, fileInfo C.jobject, err C.jstring) {
 	fileCallback(env, stream, id, fileInfo, err)

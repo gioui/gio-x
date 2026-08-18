@@ -32,4 +32,5 @@ if f, ok := reader.(*os.File); ok {
 
 ### Select folders:
 
-It's not possible to select folders.
+`Explorer.ChooseFolder` is available on Windows and returns the selected path.
+On other platforms it returns `ErrNotAvailable`.

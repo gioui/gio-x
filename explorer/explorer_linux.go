@@ -259,6 +259,10 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 	return vs, nil
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}
+
 func (e *Explorer) readFile(uri string) (io.ReadCloser, error) {
 	return os.Open(uri)
 }
