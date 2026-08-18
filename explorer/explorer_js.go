@@ -57,6 +57,10 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}
+
 type FileReader struct {
 	buffer                   js.Value
 	isClosed                 bool

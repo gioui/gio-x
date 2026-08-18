@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	// ErrUserDecline is returned when the user doesn't select the file.
+	// ErrUserDecline is returned when the user cancels a file or folder selector.
 	ErrUserDecline = errors.New("user exited the file selector without selecting a file")
 
 	// ErrNotAvailable is return when the current OS isn't supported.
@@ -183,6 +183,23 @@ func (e *Explorer) ChooseFiles(extensions ...string) ([]io.ReadCloser, error) {
 	}
 
 	return e.importFiles(extensions...)
+}
+
+// ChooseFolder opens a native folder picker and returns the selected path.
+//
+// It is available on Linux, macOS, and Windows. On other platforms it returns ErrNotAvailable.
+// ChooseFolder blocks until the dialog closes.
+func (e *Explorer) ChooseFolder() (string, error) {
+	if e == nil {
+		return "", ErrNotAvailable
+	}
+
+	if runtime.GOOS != "js" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
+
+	return e.chooseFolder()
 }
 
 // CreateFile opens the file selector, and writes the given content into

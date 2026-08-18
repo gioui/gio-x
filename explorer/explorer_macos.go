@@ -12,6 +12,7 @@ package explorer
 // Defined on explorer_macos.m file.
 extern void exportFile(CFTypeRef viewRef, char * name, int32_t id);
 extern void importFile(CFTypeRef viewRef, char * ext, int32_t id);
+extern void chooseFolder(CFTypeRef viewRef, int32_t id);
 */
 import "C"
 import (
@@ -76,6 +77,20 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	e.window.Run(func() { C.chooseFolder(e.view, C.int32_t(e.id)) })
+
+	resp := <-e.result
+	if resp.error != nil {
+		return "", resp.error
+	}
+	path, ok := resp.file.(string)
+	if !ok {
+		return "", ErrNotAvailable
+	}
+	return path, nil
+}
+
 //export importCallback
 func importCallback(u *C.char, id int32) {
 	if v, ok := active.Load(id); ok {
@@ -90,22 +105,34 @@ func exportCallback(u *C.char, id int32) {
 	}
 }
 
+//export folderCallback
+func folderCallback(u *C.char, id int32) {
+	if v, ok := active.Load(id); ok {
+		path, err := selectedPath(u)
+		v.(*explorer).result <- result{file: path, error: err}
+	}
+}
+
 func newOSFile(u *C.char, action func(s string) (*os.File, error)) result {
-	name := C.GoString(u)
-	if name == "" {
-		return result{error: ErrUserDecline, file: nil}
-	}
-
-	uri, err := url.Parse(name)
-	if err != nil {
-		return result{error: err, file: nil}
-	}
-
-	path, err := url.PathUnescape(uri.Path)
+	path, err := selectedPath(u)
 	if err != nil {
 		return result{error: err, file: nil}
 	}
 
 	f, err := action(path)
 	return result{error: err, file: f}
+}
+
+func selectedPath(u *C.char) (string, error) {
+	name := C.GoString(u)
+	if name == "" {
+		return "", ErrUserDecline
+	}
+
+	uri, err := url.Parse(name)
+	if err != nil {
+		return "", err
+	}
+
+	return url.PathUnescape(uri.Path)
 }

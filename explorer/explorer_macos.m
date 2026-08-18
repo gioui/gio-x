@@ -48,3 +48,19 @@ void importFile(CFTypeRef viewRef, char * ext, int32_t id) {
 		}
 	}];
 }
+
+void chooseFolder(CFTypeRef viewRef, int32_t id) {
+	NSView *view = (__bridge NSView *)viewRef;
+
+	NSOpenPanel *panel = [NSOpenPanel openPanel];
+	[panel setCanChooseFiles:NO];
+	[panel setCanChooseDirectories:YES];
+	[panel setAllowsMultipleSelection:NO];
+	[panel beginSheetModalForWindow:[view window] completionHandler:^(NSInteger result){
+		if (result == NSModalResponseOK) {
+			folderCallback((char *)[[panel URL].absoluteString UTF8String], id);
+		} else {
+			folderCallback((char *)(""), id);
+		}
+	}];
+}
