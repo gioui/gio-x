@@ -76,6 +76,10 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}
+
 //export importCallback
 func importCallback(u *C.char, id int32) {
 	if v, ok := active.Load(id); ok {

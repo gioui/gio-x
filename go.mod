@@ -10,6 +10,7 @@ require (
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
 	github.com/andybalholm/stroke v0.0.0-20251027184313-5126dd7227a1
 	github.com/esiqveland/notify v0.11.0
+	github.com/go-ole/go-ole v1.2.6
 	github.com/godbus/dbus/v5 v5.0.6
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
@@ -21,7 +22,6 @@ require (
 
 require (
 	gioui.org/shader v1.0.9 // indirect
-	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	golang.org/x/net v0.48.0 // indirect
 )

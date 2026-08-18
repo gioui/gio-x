@@ -33,3 +33,7 @@ func (e *Explorer) importFile(_ ...string) (io.ReadCloser, error) {
 func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
+
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}

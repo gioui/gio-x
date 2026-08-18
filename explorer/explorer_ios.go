@@ -115,6 +115,10 @@ func (e *Explorer) importFiles(_ ...string) ([]io.ReadCloser, error) {
 	return nil, ErrNotAvailable
 }
 
+func (e *Explorer) chooseFolder() (string, error) {
+	return "", ErrNotAvailable
+}
+
 //export importCallback
 func importCallback(u C.CFTypeRef, id C.int32_t) {
 	fileCallback(u, id)
