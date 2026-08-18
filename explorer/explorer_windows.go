@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"syscall"
+	"unicode/utf16"
 	"unsafe"
 
 	"gioui.org/app"
@@ -170,7 +171,6 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 		return nil, ErrUserDecline
 	}
 
-	// Split the pathUTF16 by null characters
 	paths := make([]string, 0)
 	currentPath := make([]uint16, 0)
 	for _, char := range pathUTF16 {
@@ -184,15 +184,16 @@ func (e *Explorer) importFiles(extensions ...string) ([]io.ReadCloser, error) {
 		}
 	}
 
-	// The first element is the directory, append it to each filename
-	dir := paths[0]
-	filePaths := make([]string, len(paths)-1)
-	for i, file := range paths[1:] {
-		filePaths[i] = filepath.Join(dir, file)
-	}
-
-	if len(filePaths) == 0 {
+	if len(paths) == 0 {
 		return nil, ErrUserDecline
+	}
+	filePaths := paths
+	if len(paths) > 1 {
+		dir := paths[0]
+		filePaths = make([]string, len(paths)-1)
+		for i, file := range paths[1:] {
+			filePaths[i] = filepath.Join(dir, file)
+		}
 	}
 
 	files := make([]io.ReadCloser, len(filePaths))
@@ -286,19 +287,15 @@ func buildFilter(extensions []string) *uint16 {
 		return nil
 	}
 
-	for k, v := range extensions {
-		// Extension must have `*` wildcard, so `.jpg` must be `*.jpg`.
-		if !strings.HasPrefix(v, "*") {
-			extensions[k] = "*" + v
+	patterns := make([]string, len(extensions))
+	for i, extension := range extensions {
+		if !strings.HasPrefix(extension, "*") {
+			extension = "*" + extension
 		}
+		patterns[i] = extension
 	}
-	e := strings.ToUpper(strings.Join(extensions, ";"))
+	filter := strings.ToUpper(strings.Join(patterns, ";"))
 
-	// That is a "string-pair", Windows have a Title and the Filter, for instance it could be:
-	// Images\0*.JPG;*.PNG\0\0
-	// Where `\0` means NULL
-	f := windows.StringToUTF16(e + " " + e) // Use the filter as title so it appear `*.JPG;*.PNG` for the user.
-	f[len(e)] = 0                           // Replace the " " (space) with NULL.
-	f = append(f, uint16(0))                // Adding another NULL, because we need two.
+	f := utf16.Encode([]rune(filter + "\x00" + filter + "\x00\x00"))
 	return &f[0]
 }
