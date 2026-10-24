@@ -100,7 +100,7 @@ public class explorer_android {
                             Uri uri = Objects.requireNonNull(data.getData());
                             ParcelFileDescriptor pfd = resolver.openFileDescriptor(uri, "wt");
                             FileOutputStream f = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
-                            explorer_android.ExportCallback(f, requestCode, null, "");
+                            explorer_android.ExportCallback(f, requestCode, getFileInfoFromContentUri(uri), "");
                         } catch (Exception e) {
                             explorer_android.ExportCallback(null, requestCode, null, e.toString());
                         }
