@@ -135,10 +135,24 @@ public class explorer_android {
                 int extIndex = filename.lastIndexOf(".") + 1;
                 String ext = extIndex < filename.length() ? filename.substring(extIndex) : filename;
                 final Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase()));
+                // An extension Android does not know (such as .kdbx) gives
+                // no MIME type, and ACTION_CREATE_DOCUMENT without a type
+                // matches no app ("no app can perform this action").
+                String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                if (mime == null || mime.isEmpty()) {
+                    mime = "application/octet-stream";
+                }
+                intent.setType(mime);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.putExtra(Intent.EXTRA_TITLE, filename);
-                frag.startActivityForResult(Intent.createChooser(intent, ""), id);
+                try {
+                    frag.startActivityForResult(Intent.createChooser(intent, ""), id);
+                } catch (android.content.ActivityNotFoundException e) {
+                    // Report it to the caller instead of an uncaught
+                    // exception on the UI thread.
+                    export_codes.remove(Integer.valueOf(id));
+                    ExportCallback(null, id, null, "no app can save the file: " + e.getMessage());
+                }
             }
         });
     }
