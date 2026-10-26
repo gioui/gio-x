@@ -185,30 +185,35 @@ func (e *Explorer) withDesktopPortal(work func(conn *dbus.Conn, desktopPortal db
 // makeFilter constructs a file type filter appropriate for the provided extensions
 // and encodes it as a dbus variant.
 func makeFilter(extensions []string) dbus.Variant {
-	// Resolve the provided extensions to their corresponding mime types.
-	type mimetype struct {
+	// Resolve the provided extensions to their corresponding mime types as well as to
+	// wildcard filters.
+	type criterion struct {
 		// Field names _must_ be exported so that they are available via reflection,
 		// otherwise they will not be sent.
 		Kind uint
 		Name string
 	}
-	mimes := make([]mimetype, len(extensions))
-	for i := range extensions {
-		ext := extensions[i]
+	const Mime = 1
+	const Glob = 0
+	criteria := make([]criterion, 0, len(extensions))
+	for _, ext := range extensions {
 		if !strings.HasPrefix(ext, ".") {
 			ext = "." + ext
 		}
-		mt := mime.TypeByExtension(ext)
-		if mt != "" {
-			mimes[i] = mimetype{
-				Kind: 1,
+
+		if mt := mime.TypeByExtension(ext); mt != "" {
+			if idx := strings.Index(mt, ";"); idx != -1 {
+				mt = mt[:idx]
+			}
+			criteria = append(criteria, criterion{
+				Kind: Mime,
 				Name: mt,
-			}
+			})
 		} else {
-			mimes[i] = mimetype{
-				Kind: 0,
+			criteria = append(criteria, criterion{
+				Kind: Glob,
 				Name: "*" + ext,
-			}
+			})
 		}
 	}
 
@@ -217,11 +222,11 @@ func makeFilter(extensions []string) dbus.Variant {
 		// Field names must be exported so they are available via reflection, otherwise
 		// they will not be sent.
 		Name  string
-		Value []mimetype
+		Value []criterion
 	}{
 		{
 			Name:  "Filter",
-			Value: mimes,
+			Value: criteria,
 		},
 	}
 	return dbus.MakeVariantWithSignature(filter, dbus.ParseSignatureMust("a(sa(us))"))
